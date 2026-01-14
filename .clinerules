@@ -1,0 +1,123 @@
+# .clinerules - Technical Rules for miniwolf
+
+A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightweight Direwolf replacement with packet radio/APRS support. Custom DSP, AX.25/KISS/TNC2 protocols, real-time audio via ALSA, offline file processing.
+
+## Real-Time Constraints (Critical)
+
+- **No malloc/free/locks/IO/syscalls in audio callback** (audio_input_callback in loop.c)
+- Use 32-bit `float` only (not `double`) for DSP—smaller memory footprint
+- Static buffers and pre-allocated structures throughout
+- Callback-based architecture for ALSA integration
+
+## Code Style
+
+- **Minimal comments**—self-explanatory code preferred
+- **Function prefixes** group related functionality: `bf_` (filter), `aud_` (audio), `agc_` (gain control), `fft_`, `grz_` (Goertzel), `ax25_`, `tnc2_`, `kiss_`, `hldc_` (framing), `demod_*`, `bitclk*`, `modem_`, `mod_`, `ring_`, `sql_` (squelch), `dedupe_`, `tcp_server_`, `line_reader_`, `mavg_`/`ema_` (averages), `crc_ccitt_`
+- **Struct-based organization** with `init()`, `process()`, `free()` pattern
+- **Buffer safety**: Always pass buffer size, verify available capacity before writes
+- **Error codes**: 0 = success, negative = error
+- **Goto for cleanup** only in main functions
+
+## Module Breakdown
+
+**Protocols** (libax25.a)
+
+- `ax25_addr_*` / `ax25_packet_*`: AX.25 (7-byte addresses: 6-char callsign, SSID, repeat flag)
+- `hldc_framer_*` / `hldc_deframer_*`: HDLC framing (NRZI, bit stuffing, CRC-CCITT 0xFFFF, 0x7E flags)
+- `tnc2_*`: TNC2 text format parsing
+- `kiss_*`: KISS binary protocol with escape sequences
+- `crc_ccitt_*`: CRC-CCITT checksums
+
+**DSP** (libdsp.a)
+
+- `bf_lpf_*` / `bf_hpf_*` / `bf_bpf_*`: Butterworth filters (LPF, HPF, BPF)
+- `bf_biquad_*`: Biquad high-boost EQ at 2200 Hz
+- `agc_*` / `agc2_*`: Two AGC variants (standard and alternative)
+- `fft_*`: Cooley-Tukey radix-2 FFT; pre-computed twiddles
+- `grz_*` (Goertzel): Tone detection algorithm
+
+**Core** (libminiwolf_core.a)
+
+- `modem_*`: Wrapper for RX/TX chains (delegates to md_rx/md_tx)
+- `md_multi_rx_*`: Up to 6 parallel demodulators with deduplication
+- `md_rx_*` / `md_tx_*`: Single RX/TX chain (modem state machine)
+- `demod_*`: Five demodulator types (flags: DEMOD_GOERTZEL_OPTIM, DEMOD_GOERTZEL_PESIM, DEMOD_QUADRATURE, DEMOD_SPLIT_MARK, DEMOD_SPLIT_SPACE; DEMOD_RRC experimental)
+- `bitclk_*`: Simple threshold-based bit clock recovery
+- `bitclk2_*`: PLL-based bit clock recovery with lock detection
+- `mod_*`: FSK modulation (mark=2200 Hz, space=1200 Hz)
+- `ring_*`: Lock-free ring buffers (thread-safe read/write)
+- `sql_*`: Squelch gate (AGC + energy threshold)
+- `dedupe_*`: Frame deduplication by CRC with expiration window
+- `tcp_server_*`: TCP KISS/TNC2 servers (init, process, broadcast)
+- `udp_sender_*`: UDP packet transmission (init, send, free) with broadcast support
+- `line_reader_*`: TNC2 line parsing from stdin/TCP
+- `aud_*`: ALSA integration (list, find, configure, start, input callback, output)
+- `buf_*` / `fbuf_*`: Buffer capacity/size checks
+- `mavg_*` / `ema_*`: Moving/exponential moving averages
+
+**Main Programs**
+
+- `main.c`: Initialize audio, args, loop control; cleanup
+- `loop.c`: Real-time packet routing (audio→demod→output; stdin/TCP→modulation→audio)
+- `audio.c`: ALSA initialization and callback glue
+- `args.c`: CLI argument parsing (argp library)
+- `main_bench.c`: Offline demod from binary audio files (F32/F64/S8/S16/S32/U8/U16/U32, LE/BE)
+- `main_cal.c`: Real-time FFT spectrum analyzer (8 frequency bins, 1200 Hz reference)
+- `main_test.c`: Unit test runner
+
+## Protocol Details
+
+**AX.25**: 7-byte addresses (6-char space-padded callsign + 4-bit SSID + repeat flag)
+**HDLC**: NRZI encode → bit-stuff (insert 0 after five 1s) → CRC-CCITT → 0x7E delimiters
+**Bell 202**: 1200 bps FSK (mark=2200 Hz, space=1200 Hz), flags pre/post-amble configurable
+**KISS**: PORT + COMMAND + data bytes, 0xC0 frame delimiters, 0xDB escape
+**TNC2**: Human-readable (e.g., STATION>DEST,PATH:DATA)
+
+## Demodulation Strategy
+
+Five parallel demodulators run simultaneously in `md_multi_rx_*`:
+
+- **Goertzel optimized**: Fast, low-latency Goertzel algorithm
+- **Goertzel pessimistic**: Robust, higher SNR requirement
+- **Quadrature**: Alternative mixer-based approach
+- **Split-filter mark**: Branch targeting 2200 Hz
+- **Split-filter space**: Branch targeting 1200 Hz
+
+Each produces soft bits → dual bit-clock detectors (simple + PLL) → hard symbols → HDLC deframer. Multi-RX deduplication selects best result by CRC.
+
+## Logging
+
+Macros in `common.h`, output to stderr, auto-includes function name:
+
+- `LOG(str, ...)`: Always visible
+- `LOGV(str, ...)`: With `--verbose`
+- `LOGD(str, ...)`: With `--debug` only
+- `EXIT(code, str, ...)`, `EXITIF(cond, code, ...)`: Fatal errors
+- `nonnull(val, name)`, `nonzero(val, name)`: Input validation (exit -2/-3)
+
+Messages: lowercase start, no period/newline (auto-added).
+
+## Build
+
+**Three libraries** (independent compilation):
+
+- `libax25.a`: ax25, kiss, tnc2, hldc, crc
+- `libdsp.a`: agc, fft, filter, goertzel, synth, mavg
+- `libminiwolf_core.a`: bitclk, common, demod, line, mod, modem, ring, squelch, tcp, buffer, dedupe, nrzi
+
+**Four executables**:
+
+- `miniwolf`: main.c + audio.c + loop.c + args.c + all libraries + ALSA
+- `mw_test`: main_test.c + test.c + args.c + all libraries (no ALSA)
+- `mw_bench`: main_bench.c + all libraries (no ALSA)
+- `mw_cal`: main_cal.c + audio.c + all libraries + ALSA
+
+**Makefile targets**: `build`, `release`, `test`, `run`, `cal`, `clean`, `prof`, `bench1`, `bench2`
+
+## Unit Testing
+
+- Test files: `test_*.h` (functions matching `void test_name(void)`)
+- Added to `main_test.c`
+- Run via `make test`
+- Use assertion macros from `test.h`
+- Test: normal operation, boundary conditions (empty/full/wrap), init/free, diverse inputs

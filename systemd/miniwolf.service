@@ -1,0 +1,18 @@
+[Unit]
+Description=Miniwolf Service
+After=network.target sound.target
+
+[Service]
+User=root
+ExecStart=/usr/local/bin/miniwolf -d default -r 44100 --tcp-kiss 8144 --udp-tnc2-addr 224.0.0.1 --udp-tnc2-port 18144 --udp-tnc2-listen 28144 -io -2 3.0 -y 350 -z 35 --exit-idle 180
+
+# Restart policy: Retry forever every 5 seconds on failure
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=0
+
+# Type simple ensures it doesn't block system startup
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

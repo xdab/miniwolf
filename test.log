@@ -1,0 +1,1968 @@
+mkdir -p build
+cd build && cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ..
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/pw/Desktop/miniwolf/build
+cd build && make
+make[1]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[2]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[ 16%] Built target ax25
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[ 32%] Built target dsp
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[ 67%] Built target miniwolf_core
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[ 79%] Built target miniwolf
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[ 88%] Built target miniwolf_test
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[ 93%] Built target miniwolf_bench
+make[3]: Entering directory '/home/pw/Desktop/miniwolf/build'
+make[3]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+[100%] Built target miniwolf_cal
+make[2]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+make[1]: Leaving directory '/home/pw/Desktop/miniwolf/build'
+./build/miniwolf_test
+Starting tests...
+Module Address
+Module Address completed: 21/21 passed
+Module Packet
+Module Packet completed: 25/25 passed
+Module TNC2
+Module TNC2 completed: 49/49 passed
+Module Ring
+Module Ring completed: 21/21 passed
+Module HLDC
+Module HLDC completed: 12/12 passed
+Module Bell202
+Demodulation algorithm: Goertzel (Optimistic)
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Demodulation algorithm: Quadrature
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Demodulation algorithm: RRC (Direwolf)
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 32, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 64, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 96, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 128, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 160, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 192, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 224, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 256, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 28, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 35, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 42, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 49, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 56, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 63, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 70, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 77, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 84, got 0
+FAIL - assert true decoded data matches original
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true modulation successful
+FAIL - assert true demodulation successful
+FAIL - assert equal int decoded length matches original: expected 48, got 0
+FAIL - assert true decoded data matches original despite noise
+FAIL - assert true packet1 modulation successful
+FAIL - assert true packet2 modulation successful
+FAIL - assert equal int exactly 2 frames detected: expected 2, got 0
+FAIL - assert equal int detected frame 0 size: expected 18, got -1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Module Bell202 completed: 318/2145 passed
+Module KISS
+Module KISS completed: 67/67 passed
+Module Line Reader
+Module Line Reader completed: 27/27 passed
+Module TCP
+1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Module Bell202 completed: 318/2145 passed
+Module KISS
+Module KISS completed: 67/67 passed
+Module Line Reader
+Module Line Reader completed: 27/27 passed
+Module TCP
+1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Module Bell202 completed: 318/2145 passed
+Module KISS
+Module KISS completed: 67/67 passed
+Module Line Reader
+Module Line Reader completed: 27/27 passed
+Module TCP
+1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Module Bell202 completed: 318/2145 passed
+Module KISS
+Module KISS completed: 67/67 passed
+Module Line Reader
+Module Line Reader completed: 27/27 passed
+Module TCP
+1498914640
+FAIL - assert equal int detected frame 1 size: expected 18, got -1834062168
+FAIL - assert memory detected frame 0 matches original packet
+FAIL - assert memory detected frame 1 matches original packet
+SNR +1.0 dB; Decode rate 0%
+SNR +2.0 dB; Decode rate 0%
+SNR +3.0 dB; Decode rate 0%
+SNR +4.0 dB; Decode rate 0%
+SNR +5.0 dB; Decode rate 0%
+SNR +6.0 dB; Decode rate 0%
+Module Bell202 completed: 318/2145 passed
+Module KISS
+Module KISS completed: 67/67 passed
+Module Line Reader
+Module Line Reader completed: 27/27 passed
+Module TCP
+Module TCP completed: 13/13 passed
+Module Moving Average
+Module Moving Average completed: 31/31 passed
+
+Tests completed: 2411 total, 584 passed, 1827 failed
+FAILED

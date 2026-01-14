@@ -1,0 +1,24 @@
+#pragma once
+
+#include "buffer.h"
+#include <poll.h>
+
+typedef int input_callback_t(float_buffer_t *buf);
+
+// Lifecycle
+int aud_initialize();
+void aud_terminate();
+
+// Configuration
+int aud_configure(const char *device_name, int sample_rate, int do_input, int do_output);
+void aud_list_devices();
+int aud_start();
+
+// Streaming
+void aud_output(const float_buffer_t *buf);
+void aud_input(input_callback_t *callback, float_buffer_t *buf);
+
+// Poll/Event handling
+int aud_get_capture_poll_fds(struct pollfd *pfds, int max_fds);
+int aud_process_capture_events(struct pollfd *pfds, int nfds, input_callback_t *callback, float_buffer_t *buf);
+void aud_process_playback();

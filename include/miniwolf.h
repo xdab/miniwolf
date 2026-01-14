@@ -1,0 +1,54 @@
+#pragma once
+
+#include "args.h"
+#include "agc.h"
+#include "squelch.h"
+#include "modem.h"
+#include "line.h"
+#include "kiss.h"
+#include "filter.h"
+#include "tcp.h"
+#include "udp.h"
+#include <time.h>
+
+typedef struct miniwolf_state
+{
+    // DSP components
+    agc_t input_agc;
+    sql_t squelch;
+    modem_t modem;
+    bf_biquad_t hbf_filter;
+
+    // Input readers
+    line_reader_t line_reader;
+    line_reader_t tcp_tnc2_line_reader;
+    kiss_decoder_t kiss_decoder;
+
+    // Network servers and senders
+    tcp_server_t tcp_kiss_server;
+    tcp_server_t tcp_tnc2_server;
+    udp_sender_t udp_kiss_sender;
+    udp_sender_t udp_tnc2_sender;
+    udp_server_t udp_kiss_server;
+    udp_server_t udp_tnc2_server;
+
+    // Configuration flags
+    int kiss_mode;
+    int tcp_kiss_enabled;
+    int tcp_tnc2_enabled;
+    int udp_kiss_enabled;
+    int udp_tnc2_enabled;
+    int udp_kiss_listen_enabled;
+    int udp_tnc2_listen_enabled;
+    int squelch_enabled;
+
+    // Timing
+    time_t max_idle_time;
+    time_t last_packet_time;
+} miniwolf_t;
+
+extern miniwolf_t g_miniwolf;
+
+void miniwolf_init(miniwolf_t *mw, const args_t *args);
+
+void miniwolf_free(miniwolf_t *mw);
