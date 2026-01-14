@@ -12,7 +12,7 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 ## Code Style
 
 - **Minimal comments**—self-explanatory code preferred
-- **Function prefixes** group related functionality: `bf_` (filter), `aud_` (audio), `agc_` (gain control), `fft_`, `grz_` (Goertzel), `ax25_`, `tnc2_`, `kiss_`, `hldc_` (framing), `demod_*`, `bitclk*`, `modem_`, `mod_`, `ring_`, `sql_` (squelch), `dedupe_`, `tcp_server_`, `line_reader_`, `mavg_`/`ema_` (averages), `crc_ccitt_`
+- **Function prefixes** group related functionality: `bf_` (filter), `aud_` (audio), `agc_` (gain control), `fft_`, `grz_` (Goertzel), `ax25_`, `tnc2_`, `kiss_`, `hldc_` (framing), `demod_*`, `bitclk*`, `modem_`, `mod_`, `ring_`, `sql_` (squelch), `dedupe_`, `tcp_*`, `udp_*`, `line_*`, `mavg_`/`ema_` (averages), `crc_ccitt_`
 - **Struct-based organization** with `init()`, `process()`, `free()` pattern
 - **Buffer safety**: Always pass buffer size, verify available capacity before writes
 - **Error codes**: 0 = success, negative = error
@@ -38,22 +38,25 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 
 **Core** (libminiwolf_core.a)
 
+- `ring_*`: Lock-free ring buffers (thread-safe read/write)
+- `tcp_*`: TCP client/server integration
+- `udp_*`: UDP packet transmission and reception
+- `line_*`: TNC2 line parsing from stdin/TCP
+- `aud_*`: ALSA integration (list, find, configure, start, input callback, output)
+- `buf_*` / `fbuf_*`: Buffer capacity/size checks
+
+**Modem** (libminiwolf_modem.a)
+
 - `modem_*`: Wrapper for RX/TX chains (delegates to md_rx/md_tx)
 - `md_multi_rx_*`: Up to 6 parallel demodulators with deduplication
 - `md_rx_*` / `md_tx_*`: Single RX/TX chain (modem state machine)
-- `demod_*`: Five demodulator types (flags: DEMOD_GOERTZEL_OPTIM, DEMOD_GOERTZEL_PESIM, DEMOD_QUADRATURE, DEMOD_SPLIT_MARK, DEMOD_SPLIT_SPACE; DEMOD_RRC experimental)
+- `demod_*`: Six demodulator types (flags: DEMOD_GOERTZEL_OPTIM, DEMOD_GOERTZEL_PESIM, DEMOD_QUADRATURE, DEMOD_SPLIT_MARK, DEMOD_SPLIT_SPACE, DEMOD_RRC)
+- `demod_goertzel_*`, `demod_quad_*`, `demod_split_*`, `demod_rrc_*`: Demodulator implementations
 - `bitclk_*`: Simple threshold-based bit clock recovery
 - `bitclk2_*`: PLL-based bit clock recovery with lock detection
 - `mod_*`: FSK modulation (mark=2200 Hz, space=1200 Hz)
-- `ring_*`: Lock-free ring buffers (thread-safe read/write)
 - `sql_*`: Squelch gate (AGC + energy threshold)
 - `dedupe_*`: Frame deduplication by CRC with expiration window
-- `tcp_server_*`: TCP KISS/TNC2 servers (init, process, broadcast)
-- `udp_sender_*`: UDP packet transmission (init, send, free) with broadcast support
-- `line_reader_*`: TNC2 line parsing from stdin/TCP
-- `aud_*`: ALSA integration (list, find, configure, start, input callback, output)
-- `buf_*` / `fbuf_*`: Buffer capacity/size checks
-- `mavg_*` / `ema_*`: Moving/exponential moving averages
 
 **Main Programs**
 
@@ -63,6 +66,7 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 - `args.c`: CLI argument parsing (argp library)
 - `main_bench.c`: Offline demod from binary audio files (F32/F64/S8/S16/S32/U8/U16/U32, LE/BE)
 - `main_cal.c`: Real-time FFT spectrum analyzer (8 frequency bins, 1200 Hz reference)
+- `main_log.c`: TCP/UDP packet logger for AX.25 RF traffic
 - `main_test.c`: Unit test runner
 
 ## Protocol Details
@@ -75,13 +79,14 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 
 ## Demodulation Strategy
 
-Five parallel demodulators run simultaneously in `md_multi_rx_*`:
+Up to six parallel demodulators run simultaneously in `md_multi_rx_*`:
 
 - **Goertzel optimized**: Fast, low-latency Goertzel algorithm
 - **Goertzel pessimistic**: Robust, higher SNR requirement
 - **Quadrature**: Alternative mixer-based approach
 - **Split-filter mark**: Branch targeting 2200 Hz
 - **Split-filter space**: Branch targeting 1200 Hz
+- **RRC (experimental)**: Root-raised-cosine filter with DDS oscillators and FIR (unsatisfactory performance)
 
 Each produces soft bits → dual bit-clock detectors (simple + PLL) → hard symbols → HDLC deframer. Multi-RX deduplication selects best result by CRC.
 
@@ -99,18 +104,20 @@ Messages: lowercase start, no period/newline (auto-added).
 
 ## Build
 
-**Three libraries** (independent compilation):
+**Four libraries** (independent compilation):
 
-- `libax25.a`: ax25, kiss, tnc2, hldc, crc
+- `libax25.a`: ax25, kiss, tnc2, hldc, crc, buffer
 - `libdsp.a`: agc, fft, filter, goertzel, synth, mavg
-- `libminiwolf_core.a`: bitclk, common, demod, line, mod, modem, ring, squelch, tcp, buffer, dedupe, nrzi
+- `libminiwolf_core.a`: common, line, ring, tcp, udp, buffer
+- `libminiwolf_modem.a`: bitclk, demod, demod_goertzel, demod_quad, demod_rrc, demod_split, mod, modem, squelch, dedupe
 
-**Four executables**:
+**Five executables**:
 
 - `miniwolf`: main.c + audio.c + loop.c + args.c + all libraries + ALSA
 - `mw_test`: main_test.c + test.c + args.c + all libraries (no ALSA)
 - `mw_bench`: main_bench.c + all libraries (no ALSA)
 - `mw_cal`: main_cal.c + audio.c + all libraries + ALSA
+- `mw_log`: main_log.c + libax25.a + libminiwolf_core.a (TCP/UDP packet logger)
 
 **Makefile targets**: `build`, `release`, `test`, `run`, `cal`, `clean`, `prof`, `bench1`, `bench2`
 

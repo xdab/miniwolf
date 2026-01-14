@@ -4,7 +4,7 @@
 
 ## Features
 
-- **Multiple demodulation strategies** (Goertzel, quadrature, split-filter) running in parallel for robust reception
+- **Multiple demodulation strategies** (Goertzel, quadrature, split-filter) - up to 6 parallel demodulators for robust reception
 - **Full AX.25 protocol support** with TNC2 (text) and KISS (binary) formats
 - **TCP servers** (separate KISS and TNC2 ports) and UDP transmission for integration with existing tools
 - **Real-time and offline processing** - live soundcard or pre-recorded audio files
@@ -54,10 +54,13 @@ miniwolf [OPTIONS]
 - `--udp-kiss-port PORT` - UDP destination port for KISS packets
 - `--udp-tnc2-addr ADDR` - UDP destination address for TNC2 packets
 - `--udp-tnc2-port PORT` - UDP destination port for TNC2 packets
+- `--udp-kiss-listen PORT` - UDP server port for receiving KISS packets
+- `--udp-tnc2-listen PORT` - UDP server port for receiving TNC2 packets
 - `-s, --squelch` - Enable noise gate
 - `--eq2200 GAIN` - Channel EQ at 2200 Hz (dB)
 - `--tx-delay MS` - TX pre-amble duration (default 300ms)
 - `--tx-tail MS` - TX post-amble duration (default 50ms)
+- `--exit-idle S` - Exit program if no packets received in S seconds
 - `-v, --verbose` / `-V, --debug` - Logging levels
 
 ### Offline Demodulation
@@ -80,10 +83,34 @@ Real-time audio spectrum display:
 
 Shows FFT bins with Bell 202 frequencies (1200/2200 Hz) highlighted.
 
+### RF Traffic Logger
+
+Log all received packets to date-stamped files:
+
+```bash
+# Log from TCP KISS server running on localhost:8100
+./build/mw_log --tcp-addr 127.0.0.1 --tcp-port 8100 --prefix rx
+
+# Or listen on UDP port for KISS packets
+./build/mw_log --udp-port 18144 --kiss --prefix rx
+
+# TNC2 format (default)
+./build/mw_log --tcp-addr 127.0.0.1 --tcp-port 8144 --prefix rx
+```
+
+**Logger options:**
+
+- `--tcp-addr ADDR` - TCP server address to connect to
+- `--tcp-port PORT` - TCP server port
+- `--udp-port PORT` - UDP listening port for receiving packets
+- `--prefix STR` - Log file prefix (default: "rx", creates files like `rx-20260114.log`)
+- `-k, --kiss` - Parse KISS binary format (default: TNC2 text)
+- `-v, --verbose` / `-V, --debug` - Logging levels
+
 ## How It Works
 
 **Reception:**
-Audio input → Channel EQ (optional) → Squelch (optional) → 5 parallel demodulators → Dual bit-clock recovery (simple + PLL) → HDLC deframing → Deduplication → Output (TNC2/KISS via stdout or TCP)
+Audio input → Channel EQ (optional) → Squelch (optional) → Up to 6 parallel demodulators → Dual bit-clock recovery (simple + PLL) → HDLC deframing → Deduplication → Output (TNC2/KISS via stdout or TCP)
 
 **Transmission:**
 Input (stdin/TCP) → TNC2/KISS parsing → AX.25 packing → HDLC framing → FSK modulation → Audio output
@@ -110,6 +137,7 @@ make clean           # Remove build artifacts
 - `miniwolf` - Main TNC application
 - `mw_bench` - Offline demodulator
 - `mw_cal` - Spectrum analyzer
+- `mw_log` - RF traffic logger (receives from TCP/UDP, logs to files)
 - `mw_test` - Unit tests
 
 ## Requirements
