@@ -1,3 +1,5 @@
+![Build](https://github.com/xdab/miniwolf/actions/workflows/c-cpp.yml/badge.svg)
+
 # miniwolf
 
 **A minimalist soundcard modem/TNC for amateur radio.** Lightweight Direwolf replacement supporting Bell 202 (1200 bps) packet radio and APRS with multiple demodulation strategies, TCP servers, and offline processing.
