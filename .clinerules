@@ -36,16 +36,16 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 - `fft_*`: Cooley-Tukey radix-2 FFT; pre-computed twiddles
 - `grz_*` (Goertzel): Tone detection algorithm
 
-**Core** (libminiwolf_core.a)
+**Core** (mw_core)
 
 - `ring_*`: Lock-free ring buffers (thread-safe read/write)
 - `tcp_*`: TCP client/server integration
 - `udp_*`: UDP packet transmission and reception
 - `line_*`: TNC2 line parsing from stdin/TCP
-- `aud_*`: ALSA integration (list, find, configure, start, input callback, output)
 - `buf_*` / `fbuf_*`: Buffer capacity/size checks
+- `common_*`: Logging macros and utilities
 
-**Modem** (libminiwolf_modem.a)
+**Modem** (mw_modem)
 
 - `modem_*`: Wrapper for RX/TX chains (delegates to md_rx/md_tx)
 - `md_multi_rx_*`: Up to 6 parallel demodulators with deduplication
@@ -88,7 +88,7 @@ Up to six parallel demodulators run simultaneously in `md_multi_rx_*`:
 - **Split-filter space**: Branch targeting 1200 Hz
 - **RRC (experimental)**: Root-raised-cosine filter with DDS oscillators and FIR (unsatisfactory performance)
 
-Each produces soft bits → dual bit-clock detectors (simple + PLL) → hard symbols → HDLC deframer. Multi-RX deduplication selects best result by CRC.
+Each produces soft bits → dual bit-clock detectors (simple + PLL) → hard symbols → HDLC deframer. Multi-RX deduplication by CRC.
 
 ## Logging
 
@@ -108,8 +108,8 @@ Messages: lowercase start, no period/newline (auto-added).
 
 - `libax25.a`: ax25, kiss, tnc2, hldc, crc, buffer
 - `libdsp.a`: agc, fft, filter, goertzel, synth, mavg
-- `libminiwolf_core.a`: common, line, ring, tcp, udp, buffer
-- `libminiwolf_modem.a`: bitclk, demod, demod_goertzel, demod_quad, demod_rrc, demod_split, mod, modem, squelch, dedupe
+- `mw_core`: buffer, line, common, ring, tcp, udp
+- `mw_modem`: bitclk, demod, demod_goertzel, demod_quad, demod_rrc, demod_split, mod, modem, squelch, dedupe
 
 **Five executables**:
 
@@ -117,7 +117,7 @@ Messages: lowercase start, no period/newline (auto-added).
 - `mw_test`: main_test.c + test.c + args.c + all libraries (no ALSA)
 - `mw_bench`: main_bench.c + all libraries (no ALSA)
 - `mw_cal`: main_cal.c + audio.c + all libraries + ALSA
-- `mw_log`: main_log.c + libax25.a + libminiwolf_core.a (TCP/UDP packet logger)
+- `mw_log`: main_log.c + dedupe.c + mw_core + libax25.a (TCP/UDP packet logger)
 
 **Makefile targets**: `build`, `release`, `test`, `run`, `cal`, `clean`, `prof`, `bench1`, `bench2`
 
