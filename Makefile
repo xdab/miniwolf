@@ -1,4 +1,4 @@
-.PHONY: all build release run cal log test prof bench1 bench2 benchdz install clean
+.PHONY: all build release package run cal log test prof bench1 bench2 benchdz install clean
 
 all: run
 
@@ -11,6 +11,16 @@ release:
 	mkdir -p build
 	cd build && cmake -G "Unix Makefiles" ..
 	cd build && make
+
+ARCH := $(shell uname -m)
+VERSION := $(shell git describe --tags --always --abbrev=8 2>/dev/null || echo "unknown")
+
+package: release
+	rm -rf miniwolf_package
+	mkdir -p miniwolf_package
+	cp build/miniwolf build/mw_cal build/mw_log build/mw_test build/mw_bench miniwolf_package/
+	tar -czf miniwolf-$(ARCH)-$(VERSION).tar.gz -C miniwolf_package .
+	rm -rf miniwolf_package
 
 run: build
 	./build/miniwolf -v -io -d plughw:CARD=Generic,DEV=0 -r 44100 --tcp-tnc2 8144 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 18144 --udp-tnc2-listen 28144
