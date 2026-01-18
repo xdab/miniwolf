@@ -2,6 +2,8 @@
 
 # miniwolf
 
+_Danger! Parts of the code and docs may be LLM-written._
+
 ### What it is
 
 Soundcard modem/TNC for amateur radio packet communications designed as a simple, lightweight alternative to well-known and respected [Direwolf by WB2OSZ](https://github.com/wb2osz/direwolf). 
