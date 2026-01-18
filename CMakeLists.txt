@@ -14,14 +14,17 @@ include_directories(${ALSA_INCLUDE_DIRS} include)
 if(MINIWOLF_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DEBUG_FLAGS "-pg -O0 -DDEBUG")
     set(RELEASE_FLAGS "")
+    set(RELEASE_LINK_FLAGS "")
 else()
     set(DEBUG_FLAGS "")
-    set(RELEASE_FLAGS "-O3 -DNDEBUG")
+    set(RELEASE_FLAGS "-O3 -DNDEBUG -flto")
+    set(RELEASE_LINK_FLAGS "-Wl,--gc-sections")
 endif()
 
 # Apply flags to all targets
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${DEBUG_FLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${RELEASE_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${RELEASE_LINK_FLAGS}")
 
 # AX25 Library: Protocol stack modules
 set(AX25_SOURCES
@@ -95,6 +98,15 @@ target_link_libraries(mw_cal mw_core dsp ${ALSA_LIBRARIES} m)
 # mw_log: RF traffic logger
 add_executable(mw_log src/main_log.c src/dedupe.c)
 target_link_libraries(mw_log mw_core ax25)
+
+# Strip symbols in Release builds
+if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_custom_command(TARGET miniwolf POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf>)
+    add_custom_command(TARGET mw_test POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_test>)
+    add_custom_command(TARGET mw_bench POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_bench>)
+    add_custom_command(TARGET mw_cal POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_cal>)
+    add_custom_command(TARGET mw_log POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_log>)
+endif()
 
 # Installation
 include(GNUInstallDirs)
