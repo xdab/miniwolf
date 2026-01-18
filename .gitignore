@@ -64,3 +64,6 @@ build/
 
 # IDEs and editors
 .vscode/
+
+# Release packages
+*.tar.gz
