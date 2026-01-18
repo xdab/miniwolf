@@ -12,7 +12,6 @@
 - **Real-time and offline processing** - live soundcard or pre-recorded audio files
 - **Advanced DSP** - AGC, multi-order Butterworth filters, FFT spectrum analysis
 - **Configurable squelch, channel EQ, and TX timing** via CLI arguments
-- **Cross-platform** (Linux/macOS) with ALSA for audio I/O
 - **Small footprint** - optimized for embedded/low-power systems with 32-bit float arithmetic
 - **Static binaries** - no runtime config files needed
 
@@ -132,7 +131,8 @@ make clean           # Remove build artifacts
 
 - `libax25.a` - Protocol stack (AX.25, KISS, TNC2, HDLC, CRC)
 - `libdsp.a` - DSP (AGC, FFT, filters, Goertzel, synthesis)
-- `libminiwolf_core.a` - Core infrastructure (modem, demod, ring buffers, TCP)
+- `mw_core` - Core infrastructure (ring buffers, TCP/UDP, line parsing)
+- `mw_modem` - Modem layer (demodulators, bit clock, FSK modulator, squelch, deduplication)
 
 **Executables:**
 
@@ -144,7 +144,7 @@ make clean           # Remove build artifacts
 
 ## Requirements
 
-- Linux or macOS
+- Linux
 - ALSA development libraries (libasound2-dev)
 - CMake 3.10+, Make, C compiler (GCC/Clang)
 
