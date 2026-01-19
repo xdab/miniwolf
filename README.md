@@ -6,30 +6,32 @@ _Danger! Parts of the code and docs may be LLM-written._
 
 ### What it is
 
-Soundcard modem/TNC for amateur radio packet communications designed as a simple, lightweight alternative to well-known and respected [Direwolf by WB2OSZ](https://github.com/wb2osz/direwolf). 
+Soundcard modem/TNC for amateur radio packet communications designed as a simple, lightweight alternative to well-known and respected [Direwolf by WB2OSZ](https://github.com/wb2osz/direwolf).
 
 It supports encoding and decoding AX.25 packets over 1200 baud AFSK while interfacing with existing tools over stdin/stdout, TCP as well as UDP. On each of these "interfacing layers" both TNC2 and KISS can be used.
 
 ### What it isn't
 
 This project is **not** a:
+
 - Drop-in replacement for Direwolf
-  - The configuration is entirely CLI-based and non-persistent
-- Cross-platform program 
+  - Configuration files and command line arguments are not compatible
+- Cross-platform program
   - It is built around ALSA, the Advanced **Linux** Sound Architecture, the implication is fairly obvious
 - Multi-mode modem (for now)
   - Only Bell202 / 1200 baud AFSK is supported
-     - hardcoded actually...
+    - hardcoded actually...
 - Full-featured APRS station
   - No built-in digipeating, beaconing, APRS-IS connectivity
   
-And this is **the whole point!** To have a focused tool that does one job well. Let other tools figure out the rest.
+This **is the whole point!** To have a focused tool that does one job well. Let other tools figure out the rest.
 
 ## Build and installation
 
 While cloning the project is entirely standard, the building differs slightly from other projects using CMake. A root-level Makefile is specified with some shortcuts for building and even installing.
 
-#### Prerequisites
+### Prerequisites
+
 - Linux
 - GCC or Clang
 - CMake
@@ -53,26 +55,31 @@ miniwolf -l
 
 # Receive and transmit with TCP KISS server on port 8100
 miniwolf -d "default" -io -r 44100 --tcp-kiss 8100
+
+# Use configuration file
+miniwolf -c ~/miniwolf.conf
 ```
 
-## Detailed usage
+## Command line arguments
 
 ### Audio setup
+
 | Short option | Long option         | Description                                   |
 | ------------ | ------------------- | --------------------------------------------- |
 | `-l`         | `--list`            | List audio devices and exit                   |
 | `-d NAME`    | `--dev=NAME`        | Audio device name (e.g., "default", "hw:1,0") |
-| `-D INDEX`   | `--dev-index=INDEX` | Audio device by index                         |
 | `-r RATE`    | `--rate=RATE`       | Sample rate in Hz (typically 44100 or 48000)  |
 | `-i`         | `--input`           | Enable audio input (receive)                  |
 | `-o`         | `--output`          | Enable audio output (transmit)                |
 
 ### Protocol
+
 | Short option | Long option | Description                                        |
 | ------------ | ----------- | -------------------------------------------------- |
 | `-k`         | `--kiss`    | Use KISS protocol instead of TNC2 for stdin/stdout |
 
 ### Network
+
 | Long option                                     | Description                                 |
 | ----------------------------------------------- | ------------------------------------------- |
 | `--tcp-kiss PORT`                               | Start TCP server for KISS clients           |
@@ -83,6 +90,7 @@ miniwolf -d "default" -io -r 44100 --tcp-kiss 8100
 | `--udp-tnc2-listen PORT`                        | Listen for TNC2 packets to transmit via UDP |
 
 ### Signal processing
+
 | Short option | Long option     | Description                                                           |
 | ------------ | --------------- | --------------------------------------------------------------------- |
 | `-s`         | `--squelch`     | Enable noise gate (suppresses audio when no signal detected)          |
@@ -91,20 +99,55 @@ miniwolf -d "default" -io -r 44100 --tcp-kiss 8100
 |              | `--tx-tail MS`  | Transmit postamble duration in milliseconds (default: 50)             |
 
 ### Other
+
 | Short option | Long option     | Description                               |
 | ------------ | --------------- | ----------------------------------------- |
 |              | `--exit-idle S` | Exit if no packets received for S seconds |
 | `-v`         | `--verbose`     | Verbose logging                           |
 | `-V`         | `--debug`       | Debug logging                             |
 
+## Configuration file
+
+Optionally, configuration can be read from a file using `-c FILE` or `--config=FILE`.
+
+The file uses simple `key=value` syntax with `#` comments.
+Keys in the file are the same as long option names of CLI arguments.
+
+File-based configuration is secondary to CLI arguments.
+Arguments override entries in the configuration file.
+
+### Example
+
+```bash
+# CLI
+miniwolf -d "hw:1,0" -io -r 48000 -k --squelch --eq2200 2.5 --tcp-tnc2 8101 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 8001
+```
+
+is equivalent to:
+
+```ini
+# Equivalent.conf
+dev=hw:1,0
+input=true
+output=true
+rate=48000
+kiss=true
+squelch=true
+eq2200=2.5
+tcp-tnc2=8101
+udp-tnc2-addr=127.0.0.1
+udp-tnc2-port=8001
+```
+
 ## Working principles
 
 ### Receive chain
+
 Audio input → Channel EQ (optional) → Squelch gate (optional) → Demodulators → Dual bit-clock recovery (simple + PLL) → HDLC deframing → CRC deduplication → Output
 
 #### Goertzel demodulators
 
-Tone strengths calculated using Goertzel's algorithm, normalized and compared. 
+Tone strengths calculated using Goertzel's algorithm, normalized and compared.
 
 For the "optimistic" variant, the "hyperparameters" have been procedurally optimized for [TNC Test CD by WA8LMF](http://wa8lmf.net/TNCtest/) track 1. For the "pessimistic", track 2 was used.
 
