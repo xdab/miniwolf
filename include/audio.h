@@ -2,6 +2,7 @@
 
 #include "buffer.h"
 #include <poll.h>
+#include <stdbool.h>
 
 typedef int input_callback_t(float_buffer_t *buf);
 
@@ -10,7 +11,7 @@ int aud_initialize();
 void aud_terminate();
 
 // Configuration
-int aud_configure(const char *device_name, int sample_rate, int do_input, int do_output);
+int aud_configure(const char *device_name, int sample_rate, bool do_input, bool do_output);
 void aud_list_devices();
 int aud_start();
 

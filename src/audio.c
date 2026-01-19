@@ -218,7 +218,7 @@ void aud_list_devices()
     snd_device_name_free_hint(hints);
 }
 
-int aud_configure(const char *device_name, int sample_rate, int do_input, int do_output)
+int aud_configure(const char *device_name, int sample_rate, bool do_input, bool do_output)
 {
     int err;
 

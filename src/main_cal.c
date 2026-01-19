@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 
     LOG("Using device '%s'", args.dev_name);
 
-    if (aud_configure(args.dev_name, args.rate, 1, 1))
+    if (aud_configure(args.dev_name, args.rate, true, false))
         EXIT("Failed to configure sound device");
 
     if (aud_start())

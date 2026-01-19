@@ -58,6 +58,7 @@ set(CORE_SOURCES
     src/ring.c
     src/tcp.c
     src/udp.c
+    src/conf.c
 )
 add_library(mw_core STATIC ${CORE_SOURCES})
 target_include_directories(mw_core PUBLIC include)
@@ -80,11 +81,11 @@ target_include_directories(mw_modem PUBLIC include)
 target_link_libraries(mw_modem mw_core) # TODO refactor demod_goertzel.c to not use ring.h/c instead opting for stack-based circular buffer
 
 # miniwolf
-add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/args.c)
+add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c)
 target_link_libraries(miniwolf mw_core mw_modem ax25 dsp ${ALSA_LIBRARIES} m)
 
 # mw_test: unit tests
-add_executable(mw_test test/main_test.c test/test.c src/args.c)
+add_executable(mw_test test/main_test.c test/test.c)
 target_link_libraries(mw_test mw_core mw_modem ax25 dsp m)
 
 # mw_bench: recording/file demodulation tool
