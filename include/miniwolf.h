@@ -1,6 +1,6 @@
 #pragma once
 
-#include "args.h"
+#include "options.h"
 #include "agc.h"
 #include "squelch.h"
 #include "modem.h"
@@ -49,6 +49,6 @@ typedef struct miniwolf_state
 
 extern miniwolf_t g_miniwolf;
 
-void miniwolf_init(miniwolf_t *mw, const args_t *args);
+void miniwolf_init(miniwolf_t *mw, const options_t *opts);
 
 void miniwolf_free(miniwolf_t *mw);

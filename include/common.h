@@ -37,10 +37,10 @@ extern log_level_e _log_level;
     }
 
 // Critical errors requiring formatted output. Prints str (prefixed by function name) to stderr and terminates.
-#define EXIT(str, ...) \
-    {                              \
-        LOG(str, ##__VA_ARGS__);     \
-        exit(EXIT_FAILURE);           \
+#define EXIT(str, ...)           \
+    {                            \
+        LOG(str, ##__VA_ARGS__); \
+        exit(EXIT_FAILURE);      \
     }
 
 // Conditional checks that, if failed, should terminate the program. Prints a formatted message to stderr.
@@ -62,3 +62,10 @@ extern log_level_e _log_level;
 // Assertion: if condition is false, prints an error message to stderr (including __FILE__, __LINE__) and exits with code -4.
 #define _assert(condition, message) \
     EXITIF((condition) == 0, -4, "\n%s (%s:%d)\n\n", message, __FILE__, __LINE__);
+
+// Conditional assignment: if value equals a, replace with b
+#define REPLACE_IF_a_WITH_b(value, a, b) \
+    if ((value) == (a))                  \
+    {                                    \
+        (value) = (b);                   \
+    }

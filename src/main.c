@@ -2,40 +2,44 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "options.h"
 #include "audio.h"
-#include "args.h"
 #include "loop.h"
 #include "miniwolf.h"
 
 int main(int argc, char *argv[])
 {
-    struct arguments args = {0};
-    args_parse(argc, argv, &args);
-    _log_level = args.log_level;
+    options_t opts = {0};
+    opts_init(&opts);
+    opts_parse_args(&opts, argc, argv);
+    opts_parse_conf_file(&opts, opts.config_file);
+    opts_defaults(&opts);
+
+    _log_level = opts.log_level;
 
     if (aud_initialize())
         EXIT("Failed to initialize audio subsystem");
 
-    if (args.list)
+    if (opts.list)
     {
         aud_list_devices();
         goto NICE_EXIT;
     }
 
-    if (!args.dev_name)
+    if (opts.dev_name[0] == '\0')
         EXIT("No input specified");
 
-    if (args.rate <= 0)
+    if (opts.rate <= 0)
         EXIT("Invalid sample rate specified");
 
-    LOG("Using device '%s'", args.dev_name);
+    LOG("Using device '%s'", opts.dev_name);
 
-    if (aud_configure(args.dev_name, args.rate, args.dev_input, args.dev_output))
+    if (aud_configure(opts.dev_name, opts.rate, opts.dev_input, opts.dev_output))
         EXIT("Failed to configure sound device");
 
-    miniwolf_init(&g_miniwolf, &args);
+    miniwolf_init(&g_miniwolf, &opts);
 
-    if (args.noop)
+    if (opts.noop)
     {
         LOG("No-op mode, exiting");
         goto NICE_EXIT;
