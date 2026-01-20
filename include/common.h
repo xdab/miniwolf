@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -15,6 +16,15 @@ typedef enum
 } log_level_e;
 
 extern log_level_e _log_level;
+
+// swap byte order of 16-bit value (little-endian <-> big-endian)
+void byteswap16(uint16_t *v);
+
+// swap byte order of 32-bit value (little-endian <-> big-endian)
+void byteswap32(uint32_t *v);
+
+// swap byte order of 64-bit value (little-endian <-> big-endian)
+void byteswap64(uint64_t *v);
 
 // General informational messages that should always be visible (with function prefix).
 #define LOG(str, ...)                                                          \

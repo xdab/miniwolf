@@ -3,18 +3,21 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
-#include <time.h>
 #include <argp.h>
+#include <pthread.h>
 #include "modem.h"
-#include "ax25.h"
-#include "tnc2.h"
-#include "squelch.h"
 #include "filter.h"
 #include "common.h"
 
-#define CHUNK_SIZE 2048
+typedef struct optim_thread_data
+{
+    int idx;
+    modem_t *modem;
+    float_buffer_t *samples_buf;
+    int *result;
+} optim_thread_data_t;
 
-typedef struct bench_args
+typedef struct optim_args
 {
     char *input_file;
     int rate;
@@ -23,7 +26,7 @@ typedef struct bench_args
     int bits;
     int little_endian;
     float gain_2200;
-} bench_args_t;
+} optim_args_t;
 
 static float convert_sample(const uint8_t *raw, char type, int bits, int little_endian)
 {
@@ -104,7 +107,7 @@ static float convert_sample(const uint8_t *raw, char type, int bits, int little_
     return 0.0f;
 }
 
-static struct argp_option bench_options[] = {
+static struct argp_option optim_options[] = {
     {"file", 'f', "FILE", 0, "Input raw audio file (required)", 1},
     {"rate", 'r', "RATE", 0, "Sample rate in Hz (default: 48000)", 1},
     {"format", 'F', "FORMAT", 0, "Audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32)", 2},
@@ -114,9 +117,9 @@ static struct argp_option bench_options[] = {
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
     {0, 0, 0, 0, 0, 0}};
 
-static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
+static error_t optim_parse_opt(int key, char *arg, struct argp_state *state)
 {
-    bench_args_t *args = state->input;
+    optim_args_t *args = state->input;
     switch (key)
     {
     case 'f':
@@ -155,13 +158,13 @@ static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
-static struct argp bench_argp = {
-    bench_options,
-    bench_parse_opt,
+static struct argp optim_argp = {
+    optim_options,
+    optim_parse_opt,
     "",
-    "Offline Bell202 demodulator for raw audio files"};
+    "Miniwolf hyperparameter optimiziation tool"};
 
-static void bench_args_parse(int argc, char *argv[], bench_args_t *args)
+static void optim_args_parse(int argc, char *argv[], optim_args_t *args)
 {
     args->rate = 48000;
     args->log_level = LOG_LEVEL_STANDARD;
@@ -171,14 +174,39 @@ static void bench_args_parse(int argc, char *argv[], bench_args_t *args)
     args->little_endian = 1;
     args->gain_2200 = 0.0f;
 
-    argp_parse(&bench_argp, argc, argv, 0, 0, args);
+    argp_parse(&optim_argp, argc, argv, 0, 0, args);
+}
+
+static int evaluate_modem(modem_t *modem, float_buffer_t *samples_buf)
+{
+    const int chunk_size = 512;
+    uint8_t frame_buffer[512];
+    int frame_count = 0;
+
+    for (size_t i = 0; i < samples_buf->size; i += chunk_size)
+    {
+        float_buffer_t samples_sub_buf = {.data = samples_buf->data + i, .capacity = chunk_size, .size = chunk_size};
+        buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
+        int frame_len = modem_demodulate(modem, &samples_sub_buf, &frame_buf);
+        if (frame_len > 0)
+            frame_count++;
+    }
+
+    return frame_count;
+}
+
+static void *optim_worker(void *arg)
+{
+    optim_thread_data_t *data = (optim_thread_data_t *)arg;
+    *data->result = evaluate_modem(data->modem, data->samples_buf);
+    return NULL;
 }
 
 int main(int argc, char *argv[])
 {
     int exit_code = EXIT_SUCCESS;
-    bench_args_t args = {0};
-    bench_args_parse(argc, argv, &args);
+    optim_args_t args = {0};
+    optim_args_parse(argc, argv, &args);
     _log_level = args.log_level;
 
     if (!args.input_file)
@@ -213,110 +241,109 @@ int main(int argc, char *argv[])
         goto ERROR;
     }
 
+    // Find out length of files
+    fseek(fp, 0, SEEK_END);
+    size_t file_len = ftell(fp);
+    rewind(fp);
+    size_t samples_len = file_len / bytes_per_sample;
+
+    // Allocate buffer for all samples
+    float *samples = (float *)malloc(samples_len * sizeof(float));
+    nonnull(samples, "samples");
+    float_buffer_t samples_buf = {.data = samples, .capacity = samples_len, .size = samples_len};
+
     // Channel equalization
     bf_biquad_t g_hbf_filter;
     bf_hbf_init(&g_hbf_filter, 4, 2200.0f, sample_rate, args.gain_2200);
 
-    // Initialize modem
-    modem_t modem;
-    modem_params_t modem_params = {
-        .sample_rate = sample_rate,
-        .types = DEMOD_ALL,
-        .tx_delay = 300.0f,
-        .tx_tail = 50.0f};
-    modem_init(&modem, &modem_params);
-
-    // Initialize squelch
-    sql_t squelch;
-    sql_init(&squelch, 0.05f, 60e3f, sample_rate);
-
-    // Process file
-    uint8_t raw_buffer[CHUNK_SIZE * 32];
-    float samples[CHUNK_SIZE];
-    uint8_t frame_buffer[512];
-    int packet_count = 0;
-    uint64_t total_samples = 0;
-
-    LOGV("Processing file...");
-
-    clock_t total_time = 0;
-
-    for (;;)
+    for (size_t i = 0; i < samples_len; i++)
     {
-        size_t read_count = fread(raw_buffer, bytes_per_sample, CHUNK_SIZE, fp);
-        if (read_count == 0)
-            break;
+        // Read, convert and store samples
+        uint8_t raw_buffer[8];
+        size_t read_count = fread(raw_buffer, bytes_per_sample, 1, fp);
+        nonzero(read_count, "read_count");
+        samples[i] = convert_sample(raw_buffer, args.type, args.bits, args.little_endian);
 
-        for (size_t i = 0; i < read_count; i++)
-        {
-            samples[i] = convert_sample(
-                &raw_buffer[i * bytes_per_sample],
-                args.type,
-                args.bits,
-                args.little_endian);
-
-            // Apply high boost channel equalization
-            samples[i] = bf_biquad_filter(&g_hbf_filter, samples[i]);
-
-            // Apply squelch
-            if (!sql_process(&squelch, samples[i]))
-                samples[i] = 0.0f; // Zero out samples when squelch is closed
-        }
-
-        total_samples += read_count;
-
-        // Demodulate with timing
-        clock_t start, end;
-        start = clock();
-        float_buffer_t sample_buf = {.data = samples, .capacity = CHUNK_SIZE, .size = read_count};
-        buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
-        int frame_len = modem_demodulate(&modem, &sample_buf, &frame_buf);
-        end = clock();
-        total_time += end - start;
-
-        if (frame_len <= 0)
-            continue;
-
-        // Print with counter and timestamp
-        double time_sec = (double)total_samples / sample_rate;
-
-        // Unpack AX.25 packet
-        ax25_packet_t packet;
-        if (ax25_packet_unpack(&packet, &frame_buf) != 0)
-        {
-            LOGV("Warning: invalid AX.25 packet (%d bytes) at %.3f s", frame_len, time_sec);
-            continue;
-        }
-
-        packet_count++;
-
-        // Convert to TNC2 format
-        char tnc2_data[512];
-        buffer_t tnc2_buf = {
-            .data = (unsigned char *)tnc2_data,
-            .capacity = sizeof(tnc2_data),
-            .size = 0};
-        int tnc2_len = tnc2_packet_to_string(&packet, &tnc2_buf);
-        if (tnc2_len <= 0)
-        {
-            LOG("Warning: invalid TNC2 conversion for packet at %.3f s", time_sec);
-            continue;
-        }
-        uint64_t hours = (uint64_t)time_sec / 3600;
-        uint64_t mins = ((uint64_t)time_sec % 3600) / 60;
-        uint64_t secs = (uint64_t)time_sec % 60;
-        uint64_t ms = (uint64_t)(fmod(time_sec * 1000.0, 1000.0));
-
-        printf("[%d @ %02lu:%02lu:%02lu.%03lu] %s\n", packet_count, hours, mins, secs, ms, tnc2_data);
+        // Pre-apply channel eq
+        samples[i] = bf_biquad_filter(&g_hbf_filter, samples[i]);
     }
 
-    LOG("Packets: %d", packet_count);
-    LOG("Time in modem_demodulate: %.3f s", (float)total_time / CLOCKS_PER_SEC);
-
-    // Cleanup
+    // At this point the file can be closed and eq filter deallocated
     fclose(fp);
-    modem_free(&modem);
     bf_biquad_free(&g_hbf_filter);
+
+    LOG("loaded %ld samples", samples_len);
+
+    modem_params_t modem_params = {
+        .sample_rate = sample_rate,
+        .types = DEMOD_QUADRATURE,
+        .tx_delay = 300.0f,
+        .tx_tail = 50.0f};
+
+    float opt_param_min = 0.72f;
+    float opt_param_max = 0.88f;
+    float opt_param_step = 0.00667f;
+    int num_iterations = (int)((opt_param_max - opt_param_min) / opt_param_step) + 1;
+
+    modem_t *modems = (modem_t *)malloc(num_iterations * sizeof(modem_t));
+    int *frame_counts = (int *)malloc(num_iterations * sizeof(int));
+    float *param_values = (float *)malloc(num_iterations * sizeof(float));
+    optim_thread_data_t *thread_data = (optim_thread_data_t *)malloc(num_iterations * sizeof(optim_thread_data_t));
+    pthread_t *threads = (pthread_t *)malloc(num_iterations * sizeof(pthread_t));
+
+    nonnull(modems, "modems");
+    nonnull(frame_counts, "frame_counts");
+    nonnull(param_values, "param_values");
+    nonnull(thread_data, "thread_data");
+    nonnull(threads, "threads");
+
+    for (int i = 0; i < num_iterations; i++)
+    {
+        param_values[i] = opt_param_min + i * opt_param_step;
+        quad_params_default.sym_clip = param_values[i];
+        modem_init(&modems[i], &modem_params);
+    }
+
+    for (int i = 0; i < num_iterations; i++)
+    {
+        thread_data[i] = (optim_thread_data_t){
+            .idx = i,
+            .modem = &modems[i],
+            .samples_buf = &samples_buf,
+            .result = &frame_counts[i]};
+    }
+
+    LOG("will run %d experiments", num_iterations);
+
+    const int max_threads = 8;
+    for (int batch_start = 0; batch_start < num_iterations; batch_start += max_threads)
+    {
+        int batch_end = batch_start + max_threads;
+        if (batch_end > num_iterations)
+            batch_end = num_iterations;
+        int batch_size = batch_end - batch_start;
+
+        LOG("processing batch %d-%d (%d threads)", batch_start, batch_end - 1, batch_size);
+
+        for (int i = batch_start; i < batch_end; i++)
+            pthread_create(&threads[i], NULL, optim_worker, &thread_data[i]);
+
+        for (int i = batch_start; i < batch_end; i++)
+            pthread_join(threads[i], NULL);
+    }
+
+    for (int i = 0; i < num_iterations; i++)
+        printf("%.4f;%d\n", param_values[i], frame_counts[i]);
+
+    for (int i = 0; i < num_iterations; i++)
+        modem_free(&modems[i]);
+
+    free(modems);
+    free(frame_counts);
+    free(param_values);
+    free(thread_data);
+    free(threads);
+    free(samples);
 
     return exit_code;
 

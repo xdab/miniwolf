@@ -1,4 +1,4 @@
-.PHONY: all build release package run cal log test prof bench1 bench2 benchdz install clean
+.PHONY: all build release package run cal log test prof bench1 bench2 optim1 optim2 install clean
 
 all: run
 
@@ -43,8 +43,11 @@ bench1: build
 bench2: build
 	./build/mw_bench -F S16 -r 22050 -f tnctest02_22050_S16.raw -2 5.0
 
-benchdz: build
-	./build/mw_bench -F S16 -r 22050 -f tnctest_sr5dz.raw -2 3.0
+optim1: build
+	./build/mw_optim -F S16 -r 22050 -f tnctest01_22050_S16.raw
+
+optim2: build
+	./build/mw_optim -F S16 -r 22050 -f tnctest02_22050_S16.raw -2 5.0
 
 install: release
 	sudo make -C build install

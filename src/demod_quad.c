@@ -6,7 +6,7 @@
 demod_quad_params_t quad_params_default = {
     .iq_lpf_order = 2,
     .iq_lpf_cutoff_mul = 0.55f,
-    .sym_clip = 0.25f,
+    .sym_clip = 0.80f,
     .post_lpf_order = 6,
     .post_lpf_cutoff_mul = 1.15f};
 
