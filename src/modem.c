@@ -92,31 +92,29 @@ int md_rx_process(struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *
         float symbol = demod_process(&rx->demod, sample);
 
         int bit = bitclk_detect(&rx->bit_detector_simple, symbol);
-        if (bit != BITCLK_NONE && out_frame_buf != NULL)
+        int bit2 = bitclk2_detect(&rx->bit_detector_pll, symbol);
+
+        if (out_frame_buf == NULL)
+            continue;
+
+        if (bit != BITCLK_NONE)
         {
-            if (hldc_deframer_process(&rx->deframer_simple, bit, out_frame_buf, &ret_crc))
-            {
-                // TODO what?
-            }
+            hldc_error_e result = hldc_deframer_process(&rx->deframer_simple, bit, out_frame_buf, &ret_crc);
+            if (result < 0)
+                LOGV("error %d while processing sample", result);
 
             if (out_frame_buf->size > 0 && !dedupe_push_frame(&rx->deframer_dedupe, ret_crc))
-            {
                 ret = out_frame_buf->size;
-            }
         }
 
-        bit = bitclk2_detect(&rx->bit_detector_pll, symbol);
-        if (bit != BITCLK_NONE && out_frame_buf != NULL)
+        if (bit2 != BITCLK_NONE)
         {
-            if (hldc_deframer_process(&rx->deframer_pll, bit, out_frame_buf, &ret_crc))
-            {
-                // TODO what?
-            }
+            hldc_error_e result = hldc_deframer_process(&rx->deframer_pll, bit2, out_frame_buf, &ret_crc);
+            if (result < 0)
+                LOGV("error %d while processing sample", result);
 
             if (out_frame_buf->size > 0 && !dedupe_push_frame(&rx->deframer_dedupe, ret_crc))
-            {
                 ret = out_frame_buf->size;
-            }
         }
     }
 

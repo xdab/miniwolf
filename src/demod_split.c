@@ -3,6 +3,7 @@
 #include "common.h"
 
 // TODO automated fine-tuning
+
 demod_split_params_t split_params_mark = {
     .mark = 1,
     .agc_attack_ms = 0.01f,
@@ -11,7 +12,6 @@ demod_split_params_t split_params_mark = {
     .post_lpf_order = 6,
     .post_lpf_cutoff_mul = 0.85f};
 
-// TODO automated fine-tuning
 demod_split_params_t split_params_space = {
     .mark = 0,
     .agc_attack_ms = 0.01f,
