@@ -3,10 +3,14 @@
 #include <math.h>
 #include <stdio.h>
 
-#define IQ_LPF_ORDER 4
-#define POST_LPF_ORDER 2
+demod_quad_params_t quad_params_default = {
+    .iq_lpf_order = 2,
+    .iq_lpf_cutoff_mul = 0.55f,
+    .sym_clip = 0.25f,
+    .post_lpf_order = 6,
+    .post_lpf_cutoff_mul = 1.15f};
 
-void demod_quad_init(demod_quad_t *demod, demod_params_t *params)
+void demod_quad_init(demod_quad_t *demod, demod_params_t *params, demod_quad_params_t *adv_params)
 {
     nonnull(demod, "demod");
     nonnull(params, "params");
@@ -20,10 +24,12 @@ void demod_quad_init(demod_quad_t *demod, demod_params_t *params)
     demod->sin_inc = sinf(phase_inc);
     demod->prev_phase = 0.0f;
     demod->scale = params->sample_rate / (2.0f * (float)M_PI * deviation);
-    float cutoff = 0.55f * fabsf(params->mark_freq - params->space_freq);
-    bf_lpf_init(&demod->i_lpf, IQ_LPF_ORDER, cutoff, params->sample_rate);
-    bf_lpf_init(&demod->q_lpf, IQ_LPF_ORDER, cutoff, params->sample_rate);
-    bf_lpf_init(&demod->post_filter, POST_LPF_ORDER, 1.15f * params->baud_rate, params->sample_rate);
+    demod->sym_clip = adv_params->sym_clip;
+    float iq_cutoff = adv_params->iq_lpf_cutoff_mul * fabsf(params->mark_freq - params->space_freq);
+    bf_lpf_init(&demod->i_lpf, adv_params->iq_lpf_order, iq_cutoff, params->sample_rate);
+    bf_lpf_init(&demod->q_lpf, adv_params->iq_lpf_order, iq_cutoff, params->sample_rate);
+    float post_lpf_cutoff = adv_params->post_lpf_cutoff_mul * params->baud_rate;
+    bf_lpf_init(&demod->post_filter, adv_params->post_lpf_order, post_lpf_cutoff, params->sample_rate);
 }
 
 float demod_quad_process(demod_quad_t *demod, float sample)
@@ -56,20 +62,15 @@ float demod_quad_process(demod_quad_t *demod, float sample)
 
     demod->prev_phase = curr_phase;
 
-    // Normalize to (-1, 1)
     float symbol = delta * demod->scale;
 
-    // TODO make configurable like goertzel's
-    const float sym_clip = 0.25f;
-    if (symbol > sym_clip)
-        symbol = sym_clip;
-    else if (symbol < -sym_clip)
-        symbol = -sym_clip;
-    symbol /= sym_clip;
+    if (symbol > demod->sym_clip)
+        symbol = demod->sym_clip;
+    else if (symbol < -demod->sym_clip)
+        symbol = -demod->sym_clip;
+    symbol /= demod->sym_clip;
 
-    // Post filter
     symbol = bf_lpf_filter(&demod->post_filter, symbol);
-
     return symbol;
 }
 

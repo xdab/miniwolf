@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#define DD_MAX_REMEMBERED_FRAMES 8
+#define DD_MAX_REMEMBERED_FRAMES 4
 
 struct dedupe_frame
 {

@@ -78,7 +78,7 @@ set(MODEM_SOURCES
 )
 add_library(mw_modem STATIC ${MODEM_SOURCES})
 target_include_directories(mw_modem PUBLIC include)
-target_link_libraries(mw_modem mw_core) # TODO refactor demod_goertzel.c to not use ring.h/c instead opting for stack-based circular buffer
+target_link_libraries(mw_modem mw_core)
 
 # miniwolf
 add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c)

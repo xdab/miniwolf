@@ -16,7 +16,7 @@ void demod_init(demod_t *demod, demod_type_t type, demod_params_t *params)
         demod_grz_init(&demod->impl.grz, params, &grz_params_pesim);
         break;
     case DEMOD_QUADRATURE:
-        demod_quad_init(&demod->impl.quad, params);
+        demod_quad_init(&demod->impl.quad, params, &quad_params_default);
         break;
     case DEMOD_SPLIT_MARK:
         demod_split_init(&demod->impl.split, params, &split_params_mark);

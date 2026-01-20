@@ -2,7 +2,6 @@
 #define DEMOD_H
 
 #include <stdint.h>
-
 #include "ring.h"
 #include "goertzel.h"
 #include "agc.h"
@@ -45,10 +44,22 @@ typedef struct demod_quad
     float sin_inc;
     float prev_phase;
     float scale;
+    float sym_clip;
     bf_lpf_t i_lpf;
     bf_lpf_t q_lpf;
     bf_lpf_t post_filter;
 } demod_quad_t;
+
+typedef struct demod_quad_params
+{
+    int iq_lpf_order;
+    float iq_lpf_cutoff_mul;
+    float sym_clip;
+    int post_lpf_order;
+    float post_lpf_cutoff_mul;
+} demod_quad_params_t;
+
+extern demod_quad_params_t quad_params_default;
 
 typedef struct demod_split_params
 {
@@ -156,7 +167,7 @@ float demod_grz_process(demod_grz_t *demod, float sample);
 
 void demod_grz_free(demod_grz_t *demod);
 
-void demod_quad_init(demod_quad_t *demod, demod_params_t *params);
+void demod_quad_init(demod_quad_t *demod, demod_params_t *params, demod_quad_params_t *adv_params);
 
 float demod_quad_process(demod_quad_t *demod, float sample);
 
