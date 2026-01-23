@@ -13,8 +13,6 @@ typedef struct demod_goertzel
     ring_simple_t ring;
     goertzel_t mark_grz;
     goertzel_t space_grz;
-    bf_lpf_t mark_lpf;
-    bf_lpf_t space_lpf;
     agc_t mark_agc;
     agc_t space_agc;
     float sym_clip;
@@ -26,8 +24,6 @@ typedef struct demod_goertzel_params
     float window_size_mul;
     float agc_attack_ms;
     float agc_release_ms;
-    int ms_lpf_order;
-    float ms_lpf_cutoff_mul;
     float sym_clip;
     int post_lpf_order;
     float post_lpf_cutoff_mul;
@@ -44,7 +40,6 @@ typedef struct demod_quad
     float sin_inc;
     float prev_phase;
     float scale;
-    float sym_clip;
     bf_lpf_t i_lpf;
     bf_lpf_t q_lpf;
     bf_lpf_t post_filter;
@@ -54,7 +49,6 @@ typedef struct demod_quad_params
 {
     int iq_lpf_order;
     float iq_lpf_cutoff_mul;
-    float sym_clip;
     int post_lpf_order;
     float post_lpf_cutoff_mul;
 } demod_quad_params_t;
