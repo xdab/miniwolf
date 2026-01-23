@@ -5,14 +5,94 @@
 #include <math.h>
 #include <argp.h>
 #include <pthread.h>
-#include "modem.h"
+#include "demod.h"
+#include "bitclk.h"
+#include "hldc.h"
 #include "filter.h"
 #include "common.h"
+#include "buffer.h"
+
+typedef struct modem_simple
+{
+    demod_t demod;
+    bitclk_t bit_detector;
+    hldc_deframer_t deframer;
+    uint16_t last_crc;
+} modem_simple_t;
+
+static void modem_simple_init(modem_simple_t *m, float sample_rate, demod_type_t type, float sym_clip)
+{
+    nonnull(m, "m");
+
+    demod_params_t params = {
+        .mark_freq = 1200.0f,
+        .space_freq = 2200.0f,
+        .baud_rate = 1200.0f,
+        .sample_rate = sample_rate};
+
+    if (type == DEMOD_QUADRATURE)
+    {
+        demod_quad_params_t local_params = quad_params_default;
+        local_params.sym_clip = sym_clip;
+        demod_quad_init(&m->demod.impl.quad, &params, &local_params);
+        m->demod.type = DEMOD_QUADRATURE;
+    }
+    else
+    {
+        demod_init(&m->demod, type, &params);
+    }
+
+    bitclk_init(&m->bit_detector, sample_rate, 1200.0f);
+    hldc_deframer_init(&m->deframer);
+    m->last_crc = 0;
+}
+
+static int modem_simple_demodulate(modem_simple_t *m, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
+{
+    nonnull(m, "m");
+    assert_buffer_valid(sample_buf);
+    assert_buffer_valid(out_frame_buf);
+
+    int ret = 0;
+    uint16_t crc = 0;
+
+    for (int i = 0; i < sample_buf->size; i++)
+    {
+        float sample = sample_buf->data[i];
+        float symbol = demod_process(&m->demod, sample);
+        int bit = bitclk_detect(&m->bit_detector, symbol);
+
+        if (bit != BITCLK_NONE)
+        {
+            hldc_error_e result = hldc_deframer_process(&m->deframer, bit, out_frame_buf, &crc);
+            if (result < 0)
+                LOGV("error %d while processing sample", result);
+            if (out_frame_buf->size <= 0)
+                continue;
+
+            if (crc == m->last_crc)
+                out_frame_buf->size = 0;
+            else
+            {
+                m->last_crc = crc;
+                ret = out_frame_buf->size;
+            }
+        }
+    }
+
+    return ret;
+}
+
+static void modem_simple_free(modem_simple_t *m)
+{
+    nonnull(m, "m");
+    demod_free(&m->demod);
+}
 
 typedef struct optim_thread_data
 {
     int idx;
-    modem_t *modem;
+    modem_simple_t *modem;
     float_buffer_t *samples_buf;
     int *result;
 } optim_thread_data_t;
@@ -177,7 +257,7 @@ static void optim_args_parse(int argc, char *argv[], optim_args_t *args)
     argp_parse(&optim_argp, argc, argv, 0, 0, args);
 }
 
-static int evaluate_modem(modem_t *modem, float_buffer_t *samples_buf)
+static int evaluate_modem(modem_simple_t *modem, float_buffer_t *samples_buf)
 {
     const int chunk_size = 512;
     uint8_t frame_buffer[512];
@@ -187,7 +267,7 @@ static int evaluate_modem(modem_t *modem, float_buffer_t *samples_buf)
     {
         float_buffer_t samples_sub_buf = {.data = samples_buf->data + i, .capacity = chunk_size, .size = chunk_size};
         buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
-        int frame_len = modem_demodulate(modem, &samples_sub_buf, &frame_buf);
+        int frame_len = modem_simple_demodulate(modem, &samples_sub_buf, &frame_buf);
         if (frame_len > 0)
             frame_count++;
     }
@@ -274,18 +354,12 @@ int main(int argc, char *argv[])
 
     LOG("loaded %ld samples", samples_len);
 
-    modem_params_t modem_params = {
-        .sample_rate = sample_rate,
-        .types = DEMOD_QUADRATURE,
-        .tx_delay = 300.0f,
-        .tx_tail = 50.0f};
-
     float opt_param_min = 0.72f;
     float opt_param_max = 0.88f;
     float opt_param_step = 0.00667f;
     int num_iterations = (int)((opt_param_max - opt_param_min) / opt_param_step) + 1;
 
-    modem_t *modems = (modem_t *)malloc(num_iterations * sizeof(modem_t));
+    modem_simple_t *modems = (modem_simple_t *)malloc(num_iterations * sizeof(modem_simple_t));
     int *frame_counts = (int *)malloc(num_iterations * sizeof(int));
     float *param_values = (float *)malloc(num_iterations * sizeof(float));
     optim_thread_data_t *thread_data = (optim_thread_data_t *)malloc(num_iterations * sizeof(optim_thread_data_t));
@@ -300,8 +374,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < num_iterations; i++)
     {
         param_values[i] = opt_param_min + i * opt_param_step;
-        quad_params_default.sym_clip = param_values[i];
-        modem_init(&modems[i], &modem_params);
+        modem_simple_init(&modems[i], sample_rate, DEMOD_QUADRATURE, param_values[i]);
     }
 
     for (int i = 0; i < num_iterations; i++)
@@ -336,7 +409,7 @@ int main(int argc, char *argv[])
         printf("%.4f;%d\n", param_values[i], frame_counts[i]);
 
     for (int i = 0; i < num_iterations; i++)
-        modem_free(&modems[i]);
+        modem_simple_free(&modems[i]);
 
     free(modems);
     free(frame_counts);
