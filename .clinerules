@@ -111,13 +111,12 @@ Messages: lowercase start, no period/newline (auto-added).
 - `mw_core`: buffer, line, common, ring, tcp, udp
 - `mw_modem`: bitclk, demod, demod_goertzel, demod_quad, demod_rrc, demod_split, mod, modem, squelch, dedupe
 
-**Five executables**:
+**Executables**:
 
 - `miniwolf`: main.c + audio.c + loop.c + args.c + all libraries + ALSA
 - `mw_test`: main_test.c + test.c + args.c + all libraries (no ALSA)
 - `mw_bench`: main_bench.c + all libraries (no ALSA)
 - `mw_cal`: main_cal.c + audio.c + all libraries + ALSA
-- `mw_log`: main_log.c + dedupe.c + mw_core + libax25.a (TCP/UDP packet logger)
 
 **Makefile targets**: `build`, `release`, `test`, `run`, `cal`, `clean`, `prof`, `bench1`, `bench2`
 

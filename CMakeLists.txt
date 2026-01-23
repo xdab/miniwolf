@@ -96,22 +96,17 @@ target_link_libraries(mw_bench mw_core mw_modem ax25 dsp m)
 add_executable(mw_cal src/main_cal.c src/audio.c)
 target_link_libraries(mw_cal mw_core dsp ${ALSA_LIBRARIES} m)
 
-# mw_log: RF traffic logger
-add_executable(mw_log src/main_log.c src/dedupe.c)
-target_link_libraries(mw_log mw_core ax25)
-
 # Strip symbols in Release builds
 if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_command(TARGET miniwolf POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf>)
     add_custom_command(TARGET mw_test POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_test>)
     add_custom_command(TARGET mw_bench POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_bench>)
     add_custom_command(TARGET mw_cal POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_cal>)
-    add_custom_command(TARGET mw_log POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_log>)
 endif()
 
 # Installation
 include(GNUInstallDirs)
-install(TARGETS miniwolf mw_cal mw_log
+install(TARGETS miniwolf mw_cal
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
