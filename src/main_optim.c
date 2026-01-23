@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <argp.h>
-#include <pthread.h>
+#include <time.h>
 #include "demod.h"
 #include "bitclk.h"
 #include "hldc.h"
@@ -15,12 +15,15 @@
 typedef struct modem_simple
 {
     demod_t demod;
-    bitclk_t bit_detector;
+    bitclk2_t bit_detector;
     hldc_deframer_t deframer;
-    uint16_t last_crc;
 } modem_simple_t;
 
-static void modem_simple_init(modem_simple_t *m, float sample_rate, demod_type_t type, float sym_clip)
+const float opt_param_min = 45.0f;
+const float opt_param_max = 60.0f;
+const float opt_param_step = 1.667f;
+
+static void modem_simple_init(modem_simple_t *m, float sample_rate, float p)
 {
     nonnull(m, "m");
 
@@ -30,21 +33,13 @@ static void modem_simple_init(modem_simple_t *m, float sample_rate, demod_type_t
         .baud_rate = 1200.0f,
         .sample_rate = sample_rate};
 
-    if (type == DEMOD_QUADRATURE)
-    {
-        demod_quad_params_t local_params = quad_params_default;
-        local_params.sym_clip = sym_clip;
-        demod_quad_init(&m->demod.impl.quad, &params, &local_params);
-        m->demod.type = DEMOD_QUADRATURE;
-    }
-    else
-    {
-        demod_init(&m->demod, type, &params);
-    }
+    demod_split_params_t local_params = split_params_mark;
+    local_params.agc_release_ms = p;
+    demod_split_init(&m->demod.impl.split, &params, &local_params);
+    m->demod.type = DEMOD_SPLIT_MARK;
 
-    bitclk_init(&m->bit_detector, sample_rate, 1200.0f);
+    bitclk2_init(&m->bit_detector, sample_rate, 1200.0f);
     hldc_deframer_init(&m->deframer);
-    m->last_crc = 0;
 }
 
 static int modem_simple_demodulate(modem_simple_t *m, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
@@ -60,7 +55,7 @@ static int modem_simple_demodulate(modem_simple_t *m, const float_buffer_t *samp
     {
         float sample = sample_buf->data[i];
         float symbol = demod_process(&m->demod, sample);
-        int bit = bitclk_detect(&m->bit_detector, symbol);
+        int bit = bitclk2_detect(&m->bit_detector, symbol);
 
         if (bit != BITCLK_NONE)
         {
@@ -70,13 +65,7 @@ static int modem_simple_demodulate(modem_simple_t *m, const float_buffer_t *samp
             if (out_frame_buf->size <= 0)
                 continue;
 
-            if (crc == m->last_crc)
-                out_frame_buf->size = 0;
-            else
-            {
-                m->last_crc = crc;
-                ret = out_frame_buf->size;
-            }
+            ret = out_frame_buf->size;
         }
     }
 
@@ -88,14 +77,6 @@ static void modem_simple_free(modem_simple_t *m)
     nonnull(m, "m");
     demod_free(&m->demod);
 }
-
-typedef struct optim_thread_data
-{
-    int idx;
-    modem_simple_t *modem;
-    float_buffer_t *samples_buf;
-    int *result;
-} optim_thread_data_t;
 
 typedef struct optim_args
 {
@@ -257,15 +238,17 @@ static void optim_args_parse(int argc, char *argv[], optim_args_t *args)
     argp_parse(&optim_argp, argc, argv, 0, 0, args);
 }
 
-static int evaluate_modem(modem_simple_t *modem, float_buffer_t *samples_buf)
+static int evaluate_modem(modem_simple_t *modem, float_buffer_t *samples_buf, size_t offset, size_t size)
 {
-    const int chunk_size = 512;
+    const int proc_chunk_size = 512;
     uint8_t frame_buffer[512];
     int frame_count = 0;
 
-    for (size_t i = 0; i < samples_buf->size; i += chunk_size)
+    size_t end = offset + size;
+    for (size_t i = offset; i < end; i += proc_chunk_size)
     {
-        float_buffer_t samples_sub_buf = {.data = samples_buf->data + i, .capacity = chunk_size, .size = chunk_size};
+        size_t proc_size = (i + proc_chunk_size <= end) ? proc_chunk_size : (end - i);
+        float_buffer_t samples_sub_buf = {.data = samples_buf->data + i, .capacity = proc_size, .size = proc_size};
         buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
         int frame_len = modem_simple_demodulate(modem, &samples_sub_buf, &frame_buf);
         if (frame_len > 0)
@@ -273,13 +256,6 @@ static int evaluate_modem(modem_simple_t *modem, float_buffer_t *samples_buf)
     }
 
     return frame_count;
-}
-
-static void *optim_worker(void *arg)
-{
-    optim_thread_data_t *data = (optim_thread_data_t *)arg;
-    *data->result = evaluate_modem(data->modem, data->samples_buf);
-    return NULL;
 }
 
 int main(int argc, char *argv[])
@@ -321,89 +297,79 @@ int main(int argc, char *argv[])
         goto ERROR;
     }
 
-    // Find out length of files
     fseek(fp, 0, SEEK_END);
     size_t file_len = ftell(fp);
     rewind(fp);
     size_t samples_len = file_len / bytes_per_sample;
 
-    // Allocate buffer for all samples
     float *samples = (float *)malloc(samples_len * sizeof(float));
     nonnull(samples, "samples");
     float_buffer_t samples_buf = {.data = samples, .capacity = samples_len, .size = samples_len};
 
-    // Channel equalization
     bf_biquad_t g_hbf_filter;
     bf_hbf_init(&g_hbf_filter, 4, 2200.0f, sample_rate, args.gain_2200);
 
     for (size_t i = 0; i < samples_len; i++)
     {
-        // Read, convert and store samples
         uint8_t raw_buffer[8];
         size_t read_count = fread(raw_buffer, bytes_per_sample, 1, fp);
         nonzero(read_count, "read_count");
         samples[i] = convert_sample(raw_buffer, args.type, args.bits, args.little_endian);
-
-        // Pre-apply channel eq
         samples[i] = bf_biquad_filter(&g_hbf_filter, samples[i]);
     }
 
-    // At this point the file can be closed and eq filter deallocated
     fclose(fp);
     bf_biquad_free(&g_hbf_filter);
 
     LOG("loaded %ld samples", samples_len);
 
-    float opt_param_min = 0.72f;
-    float opt_param_max = 0.88f;
-    float opt_param_step = 0.00667f;
-    int num_iterations = (int)((opt_param_max - opt_param_min) / opt_param_step) + 1;
+    const int num_iterations = (int)((opt_param_max - opt_param_min) / opt_param_step) + 1;
+
+    LOG("will run %d iteration", num_iterations);
 
     modem_simple_t *modems = (modem_simple_t *)malloc(num_iterations * sizeof(modem_simple_t));
     int *frame_counts = (int *)malloc(num_iterations * sizeof(int));
     float *param_values = (float *)malloc(num_iterations * sizeof(float));
-    optim_thread_data_t *thread_data = (optim_thread_data_t *)malloc(num_iterations * sizeof(optim_thread_data_t));
-    pthread_t *threads = (pthread_t *)malloc(num_iterations * sizeof(pthread_t));
 
     nonnull(modems, "modems");
     nonnull(frame_counts, "frame_counts");
     nonnull(param_values, "param_values");
-    nonnull(thread_data, "thread_data");
-    nonnull(threads, "threads");
 
     for (int i = 0; i < num_iterations; i++)
     {
         param_values[i] = opt_param_min + i * opt_param_step;
-        modem_simple_init(&modems[i], sample_rate, DEMOD_QUADRATURE, param_values[i]);
+        modem_simple_init(&modems[i], sample_rate, param_values[i]);
+        frame_counts[i] = 0;
     }
 
-    for (int i = 0; i < num_iterations; i++)
+    const size_t max_chunk_bytes = 1024 * 1024;
+    const size_t chunk_size_samples = max_chunk_bytes / sizeof(float);
+    LOG("processing in chunks of %zu samples", chunk_size_samples);
+
+    clock_t start_time = clock();
+
+    for (size_t chunk_offset = 0; chunk_offset < samples_len; chunk_offset += chunk_size_samples)
     {
-        thread_data[i] = (optim_thread_data_t){
-            .idx = i,
-            .modem = &modems[i],
-            .samples_buf = &samples_buf,
-            .result = &frame_counts[i]};
+        size_t chunk_remaining = samples_len - chunk_offset;
+        size_t chunk_samples = (chunk_remaining < chunk_size_samples) ? chunk_remaining : chunk_size_samples;
+
+        for (int i = 0; i < num_iterations; i++)
+        {
+            int chunk_frames = evaluate_modem(&modems[i], &samples_buf, chunk_offset, chunk_samples);
+            frame_counts[i] += chunk_frames;
+        }
+
+        clock_t now = clock();
+        double elapsed = (double)(now - start_time) / CLOCKS_PER_SEC;
+        double percent = (100.0 * (chunk_offset + chunk_samples)) / samples_len;
+        double rate = (elapsed > 0) ? (percent / elapsed) : 0;
+        fprintf(stderr, "\rprocessing... %.1f%% (%.2f%%/sec)  ", percent, rate);
+        fflush(stderr);
     }
 
-    LOG("will run %d experiments", num_iterations);
-
-    const int max_threads = 8;
-    for (int batch_start = 0; batch_start < num_iterations; batch_start += max_threads)
-    {
-        int batch_end = batch_start + max_threads;
-        if (batch_end > num_iterations)
-            batch_end = num_iterations;
-        int batch_size = batch_end - batch_start;
-
-        LOG("processing batch %d-%d (%d threads)", batch_start, batch_end - 1, batch_size);
-
-        for (int i = batch_start; i < batch_end; i++)
-            pthread_create(&threads[i], NULL, optim_worker, &thread_data[i]);
-
-        for (int i = batch_start; i < batch_end; i++)
-            pthread_join(threads[i], NULL);
-    }
+    clock_t end_time = clock();
+    double total_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+    fprintf(stderr, "\ncompleted in %.2f seconds\n", total_time);
 
     for (int i = 0; i < num_iterations; i++)
         printf("%.4f;%d\n", param_values[i], frame_counts[i]);
@@ -414,8 +380,6 @@ int main(int argc, char *argv[])
     free(modems);
     free(frame_counts);
     free(param_values);
-    free(thread_data);
-    free(threads);
     free(samples);
 
     return exit_code;

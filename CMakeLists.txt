@@ -94,7 +94,7 @@ target_link_libraries(mw_bench mw_core mw_modem ax25 dsp m)
 
 # mw_optim: hyperparameter optimization tool
 add_executable(mw_optim src/main_optim.c)
-target_link_libraries(mw_optim mw_core mw_modem ax25 dsp m pthread)
+target_link_libraries(mw_optim mw_core mw_modem ax25 dsp m)
 
 # mw_cal: AF spectrum analyzer
 add_executable(mw_cal src/main_cal.c src/audio.c)
