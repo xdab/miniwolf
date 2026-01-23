@@ -5,10 +5,9 @@
 
 demod_quad_params_t quad_params_default = {
     .iq_lpf_order = 2,
-    .iq_lpf_cutoff_mul = 0.55f,
-    .sym_clip = 0.25f,
-    .post_lpf_order = 6,
-    .post_lpf_cutoff_mul = 1.15f};
+    .iq_lpf_cutoff_mul = 0.5444f,
+    .post_lpf_order = 4,
+    .post_lpf_cutoff_mul = 0.5750f};
 
 void demod_quad_init(demod_quad_t *demod, demod_params_t *params, demod_quad_params_t *adv_params)
 {
@@ -24,7 +23,6 @@ void demod_quad_init(demod_quad_t *demod, demod_params_t *params, demod_quad_par
     demod->sin_inc = sinf(phase_inc);
     demod->prev_phase = 0.0f;
     demod->scale = params->sample_rate / (2.0f * (float)M_PI * deviation);
-    demod->sym_clip = adv_params->sym_clip;
     float iq_cutoff = adv_params->iq_lpf_cutoff_mul * fabsf(params->mark_freq - params->space_freq);
     bf_lpf_init(&demod->i_lpf, adv_params->iq_lpf_order, iq_cutoff, params->sample_rate);
     bf_lpf_init(&demod->q_lpf, adv_params->iq_lpf_order, iq_cutoff, params->sample_rate);
@@ -63,12 +61,6 @@ float demod_quad_process(demod_quad_t *demod, float sample)
     demod->prev_phase = curr_phase;
 
     float symbol = delta * demod->scale;
-
-    if (symbol > demod->sym_clip)
-        symbol = demod->sym_clip;
-    else if (symbol < -demod->sym_clip)
-        symbol = -demod->sym_clip;
-    symbol /= demod->sym_clip;
 
     symbol = bf_lpf_filter(&demod->post_filter, symbol);
     return symbol;
