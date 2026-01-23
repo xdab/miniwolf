@@ -2,15 +2,13 @@
 #include "demod.h"
 #include "common.h"
 
-// TODO automated fine-tuning
-
 demod_split_params_t split_params_mark = {
     .mark = 1,
     .agc_attack_ms = 0.01f,
-    .agc_release_ms = 60.0f,
+    .agc_release_ms = 51.6680f,
     .ms_lpf_order = 4,
     .post_lpf_order = 6,
-    .post_lpf_cutoff_mul = 0.85f};
+    .post_lpf_cutoff_mul = 0.8667f};
 
 demod_split_params_t split_params_space = {
     .mark = 0,
