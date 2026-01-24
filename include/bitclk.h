@@ -6,9 +6,9 @@
 
 typedef struct bitclk_pll
 {
-    // Core PLL state
-    int32_t data_clock_pll;      // 32-bit phase accumulator
-    int32_t pll_step_per_sample; // Step size per audio sample
+    // Core PLL state - float phase accumulator in [-1.0, 1.0) range
+    float data_clock_pll;      // Phase accumulator
+    float pll_step_per_sample; // Step size per audio sample
 
     // Lock detection with hysteresis
     uint32_t good_hist; // History of good transition flags

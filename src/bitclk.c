@@ -3,21 +3,34 @@
 #include <math.h>
 
 // PLL constants
-#define TICKS_PER_PLL_CYCLE 4294967296LL // 2^32 for high resolution
-#define DCD_THRESH_ON 30                 // Lock when >= 30/32 good transitions
-#define DCD_THRESH_OFF 6                 // Unlock when <= 6/32 good transitions
-#define DCD_GOOD_WIDTH 524288LL          // ±512k units timing window for good transitions
+#define PHASE_MAX 1.0f
+#define PHASE_MIN -1.0f
+#define PHASE_WRAP 2.0f
+#define DCD_GOOD_THRESHOLD (1.0f / 4096.0f)
+#define DCD_THRESH_ON 30
+#define DCD_THRESH_OFF 6
+
+static float wrap_phase(float value)
+{
+    while (value >= PHASE_MAX) {
+        value -= PHASE_WRAP;
+    }
+    while (value < PHASE_MIN) {
+        value += PHASE_WRAP;
+    }
+    return value;
+}
 
 void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate)
 {
     nonnull(detector, "detector");
 
-    // Calculate PLL step size: TICKS_PER_PLL_CYCLE * bit_rate / sample_rate
-    // For 1200 baud AFSK, this gives high precision timing
-    detector->pll_step_per_sample = (int32_t)((TICKS_PER_PLL_CYCLE * bit_rate) / sample_rate);
+    // Calculate PLL step size: 2.0 * bit_rate / sample_rate
+    // Float phase accumulator range is [-1.0, 1.0)
+    detector->pll_step_per_sample = 2.0f * bit_rate / sample_rate;
 
     // Initialize PLL state
-    detector->data_clock_pll = 0;
+    detector->data_clock_pll = 0.0f;
     detector->prev_demod_output = 0.0f;
 
     // Initialize lock detection
@@ -34,7 +47,7 @@ void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate)
 static void update_pll_lock_detection(bitclk_t *detector)
 {
     // Check if the transition occurred near the expected sampling time
-    int transition_near_zero = (llabs(detector->data_clock_pll) < DCD_GOOD_WIDTH);
+    int transition_near_zero = (fabsf(detector->data_clock_pll) < DCD_GOOD_THRESHOLD);
 
     // Update transition history
     detector->good_hist = (detector->good_hist << 1) | (transition_near_zero ? 1 : 0);
@@ -63,13 +76,13 @@ int bitclk_detect(bitclk_t *detector, float soft_bit)
     nonnull(detector, "detector");
 
     int sampled_bit = BITCLK_NONE;
-    int32_t prev_pll_value = detector->data_clock_pll;
+    float prev_pll_value = detector->data_clock_pll;
 
-    // Advance PLL phase accumulator
-    detector->data_clock_pll += detector->pll_step_per_sample;
+    // Advance PLL phase accumulator with wrapping
+    detector->data_clock_pll = wrap_phase(detector->data_clock_pll + detector->pll_step_per_sample);
 
-    // Check for overflow (bit sampling instant)
-    if (prev_pll_value > 0 && detector->data_clock_pll < 0)
+    // Check for crossing from positive to negative (bit sampling instant)
+    if (prev_pll_value > 0.0f && detector->data_clock_pll < 0.0f)
     {
         // Sample the current soft bit
         sampled_bit = (soft_bit > 0.0f) ? 1 : 0;
@@ -79,10 +92,9 @@ int bitclk_detect(bitclk_t *detector, float soft_bit)
     }
 
     // Detect zero crossings for phase correction
-    if ((detector->prev_demod_output < 0 && soft_bit > 0) ||
-        (detector->prev_demod_output > 0 && soft_bit < 0))
+    if ((detector->prev_demod_output < 0.0f && soft_bit > 0.0f) ||
+        (detector->prev_demod_output > 0.0f && soft_bit < 0.0f))
     {
-
         // Calculate precise zero-crossing timing using linear interpolation
         float denominator = soft_bit - detector->prev_demod_output;
         if (fabsf(denominator) > 1e-6f)
@@ -93,7 +105,8 @@ int bitclk_detect(bitclk_t *detector, float soft_bit)
             // Apply phase correction with adaptive inertia
             float inertia = detector->data_detect ? detector->pll_locked_inertia : detector->pll_searching_inertia;
 
-            detector->data_clock_pll = (int32_t)(detector->data_clock_pll * inertia + target_phase * (1.0f - inertia));
+            float new_pll = detector->data_clock_pll * inertia + target_phase * (1.0f - inertia);
+            detector->data_clock_pll = wrap_phase(new_pll);
         }
     }
 
