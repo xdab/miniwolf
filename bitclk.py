@@ -2,6 +2,7 @@
 """
 BitClk - Python replication of C bit clock recovery algorithm.
 Visualizes PLL sampling instants and lock state on soft bit waveform.
+Uses floats in normalized range [-1.0, 1.0) for intuitive phase accumulation.
 """
 
 import numpy as np
@@ -13,13 +14,24 @@ NUM_SAMPLES = 22050  # Number of samples to process
 SAMPLE_RATE = 22050  # Sample rate (fallback if not in WAV)
 BIT_RATE = 1200  # Bit rate (Bell 202)
 
-# PLL constants (matching C implementation)
-TICKS_PER_PLL_CYCLE = 4294967296  # 2^32
+# PLL constants
 DCD_THRESH_ON = 30
 DCD_THRESH_OFF = 6
-DCD_GOOD_WIDTH = 524288
+DCD_GOOD_THRESHOLD = 1.0 / 4096.0
 
-MASK32 = np.uint32(0xFFFFFFFF)
+# Float phase accumulator range
+PHASE_MAX = 1.0
+PHASE_MIN = -1.0
+PHASE_WRAP = 2.0  # Distance to wrap
+
+
+def wrap_phase(value: float) -> float:
+    """Wrap phase to [-1.0, 1.0) range."""
+    while value >= PHASE_MAX:
+        value -= PHASE_WRAP
+    while value < PHASE_MIN:
+        value += PHASE_WRAP
+    return value
 
 
 class BitClk:
@@ -29,15 +41,13 @@ class BitClk:
         self.sample_rate = sample_rate
         self.bit_rate = bit_rate
 
-        step = int((TICKS_PER_PLL_CYCLE * bit_rate) / sample_rate)
-        self.pll_step_per_sample = np.int32(step)
-
-        self._data_clock_pll = np.uint32(0)
+        self.pll_step_per_sample = 2.0 * bit_rate / sample_rate
+        self.data_clock_pll = 0.0
         self.prev_demod_output = 0.0
 
-        self.good_hist = np.uint64(0)
-        self.bad_hist = np.uint64(0)
-        self.score = np.uint64(0)
+        self.good_hist = 0
+        self.bad_hist = 0
+        self.score = 0
         self.data_detect = 0
 
         self.pll_locked_inertia = 0.74
@@ -47,17 +57,9 @@ class BitClk:
         self.sampled_bits = []
         self.lock_states = []  # Track lock state at each sample
 
-    @property
-    def data_clock_pll(self) -> np.int32:
-        return np.int32(self._data_clock_pll)
-
-    @data_clock_pll.setter
-    def data_clock_pll(self, value: np.int32):
-        self._data_clock_pll = np.uint32(value)
-
     def _update_pll_lock_detection(self):
-        pll_signed = self.data_clock_pll
-        transition_near_zero = abs(pll_signed) < DCD_GOOD_WIDTH
+        phase_abs = abs(self.data_clock_pll)
+        transition_near_zero = phase_abs < DCD_GOOD_THRESHOLD
 
         self.good_hist = (self.good_hist << 1) | (1 if transition_near_zero else 0)
         self.bad_hist = (self.bad_hist << 1) | (1 if not transition_near_zero else 0)
@@ -77,26 +79,34 @@ class BitClk:
         sampled_bit = None
         prev_pll_value = self.data_clock_pll
 
-        self._data_clock_pll = (self._data_clock_pll + np.uint32(self.pll_step_per_sample)) & MASK32
+        # Advance PLL phase accumulator with wrapping
+        self.data_clock_pll = wrap_phase(self.data_clock_pll + self.pll_step_per_sample)
 
         current_pll = self.data_clock_pll
-        if prev_pll_value > 0 and current_pll < 0:
+
+        if prev_pll_value > 0.0 and current_pll < 0.0:
             sampled_bit = 1 if soft_bit > 0.0 else 0
             self.sampling_instants.append(sample_idx)
             self.sampled_bits.append(sampled_bit)
-            self.lock_states.append(self.data_detect)  # Store lock state at sampling
+            self.lock_states.append(self.data_detect)
             self._update_pll_lock_detection()
 
-        if (self.prev_demod_output < 0 and soft_bit > 0) or (
-            self.prev_demod_output > 0 and soft_bit < 0
+        # Detect zero crossings for phase correction
+        if (self.prev_demod_output < 0.0 and soft_bit > 0.0) or (
+            self.prev_demod_output > 0.0 and soft_bit < 0.0
         ):
             denominator = soft_bit - self.prev_demod_output
             if abs(denominator) > 1e-6:
                 fraction = -self.prev_demod_output / denominator
                 target_phase = self.pll_step_per_sample * fraction
-                inertia = self.pll_locked_inertia if self.data_detect else self.pll_searching_inertia
-                new_pll_float = current_pll * inertia + target_phase * (1.0 - inertia)
-                self.data_clock_pll = np.int32(round(new_pll_float))
+                inertia = (
+                    self.pll_locked_inertia
+                    if self.data_detect
+                    else self.pll_searching_inertia
+                )
+
+                new_pll = current_pll * inertia + target_phase * (1.0 - inertia)
+                self.data_clock_pll = wrap_phase(new_pll)
 
         self.prev_demod_output = soft_bit
         return sampled_bit
@@ -123,12 +133,10 @@ def main():
 
     print(f"Detected {len(bits)} bits")
 
-    # Single plot: soft bits with PLL sampling instants and lock state
     fig, ax = plt.subplots(figsize=(14, 5))
     ax.plot(samples, "b-", linewidth=0.5, label="Soft bits")
     ax.axhline(y=0, color="gray", linestyle="--", alpha=0.5)
 
-    # Scatter plot: PLL sampling points (circle=locked, x=searching)
     samples_array = np.array(bitclk.sampling_instants)
     bits_array = np.array(bitclk.sampled_bits)
     lock_array = np.array(bitclk.lock_states)
@@ -145,11 +153,15 @@ def main():
                 marker = "o" if locked else "x"
                 color = "green" if bit_val == 1 else "red"
                 label = f"bit={bit_val}, {'locked' if locked else 'searching'}"
-                ax.scatter(x, y, color=color, s=40, marker=marker, label=label, zorder=5)
+                ax.scatter(
+                    x, y, color=color, s=40, marker=marker, label=label, zorder=5
+                )
 
     ax.set_ylabel("Amplitude")
     ax.set_xlabel("Sample Index")
-    ax.set_title(f"Soft Bits with PLL Sampling Instants (o=locked, x=searching; green=1, red=0) - {len(bits)} bits")
+    ax.set_title(
+        f"Soft Bits with PLL Sampling Instants (o=locked, x=searching; green=1, red=0) - {len(bits)} bits"
+    )
     ax.legend(loc="upper right", fontsize=8)
     ax.grid(True, alpha=0.3)
 
