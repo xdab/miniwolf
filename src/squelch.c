@@ -2,21 +2,32 @@
 #include "common.h"
 #include <math.h>
 
+const float init_thr = 0.045;
+
+sql_adv_params_t sql_params_default = {
+    .lpf_order = 4,
+    .lpf_cutoff_freq = 500.0f,
+    .agc_ms = 40.0f,
+    .tc_ms = 20.0e3f,
+    .low_ema_est_mul = 0.25f,
+    .high_ema_est_mul = 1.55f};
+
 static float coefficient(float time_ms, float sample_rate)
 {
     return 1.0f - expf(-1000.0f / (time_ms * sample_rate));
 }
 
-void sql_init(sql_t *sql, float initial_threshold, float time_constant_ms, float sample_rate)
+void sql_init(sql_t *sql, sql_params_t *params, sql_adv_params_t *adv_params)
 {
     nonnull(sql, "sql");
 
-    bf_lpf_init(&sql->lpf, 8, 500.0f, sample_rate);
-    agc_init(&sql->agc, 10.0f, 10.0f, sample_rate);
-    sql->low_ema = initial_threshold * 0.25f; // Conservative low estimate
-    sql->high_ema = initial_threshold * 1.5f; // Conservative high estimate
-    sql->threshold = initial_threshold;
-    sql->alpha = coefficient(time_constant_ms, sample_rate);
+    bf_lpf_init(&sql->lpf, adv_params->lpf_order, adv_params->lpf_cutoff_freq, params->sample_rate);
+    agc_init(&sql->agc, adv_params->agc_ms, adv_params->agc_ms, params->sample_rate);
+    sql->low_ema = params->init_threshold * adv_params->low_ema_est_mul;
+    sql->high_ema = params->init_threshold * adv_params->high_ema_est_mul;
+    sql->threshold = params->init_threshold;
+    sql->alpha = coefficient(adv_params->tc_ms, params->sample_rate);
+    sql->strength = params->strength;
 }
 
 int sql_process(sql_t *sql, float sample)
@@ -36,9 +47,9 @@ int sql_process(sql_t *sql, float sample)
         sql->high_ema = sql->alpha * envelope + (1.0f - sql->alpha) * sql->high_ema;
 
     sql->threshold = (sql->low_ema + sql->high_ema) * 0.5f;
-    sql->threshold *= 1.250f; // Slightly raise threshold to reduce packet loss
 
-    return (envelope < sql->threshold) ? 1 : 0;
+    float eff_threshold = sql->low_ema * (1.0f - sql->strength) + sql->high_ema * sql->strength;
+    return (envelope < eff_threshold) ? 1 : 0;
 }
 
 float sql_envelope(sql_t *sql)

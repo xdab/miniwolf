@@ -15,25 +15,26 @@ typedef enum
 } log_level_e;
 
 extern log_level_e _log_level;
+extern int _func_pad;
 
 // General informational messages that should always be visible (with function prefix).
-#define LOG(str, ...)                                                          \
-    {                                                                          \
-        fprintf(stderr, "i | %-26s | " str "\n", __FUNCTION__, ##__VA_ARGS__); \
+#define LOG(str, ...)                                                                    \
+    {                                                                                    \
+        fprintf(stderr, "i | %*s | " str "\n", _func_pad, __FUNCTION__, ##__VA_ARGS__); \
     }
 
 // Detailed informational messages visible only with the verbose logging mode.
-#define LOGV(str, ...)                                                             \
-    {                                                                              \
-        if (_log_level >= LOG_LEVEL_VERBOSE)                                       \
-            fprintf(stderr, "v | %-26s | " str "\n", __FUNCTION__, ##__VA_ARGS__); \
+#define LOGV(str, ...)                                                                       \
+    {                                                                                        \
+        if (_log_level >= LOG_LEVEL_VERBOSE)                                                 \
+            fprintf(stderr, "v | %*s | " str "\n", _func_pad, __FUNCTION__, ##__VA_ARGS__); \
     }
 
 // Extremely detailed debugging messages visible only with the debug logging mode.
-#define LOGD(str, ...)                                                             \
-    {                                                                              \
-        if (_log_level >= LOG_LEVEL_DEBUG)                                         \
-            fprintf(stderr, "d | %-26s | " str "\n", __FUNCTION__, ##__VA_ARGS__); \
+#define LOGD(str, ...)                                                                       \
+    {                                                                                        \
+        if (_log_level >= LOG_LEVEL_DEBUG)                                                   \
+            fprintf(stderr, "d | %*s | " str "\n", _func_pad, __FUNCTION__, ##__VA_ARGS__); \
     }
 
 // Critical errors requiring formatted output. Prints str (prefixed by function name) to stderr and terminates.
