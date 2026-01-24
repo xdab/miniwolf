@@ -81,7 +81,13 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     modem_init(&mw->modem, &modem_params);
 
     agc_init(&mw->input_agc, 10.0, 60e3f, sample_rate);
-    sql_init(&mw->squelch, 0.05f, 60e3f, sample_rate);
+
+    sql_params_t sql_params = {
+        .sample_rate = sample_rate,
+        .init_threshold = 0.045f,
+        .strength = 0.51f};
+    sql_init(&mw->squelch, &sql_params, &sql_params_default);
+
     kiss_decoder_init(&mw->kiss_decoder);
     line_reader_init(&mw->line_reader, tnc2_input_callback);
     line_reader_init(&mw->tcp_tnc2_line_reader, tnc2_input_callback);

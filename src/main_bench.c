@@ -24,6 +24,8 @@ typedef struct bench_args
     int bits;
     int little_endian;
     float gain_2200;
+    int use_squelch;
+    int save_squelched;
 } bench_args_t;
 
 static void byteswap16(uint16_t *v)
@@ -130,6 +132,8 @@ static struct argp_option bench_options[] = {
     {"format", 'F', "FORMAT", 0, "Audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32)", 2},
     {"endian", 'e', "ENDIAN", 0, "Byte order: LE (little-endian, default) or BE (big-endian)", 2},
     {"eq2200", '2', "GAIN", 0, "Extra gain to apply at 2200Hz in dB (default: 0.0)", 2},
+    {"squelch", 's', 0, 0, "Enable squelch processing", 2},
+    {"save-squelched", 'S', 0, 0, "Save squelched audio to squelched_<input>.raw (requires --squelch)", 3},
     {"verbose", 'v', 0, 0, "Enable verbose logs", 3},
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
     {0, 0, 0, 0, 0, 0}};
@@ -161,6 +165,12 @@ static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
     case '2':
         args->gain_2200 = atof(arg);
         break;
+    case 's':
+        args->use_squelch = 1;
+        break;
+    case 'S':
+        args->save_squelched = 1;
+        break;
     case 'v':
         args->log_level = LOG_LEVEL_VERBOSE;
         break;
@@ -190,6 +200,8 @@ static void bench_args_parse(int argc, char *argv[], bench_args_t *args)
     args->bits = 32;
     args->little_endian = 1;
     args->gain_2200 = 0.0f;
+    args->use_squelch = 0;
+    args->save_squelched = 0;
 
     argp_parse(&bench_argp, argc, argv, 0, 0, args);
 }
@@ -200,6 +212,7 @@ int main(int argc, char *argv[])
     bench_args_t args = {0};
     bench_args_parse(argc, argv, &args);
     _log_level = args.log_level;
+    _func_pad = -1;
 
     if (!args.input_file)
     {
@@ -220,6 +233,12 @@ int main(int argc, char *argv[])
         goto ERROR;
     }
 
+    if (args.save_squelched && !args.use_squelch)
+    {
+        LOG("Error: --save-squelched requires --squelch.");
+        goto ERROR;
+    }
+
     float sample_rate = (float)args.rate;
     int bytes_per_sample = args.bits / 8;
 
@@ -233,6 +252,19 @@ int main(int argc, char *argv[])
         goto ERROR;
     }
 
+    FILE *sq_fp = NULL;
+    char sq_filename[512];
+    if (args.save_squelched)
+    {
+        snprintf(sq_filename, sizeof(sq_filename), "squelched_%s", args.input_file);
+        sq_fp = fopen(sq_filename, "wb");
+        if (!sq_fp)
+        {
+            fprintf(stderr, "Error: Cannot open file '%s'.\n", sq_filename);
+            goto ERROR;
+        }
+    }
+
     // Channel equalization
     bf_biquad_t g_hbf_filter;
     bf_hbf_init(&g_hbf_filter, 4, 2200.0f, sample_rate, args.gain_2200);
@@ -241,14 +273,19 @@ int main(int argc, char *argv[])
     modem_t modem;
     modem_params_t modem_params = {
         .sample_rate = sample_rate,
-        .types = DEMOD_ALL,
+        .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE,
         .tx_delay = 300.0f,
         .tx_tail = 50.0f};
     modem_init(&modem, &modem_params);
 
-    // Initialize squelch
+    // Initialize squelch (only if enabled)
     sql_t squelch;
-    sql_init(&squelch, 0.05f, 60e3f, sample_rate);
+    sql_params_t sql_params = {
+        .sample_rate = sample_rate,
+        .init_threshold = 0.045f,
+        .strength = 0.51f};
+    if (args.use_squelch)
+        sql_init(&squelch, &sql_params, &sql_params_default);
 
     // Process file
     uint8_t raw_buffer[CHUNK_SIZE * 32];
@@ -278,9 +315,17 @@ int main(int argc, char *argv[])
             // Apply high boost channel equalization
             samples[i] = bf_biquad_filter(&g_hbf_filter, samples[i]);
 
-            // Apply squelch
-            if (!sql_process(&squelch, samples[i]))
-                samples[i] = 0.0f; // Zero out samples when squelch is closed
+            // Apply squelch (only if enabled)
+            if (args.use_squelch)
+            {
+                int squelch_open = sql_process(&squelch, samples[i]);
+                if (!squelch_open)
+                    samples[i] = 0.0f; // Zero out samples when squelch is closed
+
+                // Save squelched samples if requested
+                if (sq_fp && squelch_open)
+                    fwrite(&samples[i], sizeof(float), 1, sq_fp);
+            }
         }
 
         total_samples += read_count;
@@ -327,13 +372,18 @@ int main(int argc, char *argv[])
         uint64_t secs = (uint64_t)time_sec % 60;
         uint64_t ms = (uint64_t)(fmod(time_sec * 1000.0, 1000.0));
 
-        printf("[%d @ %02lu:%02lu:%02lu.%03lu] %s\n", packet_count, hours, mins, secs, ms, tnc2_data);
+        LOG("%d @ %02lu:%02lu:%02lu.%03lu %s", packet_count, hours, mins, secs, ms, tnc2_data);
+        if (args.use_squelch)
+            LOGV("sql threshold %.4f, high ema %.4f, low ema %.4f",
+                 squelch.threshold, squelch.high_ema, squelch.low_ema);
     }
 
     LOG("Packets: %d", packet_count);
     LOG("Time in modem_demodulate: %.3f s", (float)total_time / CLOCKS_PER_SEC);
 
     // Cleanup
+    if (sq_fp)
+        fclose(sq_fp);
     fclose(fp);
     modem_free(&modem);
     bf_biquad_free(&g_hbf_filter);
