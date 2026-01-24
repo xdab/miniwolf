@@ -68,13 +68,8 @@ void md_rx_init(struct md_rx *rx, float sample_rate, demod_type_t type)
 
     demod_init(&rx->demod, type, &(demod_params_t){.mark_freq = mark_freq, .space_freq = space_freq, .baud_rate = baud_rate, .sample_rate = sample_rate});
 
-    hldc_deframer_init(&rx->deframer_simple);
-    bitclk_init(&rx->bit_detector_simple, sample_rate, baud_rate);
-
-    hldc_deframer_init(&rx->deframer_pll);
-    bitclk2_init(&rx->bit_detector_pll, sample_rate, baud_rate);
-
-    dedupe_init(&rx->deframer_dedupe, DEDUPE_TIME);
+    hldc_deframer_init(&rx->deframer);
+    bitclk_init(&rx->bit_detector, sample_rate, baud_rate);
 }
 
 int md_rx_process(struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, uint16_t *out_crc)
@@ -91,29 +86,18 @@ int md_rx_process(struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *
         float sample = sample_buf->data[i];
         float symbol = demod_process(&rx->demod, sample);
 
-        int bit = bitclk_detect(&rx->bit_detector_simple, symbol);
-        int bit2 = bitclk2_detect(&rx->bit_detector_pll, symbol);
+        int bit = bitclk_detect(&rx->bit_detector, symbol);
 
         if (out_frame_buf == NULL)
             continue;
 
         if (bit != BITCLK_NONE)
         {
-            hldc_error_e result = hldc_deframer_process(&rx->deframer_simple, bit, out_frame_buf, &ret_crc);
+            hldc_error_e result = hldc_deframer_process(&rx->deframer, bit, out_frame_buf, &ret_crc);
             if (result < 0)
                 LOGV("error %d while processing sample", result);
 
-            if (out_frame_buf->size > 0 && !dedupe_push_frame(&rx->deframer_dedupe, ret_crc))
-                ret = out_frame_buf->size;
-        }
-
-        if (bit2 != BITCLK_NONE)
-        {
-            hldc_error_e result = hldc_deframer_process(&rx->deframer_pll, bit2, out_frame_buf, &ret_crc);
-            if (result < 0)
-                LOGV("error %d while processing sample", result);
-
-            if (out_frame_buf->size > 0 && !dedupe_push_frame(&rx->deframer_dedupe, ret_crc))
+            if (out_frame_buf->size > 0)
                 ret = out_frame_buf->size;
         }
     }

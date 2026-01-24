@@ -2,44 +2,13 @@
 #include "common.h"
 #include <math.h>
 
-void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate)
-{
-    nonnull(detector, "detector");
-
-    detector->bit_period = (int)(sample_rate / bit_rate);
-    detector->samples_to_return = 0;
-    detector->last_bit = BITCLK_NONE;
-}
-
-int bitclk_detect(bitclk_t *detector, float soft_bit)
-{
-    nonnull(detector, "detector");
-
-    int detected_bit = (soft_bit > 0.0f) ? 1 : 0;
-    if (detected_bit != detector->last_bit)
-    {
-        detector->last_bit = detected_bit;
-        detector->samples_to_return = detector->bit_period / 2;
-        return BITCLK_NONE;
-    }
-
-    if (detector->samples_to_return == 0)
-    {
-        detector->samples_to_return = detector->bit_period;
-        return detected_bit;
-    }
-
-    detector->samples_to_return--;
-    return BITCLK_NONE;
-}
-
 // PLL constants
 #define TICKS_PER_PLL_CYCLE 4294967296LL // 2^32 for high resolution
 #define DCD_THRESH_ON 30                 // Lock when >= 30/32 good transitions
 #define DCD_THRESH_OFF 6                 // Unlock when <= 6/32 good transitions
 #define DCD_GOOD_WIDTH 524288LL          // ±512k units timing window for good transitions
 
-void bitclk2_init(bitclk2_t *detector, float sample_rate, float bit_rate)
+void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate)
 {
     nonnull(detector, "detector");
 
@@ -62,7 +31,7 @@ void bitclk2_init(bitclk2_t *detector, float sample_rate, float bit_rate)
     detector->pll_searching_inertia = 0.50f;
 }
 
-static void update_pll_lock_detection(bitclk2_t *detector)
+static void update_pll_lock_detection(bitclk_t *detector)
 {
     // Check if the transition occurred near the expected sampling time
     int transition_near_zero = (llabs(detector->data_clock_pll) < DCD_GOOD_WIDTH);
@@ -89,7 +58,7 @@ static void update_pll_lock_detection(bitclk2_t *detector)
     }
 }
 
-int bitclk2_detect(bitclk2_t *detector, float soft_bit)
+int bitclk_detect(bitclk_t *detector, float soft_bit)
 {
     nonnull(detector, "detector");
 
