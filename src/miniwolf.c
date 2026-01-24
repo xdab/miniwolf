@@ -15,7 +15,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     mw->max_idle_time = opts->exit_idle_s;
     mw->last_packet_time = time(NULL);
 
-    mw->squelch_enabled = opts->squelch;
+    mw->squelch_enabled = opts->squelch > 0.0f;
     mw->kiss_mode = opts->kiss;
     float sample_rate = (float)opts->rate;
 

@@ -80,7 +80,7 @@ typedef struct options
     int udp_kiss_listen_port;
     int udp_tnc2_listen_port;
 
-    bool squelch;
+    float squelch;
     float gain_2200;
     float tx_delay;
     float tx_tail;

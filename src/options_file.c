@@ -18,7 +18,6 @@ void opts_parse_conf_file(options_t *opts, const char *filename)
     opts->kiss = conf_get_bool_or_default(&conf, OPT_KISS, opts->kiss);
     opts->dev_input = conf_get_bool_or_default(&conf, OPT_DEV_INPUT, opts->dev_input);
     opts->dev_output = conf_get_bool_or_default(&conf, OPT_DEV_OUTPUT, opts->dev_output);
-    opts->squelch = conf_get_bool_or_default(&conf, OPT_SQUELCH, opts->squelch);
 
     opts->rate = conf_get_int_or_default(&conf, OPT_RATE, opts->rate);
     opts->tcp_kiss_port = conf_get_int_or_default(&conf, OPT_TCP_KISS_PORT, opts->tcp_kiss_port);
@@ -28,6 +27,7 @@ void opts_parse_conf_file(options_t *opts, const char *filename)
     opts->udp_kiss_listen_port = conf_get_int_or_default(&conf, OPT_UDP_KISS_LISTEN_PORT, opts->udp_kiss_listen_port);
     opts->udp_tnc2_listen_port = conf_get_int_or_default(&conf, OPT_UDP_TNC2_LISTEN_PORT, opts->udp_tnc2_listen_port);
 
+    opts->squelch = conf_get_float_or_default(&conf, OPT_SQUELCH, opts->squelch);
     opts->gain_2200 = conf_get_float_or_default(&conf, OPT_GAIN_2200, opts->gain_2200);
     opts->tx_delay = conf_get_float_or_default(&conf, OPT_TX_DELAY, opts->tx_delay);
     opts->tx_tail = conf_get_float_or_default(&conf, OPT_TX_TAIL, opts->tx_tail);
