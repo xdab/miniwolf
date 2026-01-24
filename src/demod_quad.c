@@ -1,13 +1,6 @@
 #include "demod.h"
 #include "common.h"
 #include <math.h>
-#include <stdio.h>
-
-#define CONFIG_DEMOD_QUAD_DEBUG 1
-#ifdef CONFIG_DEMOD_QUAD_DEBUG
-static FILE *soft_raw_fp = NULL;
-static int soft_raw_init = 0;
-#endif
 
 demod_quad_params_t quad_params_default = {
     .iq_lpf_order = 2,
@@ -69,16 +62,6 @@ float demod_quad_process(demod_quad_t *demod, float sample)
     float symbol = delta * demod->scale;
 
     symbol = bf_lpf_filter(&demod->post_filter, symbol);
-
-#ifdef CONFIG_DEMOD_QUAD_DEBUG
-    if (!soft_raw_init) {
-        soft_raw_fp = fopen("soft.raw", "wb");
-        soft_raw_init = 1;
-    }
-    if (soft_raw_fp) {
-        fwrite(&symbol, sizeof(float), 1, soft_raw_fp);
-    }
-#endif
 
     return symbol;
 }

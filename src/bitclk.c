@@ -6,18 +6,16 @@
 #define PHASE_MAX 1.0f
 #define PHASE_MIN -1.0f
 #define PHASE_WRAP 2.0f
-#define DCD_GOOD_THRESHOLD (1.0f / 4096.0f)
-#define DCD_THRESH_ON 30
-#define DCD_THRESH_OFF 6
+#define DCD_GOOD_THRESHOLD 0.10f
+#define DCD_THRESH_ON 28
+#define DCD_THRESH_OFF 12
 
 static float wrap_phase(float value)
 {
-    while (value >= PHASE_MAX) {
+    while (value >= PHASE_MAX)
         value -= PHASE_WRAP;
-    }
-    while (value < PHASE_MIN) {
+    while (value < PHASE_MIN)
         value += PHASE_WRAP;
-    }
     return value;
 }
 
@@ -25,22 +23,16 @@ void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate)
 {
     nonnull(detector, "detector");
 
-    // Calculate PLL step size: 2.0 * bit_rate / sample_rate
-    // Float phase accumulator range is [-1.0, 1.0)
     detector->pll_step_per_sample = 2.0f * bit_rate / sample_rate;
-
-    // Initialize PLL state
     detector->data_clock_pll = 0.0f;
     detector->prev_demod_output = 0.0f;
 
-    // Initialize lock detection
     detector->good_hist = 0;
     detector->bad_hist = 0;
     detector->score = 0;
     detector->data_detect = 0;
 
-    // Set inertia values for 1200 baud AFSK (matching Direwolf)
-    detector->pll_locked_inertia = 0.74f;
+    detector->pll_locked_inertia = 0.775f;
     detector->pll_searching_inertia = 0.50f;
 }
 
@@ -86,15 +78,15 @@ int bitclk_detect(bitclk_t *detector, float soft_bit)
     {
         // Sample the current soft bit
         sampled_bit = (soft_bit > 0.0f) ? 1 : 0;
-
-        // Update lock detection based on transition timing
-        update_pll_lock_detection(detector);
     }
 
     // Detect zero crossings for phase correction
     if ((detector->prev_demod_output < 0.0f && soft_bit > 0.0f) ||
         (detector->prev_demod_output > 0.0f && soft_bit < 0.0f))
     {
+        // Update lock detection based on corrected PLL state
+        update_pll_lock_detection(detector);
+
         // Calculate precise zero-crossing timing using linear interpolation
         float denominator = soft_bit - detector->prev_demod_output;
         if (fabsf(denominator) > 1e-6f)

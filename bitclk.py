@@ -16,8 +16,8 @@ BIT_RATE = 1200  # Bit rate (Bell 202)
 
 # PLL constants
 DCD_THRESH_ON = 24
-DCD_THRESH_OFF = 6
-DCD_GOOD_THRESHOLD = 0.10
+DCD_THRESH_OFF = 10
+DCD_GOOD_THRESHOLD = 0.12
 
 # Float phase accumulator range
 PHASE_MAX = 1.0
@@ -113,6 +113,8 @@ class BitClk:
         if (self.prev_demod_output < 0.0 and soft_bit > 0.0) or (
             self.prev_demod_output > 0.0 and soft_bit < 0.0
         ):
+            self._update_pll_lock_detection()
+
             denominator = soft_bit - self.prev_demod_output
             if abs(denominator) > 1e-6:
                 fraction = -self.prev_demod_output / denominator
@@ -124,7 +126,6 @@ class BitClk:
                 )
                 new_pll = current_pll * inertia + target_phase * (1.0 - inertia)
                 self.data_clock_pll = wrap_phase(new_pll)
-            self._update_pll_lock_detection()
 
         self.prev_demod_output = soft_bit
         return sampled_bit
