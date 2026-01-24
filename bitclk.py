@@ -57,6 +57,11 @@ class BitClk:
         self.sampled_bits = []
         self.lock_states = []  # Track lock state at each sample
 
+        # Track DCD state over time
+        self.dcd_scores = []  # Score at each sample
+        self.dcd_states = []  # Data detect state at each sample
+        self.phase_values = []  # PLL phase at each sample
+
     def _update_pll_lock_detection(self):
         phase_abs = abs(self.data_clock_pll)
         transition_near_zero = phase_abs < DCD_GOOD_THRESHOLD
@@ -78,6 +83,11 @@ class BitClk:
     def detect(self, soft_bit: float, sample_idx: int) -> int:
         sampled_bit = None
         prev_pll_value = self.data_clock_pll
+
+        # Record DCD state and phase before advancing
+        self.dcd_scores.append(bin(self.score).count("1"))
+        self.dcd_states.append(self.data_detect)
+        self.phase_values.append(self.data_clock_pll)
 
         # Advance PLL phase accumulator with wrapping
         self.data_clock_pll = wrap_phase(self.data_clock_pll + self.pll_step_per_sample)
@@ -133,9 +143,11 @@ def main():
 
     print(f"Detected {len(bits)} bits")
 
-    fig, ax = plt.subplots(figsize=(14, 5))
-    ax.plot(samples, "b-", linewidth=0.5, label="Soft bits")
-    ax.axhline(y=0, color="gray", linestyle="--", alpha=0.5)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+
+    # Top plot: soft bits with sampling instants
+    ax1.plot(samples, "b-", linewidth=0.5, label="Soft bits")
+    ax1.axhline(y=0, color="gray", linestyle="--", alpha=0.5)
 
     samples_array = np.array(bitclk.sampling_instants)
     bits_array = np.array(bitclk.sampled_bits)
@@ -153,17 +165,40 @@ def main():
                 marker = "o" if locked else "x"
                 color = "green" if bit_val == 1 else "red"
                 label = f"bit={bit_val}, {'locked' if locked else 'searching'}"
-                ax.scatter(
+                ax1.scatter(
                     x, y, color=color, s=40, marker=marker, label=label, zorder=5
                 )
 
-    ax.set_ylabel("Amplitude")
-    ax.set_xlabel("Sample Index")
-    ax.set_title(
+    ax1.set_ylabel("Amplitude")
+    ax1.set_title(
         f"Soft Bits with PLL Sampling Instants (o=locked, x=searching; green=1, red=0) - {len(bits)} bits"
     )
-    ax.legend(loc="upper right", fontsize=8)
-    ax.grid(True, alpha=0.3)
+    ax1.legend(loc="upper right", fontsize=8)
+    ax1.grid(True, alpha=0.3)
+
+    # Bottom plot: DCD score and state over time
+    dcd_scores = np.array(bitclk.dcd_scores)
+    dcd_states = np.array(bitclk.dcd_states)
+    x_axis = np.arange(len(dcd_scores))
+
+    # Plot DCD score as a filled area
+    ax2.fill_between(x_axis, 0, dcd_scores, alpha=0.3, color="blue", label="DCD score")
+    ax2.plot(x_axis, dcd_scores, "b-", linewidth=0.8)
+
+    # Plot DCD threshold lines
+    ax2.axhline(y=DCD_THRESH_ON, color="green", linestyle="--", alpha=0.7, label=f"ON threshold ({DCD_THRESH_ON})")
+    ax2.axhline(y=DCD_THRESH_OFF, color="red", linestyle="--", alpha=0.7, label=f"OFF threshold ({DCD_THRESH_OFF})")
+
+    # Plot DCD state (1=locked, 0=searching) as step function
+    ax2.step(x_axis, dcd_states, where="post", color="black", linewidth=1.5, label="DCD state")
+    ax2.fill_between(x_axis, 0, dcd_states, step="post", alpha=0.2, color="green")
+
+    ax2.set_ylabel("DCD Score / State")
+    ax2.set_xlabel("Sample Index")
+    ax2.set_title("DCD (Data Carrier Detect) State Over Time")
+    ax2.legend(loc="upper right", fontsize=8)
+    ax2.grid(True, alpha=0.3)
+    ax2.set_ylim(-1, max(DCD_THRESH_ON + 5, dcd_scores.max() + 5))
 
     plt.tight_layout()
     plt.show()
