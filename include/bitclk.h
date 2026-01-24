@@ -4,19 +4,6 @@
 
 #define BITCLK_NONE -1
 
-typedef struct bitclk_simple
-{
-    int bit_period;
-    int samples_to_return;
-    int last_bit;
-} bitclk_t;
-
-void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate);
-
-int bitclk_detect(bitclk_t *detector, float soft_bit);
-
-//
-
 typedef struct bitclk_pll
 {
     // Core PLL state
@@ -36,8 +23,8 @@ typedef struct bitclk_pll
     // Signal quality tracking
     float prev_demod_output; // Previous demodulator output for transition detection
 
-} bitclk2_t;
+} bitclk_t;
 
-void bitclk2_init(bitclk2_t *detector, float sample_rate, float bit_rate);
+void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate);
 
-int bitclk2_detect(bitclk2_t *detector, float soft_bit);
+int bitclk_detect(bitclk_t *detector, float soft_bit);

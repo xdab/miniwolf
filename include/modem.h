@@ -12,11 +12,8 @@
 struct md_rx
 {
     demod_t demod;
-    bitclk_t bit_detector_simple;
-    bitclk2_t bit_detector_pll;
-    hldc_deframer_t deframer_simple;
-    hldc_deframer_t deframer_pll;
-    dedupe_t deframer_dedupe;
+    bitclk_t bit_detector;
+    hldc_deframer_t deframer;
 };
 
 struct md_multi_rx
