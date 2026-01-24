@@ -28,7 +28,7 @@ void opts_init(options_t *opts)
     opts->udp_kiss_listen_port = 0;
     opts->udp_tnc2_listen_port = 0;
 
-    opts->squelch = false;
+    opts->squelch = 0.0f;
     opts->gain_2200 = 0.0f;
     opts->tx_delay = 0.0f;
     opts->tx_tail = 0.0f;

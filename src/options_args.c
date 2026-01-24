@@ -97,7 +97,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         opts->rate = atoi(arg);
         break;
     case OPT_SHORT_SQUELCH:
-        opts->squelch = 1;
+        opts->squelch = atof(arg);
         break;
     case OPT_SHORT_GAIN_2200:
         opts->gain_2200 = atof(arg);
