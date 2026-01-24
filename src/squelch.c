@@ -2,8 +2,6 @@
 #include "common.h"
 #include <math.h>
 
-const float init_thr = 0.045;
-
 sql_adv_params_t sql_params_default = {
     .lpf_order = 4,
     .lpf_cutoff_freq = 500.0f,
@@ -48,7 +46,7 @@ int sql_process(sql_t *sql, float sample)
 
     sql->threshold = (sql->low_ema + sql->high_ema) * 0.5f;
 
-    float eff_threshold = sql->low_ema * (1.0f - sql->strength) + sql->high_ema * sql->strength;
+    float eff_threshold = sql->low_ema * sql->strength + sql->high_ema * (1.0f - sql->strength);
     return (envelope < eff_threshold) ? 1 : 0;
 }
 
