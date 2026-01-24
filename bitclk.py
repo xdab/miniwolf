@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 
 # Configuration
-NUM_SAMPLES = 22050  # Number of samples to process
+NUM_SAMPLES = 22050 * 8  # Number of samples to process
 SAMPLE_RATE = 22050  # Sample rate (fallback if not in WAV)
 BIT_RATE = 1200  # Bit rate (Bell 202)
 
 # PLL constants
-DCD_THRESH_ON = 30
+DCD_THRESH_ON = 24
 DCD_THRESH_OFF = 6
-DCD_GOOD_THRESHOLD = 1.0 / 4096.0
+DCD_GOOD_THRESHOLD = 0.10
 
 # Float phase accumulator range
 PHASE_MAX = 1.0
@@ -64,14 +64,23 @@ class BitClk:
 
     def _update_pll_lock_detection(self):
         phase_abs = abs(self.data_clock_pll)
-        transition_near_zero = phase_abs < DCD_GOOD_THRESHOLD
 
-        self.good_hist = (self.good_hist << 1) | (1 if transition_near_zero else 0)
-        self.bad_hist = (self.bad_hist << 1) | (1 if not transition_near_zero else 0)
+        # Check if phase is close to 0
+        transition_near_boundary = phase_abs < DCD_GOOD_THRESHOLD
+
+        # Shift and mask to 32 bits to prevent overflow
+        self.good_hist = (
+            (self.good_hist << 1) | (1 if transition_near_boundary else 0)
+        ) & 0xFFFFFFFF
+        self.bad_hist = (
+            (self.bad_hist << 1) | (1 if not transition_near_boundary else 0)
+        ) & 0xFFFFFFFF
 
         good_count = bin(self.good_hist).count("1")
         bad_count = bin(self.bad_hist).count("1")
-        self.score = (self.score << 1) | (1 if (good_count - bad_count) >= 2 else 0)
+        self.score = (
+            (self.score << 1) | (1 if (good_count - bad_count) >= 2 else 0)
+        ) & 0xFFFFFFFF
 
         score_count = bin(self.score).count("1")
 
@@ -99,7 +108,6 @@ class BitClk:
             self.sampling_instants.append(sample_idx)
             self.sampled_bits.append(sampled_bit)
             self.lock_states.append(self.data_detect)
-            self._update_pll_lock_detection()
 
         # Detect zero crossings for phase correction
         if (self.prev_demod_output < 0.0 and soft_bit > 0.0) or (
@@ -114,9 +122,9 @@ class BitClk:
                     if self.data_detect
                     else self.pll_searching_inertia
                 )
-
                 new_pll = current_pll * inertia + target_phase * (1.0 - inertia)
                 self.data_clock_pll = wrap_phase(new_pll)
+            self._update_pll_lock_detection()
 
         self.prev_demod_output = soft_bit
         return sampled_bit
@@ -186,11 +194,30 @@ def main():
     ax2.plot(x_axis, dcd_scores, "b-", linewidth=0.8)
 
     # Plot DCD threshold lines
-    ax2.axhline(y=DCD_THRESH_ON, color="green", linestyle="--", alpha=0.7, label=f"ON threshold ({DCD_THRESH_ON})")
-    ax2.axhline(y=DCD_THRESH_OFF, color="red", linestyle="--", alpha=0.7, label=f"OFF threshold ({DCD_THRESH_OFF})")
+    ax2.axhline(
+        y=DCD_THRESH_ON,
+        color="green",
+        linestyle="--",
+        alpha=0.7,
+        label=f"ON threshold ({DCD_THRESH_ON})",
+    )
+    ax2.axhline(
+        y=DCD_THRESH_OFF,
+        color="red",
+        linestyle="--",
+        alpha=0.7,
+        label=f"OFF threshold ({DCD_THRESH_OFF})",
+    )
 
     # Plot DCD state (1=locked, 0=searching) as step function
-    ax2.step(x_axis, dcd_states, where="post", color="black", linewidth=1.5, label="DCD state")
+    ax2.step(
+        x_axis,
+        dcd_states,
+        where="post",
+        color="black",
+        linewidth=1.5,
+        label="DCD state",
+    )
     ax2.fill_between(x_axis, 0, dcd_states, step="post", alpha=0.2, color="green")
 
     ax2.set_ylabel("DCD Score / State")
