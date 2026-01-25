@@ -37,7 +37,7 @@ void process_kiss_bytes(char *buf, int len)
 void process_tnc2_bytes(char *buf, int len)
 {
     for (int i = 0; i < len; ++i)
-        line_reader_process(&g_miniwolf.line_reader, buf[i]);
+        line_reader_process(&g_miniwolf.stdin_line_reader, buf[i]);
 }
 
 void modulate_and_transmit(const buffer_t *frame_buf)
@@ -345,6 +345,12 @@ void kiss_input_callback(kiss_message_t *kiss_msg)
     if (kiss_msg->command != 0 || kiss_msg->port != 0)
         return;
 
+    if (kiss_msg->data_length > sizeof(kiss_msg->data))
+    {
+        LOG("invalid KISS data length: %d > %zu", kiss_msg->data_length, sizeof(kiss_msg->data));
+        return;
+    }
+
     buffer_t frame_buf = {
         .data = kiss_msg->data,
         .capacity = sizeof(kiss_msg->data),
@@ -378,17 +384,23 @@ void process_tcp_input(miniwolf_t *mw)
     if (mw->tcp_kiss_enabled)
     {
         int n = tcp_server_listen(&mw->tcp_kiss_server, &buf);
-        kiss_message_t kiss_msg;
-        for (int i = 0; i < n; ++i)
-            if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
-                kiss_input_callback(&kiss_msg);
+        if (n > 0)
+        {
+            kiss_message_t kiss_msg;
+            for (int i = 0; i < n; ++i)
+                if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
+                    kiss_input_callback(&kiss_msg);
+        }
     }
 
     if (mw->tcp_tnc2_enabled)
     {
         int n = tcp_server_listen(&mw->tcp_tnc2_server, &buf);
-        for (int i = 0; i < n; ++i)
-            line_reader_process(&mw->tcp_tnc2_line_reader, read_buffer[i]);
+        if (n > 0)
+        {
+            for (int i = 0; i < n; ++i)
+                line_reader_process(&mw->tcp_line_reader, read_buffer[i]);
+        }
     }
 }
 
@@ -403,16 +415,22 @@ void process_udp_input(miniwolf_t *mw)
     if (mw->udp_kiss_listen_enabled)
     {
         int n = udp_server_listen(&mw->udp_kiss_server, &buf);
-        kiss_message_t kiss_msg;
-        for (int i = 0; i < n; ++i)
-            if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
-                kiss_input_callback(&kiss_msg);
+        if (n > 0)
+        {
+            kiss_message_t kiss_msg;
+            for (int i = 0; i < n; ++i)
+                if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
+                    kiss_input_callback(&kiss_msg);
+        }
     }
 
     if (mw->udp_tnc2_listen_enabled)
     {
         int n = udp_server_listen(&mw->udp_tnc2_server, &buf);
-        for (int i = 0; i < n; ++i)
-            line_reader_process(&mw->tcp_tnc2_line_reader, read_buffer[i]);
+        if (n > 0)
+        {
+            for (int i = 0; i < n; ++i)
+                line_reader_process(&mw->udp_line_reader, read_buffer[i]);
+        }
     }
 }
