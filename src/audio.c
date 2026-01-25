@@ -444,6 +444,7 @@ int aud_process_capture_events(struct pollfd *pfds, int nfds, input_callback_t *
     {
         LOGV("poll error on capture device");
         snd_pcm_prepare(pcm_capture);
+        snd_pcm_start(pcm_capture);
     }
 
     return 0;
