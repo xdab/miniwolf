@@ -9,7 +9,7 @@
 #include <math.h>
 #include <stdio.h>
 
-const float tx_delay = 300.0f;
+const float tx_delay = 100.0f;
 const float tx_tail = 30.0f;
 
 static inline void test_modem_init_pair(

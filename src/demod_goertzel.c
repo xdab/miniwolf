@@ -3,10 +3,10 @@
 #include <math.h>
 
 demod_grz_params_t grz_params_optim = {
-    .window_size_mul = 1.08f,
-    .agc_attack_ms = 0.01f,
+    .window_size_mul = 1.05f,
+    .agc_attack_ms = 0.02f,
     .agc_release_ms = 120.00f,
-    .sym_clip = 0.70f,
+    .sym_clip = 0.60f,
     .post_lpf_order = 6,
     .post_lpf_cutoff_mul = 0.8542f};
 

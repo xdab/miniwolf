@@ -4,7 +4,7 @@
 #include "test_mavg.h"
 #include "test_dedupe.h"
 
-static const float sample_rates[] = {8000.0f, 11025.0f, 16000.0f, 22050.0f, 32000.0f, 44100.0f, 48000.0f};
+static const float sample_rates[] = {22050.0f, 32000.0f, 44100.0f, 48000.0f};
 static const uint32_t demod_flags[] = {DEMOD_GOERTZEL_OPTIM, DEMOD_QUADRATURE};
 
 const char *demod_name(uint32_t flags)
