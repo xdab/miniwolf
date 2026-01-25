@@ -130,7 +130,7 @@ void loop_run(miniwolf_t *mw)
         // Add UDP KISS server fd
         if (mw->udp_kiss_listen_enabled && nfds < MAX_POLL_FDS)
         {
-            pfds[nfds].fd = mw->udp_kiss_server.sock;
+            pfds[nfds].fd = mw->udp_kiss_server.fd;
             pfds[nfds].events = POLLIN;
             nfds++;
         }
@@ -138,7 +138,7 @@ void loop_run(miniwolf_t *mw)
         // Add UDP TNC2 server fd
         if (mw->udp_tnc2_listen_enabled && nfds < MAX_POLL_FDS)
         {
-            pfds[nfds].fd = mw->udp_tnc2_server.sock;
+            pfds[nfds].fd = mw->udp_tnc2_server.fd;
             pfds[nfds].events = POLLIN;
             nfds++;
         }
@@ -257,10 +257,16 @@ int audio_input_callback(float_buffer_t *buf)
         }
 
         if (g_miniwolf.tcp_kiss_enabled)
-            tcp_server_broadcast(&g_miniwolf.tcp_kiss_server, kiss_buffer, kiss_len);
+        {
+            buffer_t kiss_buf = {.data = (unsigned char *)kiss_buffer, .capacity = sizeof(kiss_buffer), .size = kiss_len};
+            tcp_server_broadcast(&g_miniwolf.tcp_kiss_server, &kiss_buf);
+        }
 
         if (g_miniwolf.udp_kiss_enabled)
-            udp_sender_send(&g_miniwolf.udp_kiss_sender, kiss_buffer, kiss_len);
+        {
+            buffer_t kiss_send_buf = {.data = (unsigned char *)kiss_buffer, .capacity = sizeof(kiss_buffer), .size = kiss_len};
+            udp_sender_send(&g_miniwolf.udp_kiss_sender, &kiss_send_buf);
+        }
     }
 
     if (!g_miniwolf.kiss_mode || g_miniwolf.tcp_tnc2_enabled)
@@ -292,10 +298,16 @@ int audio_input_callback(float_buffer_t *buf)
         }
 
         if (g_miniwolf.tcp_tnc2_enabled)
-            tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, tnc2_data, tnc2_len);
+        {
+            buffer_t tnc2_send_buf = {.data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
+            tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, &tnc2_send_buf);
+        }
 
         if (g_miniwolf.udp_tnc2_enabled)
-            udp_sender_send(&g_miniwolf.udp_tnc2_sender, tnc2_data, tnc2_len);
+        {
+            buffer_t tnc2_udp_buf = {.data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
+            udp_sender_send(&g_miniwolf.udp_tnc2_sender, &tnc2_udp_buf);
+        }
     }
 
     return 0;
@@ -357,11 +369,15 @@ void process_stdin_input(miniwolf_t *mw)
 
 void process_tcp_input(miniwolf_t *mw)
 {
-    char read_buffer[TCP_READ_BUF_SIZE];
+    static unsigned char read_buffer[TCP_READ_BUF_SIZE];
+    buffer_t buf = {
+        .data = read_buffer,
+        .capacity = TCP_READ_BUF_SIZE,
+        .size = 0};
 
     if (mw->tcp_kiss_enabled)
     {
-        int n = tcp_server_process(&mw->tcp_kiss_server, read_buffer, sizeof(read_buffer));
+        int n = tcp_server_listen(&mw->tcp_kiss_server, &buf);
         kiss_message_t kiss_msg;
         for (int i = 0; i < n; ++i)
             if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
@@ -370,7 +386,7 @@ void process_tcp_input(miniwolf_t *mw)
 
     if (mw->tcp_tnc2_enabled)
     {
-        int n = tcp_server_process(&mw->tcp_tnc2_server, read_buffer, sizeof(read_buffer));
+        int n = tcp_server_listen(&mw->tcp_tnc2_server, &buf);
         for (int i = 0; i < n; ++i)
             line_reader_process(&mw->tcp_tnc2_line_reader, read_buffer[i]);
     }
@@ -378,11 +394,15 @@ void process_tcp_input(miniwolf_t *mw)
 
 void process_udp_input(miniwolf_t *mw)
 {
-    char read_buffer[TCP_READ_BUF_SIZE];
+    static unsigned char read_buffer[TCP_READ_BUF_SIZE];
+    buffer_t buf = {
+        .data = read_buffer,
+        .capacity = TCP_READ_BUF_SIZE,
+        .size = 0};
 
     if (mw->udp_kiss_listen_enabled)
     {
-        int n = udp_server_process(&mw->udp_kiss_server, read_buffer, sizeof(read_buffer));
+        int n = udp_server_listen(&mw->udp_kiss_server, &buf);
         kiss_message_t kiss_msg;
         for (int i = 0; i < n; ++i)
             if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
@@ -391,7 +411,7 @@ void process_udp_input(miniwolf_t *mw)
 
     if (mw->udp_tnc2_listen_enabled)
     {
-        int n = udp_server_process(&mw->udp_tnc2_server, read_buffer, sizeof(read_buffer));
+        int n = udp_server_listen(&mw->udp_tnc2_server, &buf);
         for (int i = 0; i < n; ++i)
             line_reader_process(&mw->tcp_tnc2_line_reader, read_buffer[i]);
     }
