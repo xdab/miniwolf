@@ -129,6 +129,11 @@ static snd_pcm_sframes_t safe_pcm_write(snd_pcm_t *pcm, const void *buf, size_t 
     snd_pcm_sframes_t n = snd_pcm_writei(pcm, buf, frames);
     if (n < 0)
     {
+        if (n == -EAGAIN)
+        {
+            usleep(1000);
+            return snd_pcm_writei(pcm, buf, frames);
+        }
         n = aud_pcm_recover(pcm, n);
         if (n < 0)
         {
@@ -241,7 +246,7 @@ int aud_configure(const char *device_name, int sample_rate, bool do_input, bool 
 
     if (do_output)
     {
-        err = snd_pcm_open(&pcm_playback, device_name, SND_PCM_STREAM_PLAYBACK, 0);
+        err = snd_pcm_open(&pcm_playback, device_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
         if (err < 0)
             goto fail_playback_open;
 
