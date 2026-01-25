@@ -42,6 +42,7 @@ First steps may go like this:
 ```bash
 git clone https://github.com/xdab/miniwolf.git
 cd miniwolf
+git submodule update --init --recursive
 make build # builds with debug flags
 make release # builds properly 
 make install # builds in release mode and installs to the system
