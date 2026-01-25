@@ -93,7 +93,7 @@ miniwolf -c ~/miniwolf.conf
 
 | Short option | Long option     | Description                                                           |
 | ------------ | --------------- | --------------------------------------------------------------------- |
-| `-s`         | `--squelch`     | Enable noise gate (suppresses audio when no signal detected)          |
+| `-s VAL`     | `--squelch=VAL` | Squelch strength (float, e.g. 0.5)                                    |
 |              | `--eq2200 GAIN` | Apply gain at 2200 Hz in dB (use with `mw_cal` to find optimal value) |
 |              | `--tx-delay MS` | Transmit preamble duration in milliseconds (default: 300)             |
 |              | `--tx-tail MS`  | Transmit postamble duration in milliseconds (default: 50)             |
@@ -120,7 +120,7 @@ Arguments override entries in the configuration file.
 
 ```bash
 # CLI
-miniwolf -d "hw:1,0" -io -r 48000 -k --squelch --eq2200 2.5 --tcp-tnc2 8101 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 8001
+miniwolf -d "hw:1,0" -io -r 48000 -k -s 0.5 --eq2200 2.5 --tcp-tnc2 8101 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 8001
 ```
 
 is equivalent to:
@@ -132,7 +132,7 @@ input=true
 output=true
 rate=48000
 kiss=true
-squelch=true
+squelch=0.5
 eq2200=2.5
 tcp-tnc2=8101
 udp-tnc2-addr=127.0.0.1

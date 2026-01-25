@@ -45,10 +45,9 @@ Plus [libtnc](libs/libtnc/) for: buffer, line, tcp, udp, common (logging)
 - `md_rx_*` / `md_tx_*`: Single RX/TX chain (modem state machine)
 - `demod_*`: Six demodulator types (flags: DEMOD_GOERTZEL_OPTIM, DEMOD_GOERTZEL_PESIM, DEMOD_QUADRATURE, DEMOD_SPLIT_MARK, DEMOD_SPLIT_SPACE, DEMOD_RRC)
 - `demod_goertzel_*`, `demod_quad_*`, `demod_split_*`, `demod_rrc_*`: Demodulator implementations
-- `bitclk_*`: Simple threshold-based bit clock recovery
-- `bitclk2_*`: PLL-based bit clock recovery with lock detection
+- `bitclk_*`: PLL-based bit clock recovery with lock detection (floating-point)
 - `mod_*`: FSK modulation (mark=2200 Hz, space=1200 Hz)
-- `sql_*`: Squelch gate (AGC + energy threshold)
+- `sql_*`: Squelch gate (AGC + energy threshold, configurable strength)
 - `dedupe_*`: Frame deduplication by CRC with expiration window
 
 **Main Programs**
@@ -73,7 +72,7 @@ Up to six parallel demodulators run simultaneously in `md_multi_rx_*`:
 - **Split-filter space**: Branch targeting 1200 Hz
 - **RRC (experimental)**: Root-raised-cosine filter with DDS oscillators and FIR (unsatisfactory performance)
 
-Each produces soft bits → dual bit-clock detectors (simple + PLL) → hard symbols → HDLC deframer. Multi-RX deduplication by CRC.
+Each produces soft bits → PLL-based bit clock recovery → hard symbols → HDLC deframer. Multi-RX deduplication by CRC.
 
 ## Logging
 
