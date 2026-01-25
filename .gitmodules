@@ -1,0 +1,3 @@
+[submodule "libs/libtnc"]
+	path = libs/libtnc
+	url = git@github.com:xdab/libtnc.git
