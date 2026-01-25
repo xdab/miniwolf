@@ -93,7 +93,7 @@ miniwolf -c ~/miniwolf.conf
 
 | Short option | Long option     | Description                                                           |
 | ------------ | --------------- | --------------------------------------------------------------------- |
-| `-s VAL`     | `--squelch=VAL` | Squelch strength (float, e.g. 0.5)                                    |
+| `-s VAL`     | `--squelch=VAL` | Squelch strength (float in range 0.0-1.0, larger means more strict)   |
 |              | `--eq2200 GAIN` | Apply gain at 2200 Hz in dB (use with `mw_cal` to find optimal value) |
 |              | `--tx-delay MS` | Transmit preamble duration in milliseconds (default: 300)             |
 |              | `--tx-tail MS`  | Transmit postamble duration in milliseconds (default: 50)             |
