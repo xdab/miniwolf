@@ -230,7 +230,7 @@ int aud_configure(const char *device_name, int sample_rate, bool do_input, bool 
 
     if (do_input)
     {
-        err = snd_pcm_open(&pcm_capture, device_name, SND_PCM_STREAM_CAPTURE, 0);
+        err = snd_pcm_open(&pcm_capture, device_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
         if (err < 0)
             goto fail_capture_open;
 
@@ -241,7 +241,7 @@ int aud_configure(const char *device_name, int sample_rate, bool do_input, bool 
 
     if (do_output)
     {
-        err = snd_pcm_open(&pcm_playback, device_name, SND_PCM_STREAM_PLAYBACK, 0);
+        err = snd_pcm_open(&pcm_playback, device_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
         if (err < 0)
             goto fail_playback_open;
 
