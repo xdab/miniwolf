@@ -8,7 +8,7 @@ option(MINIWOLF_DEBUG "Enable debugging symbols and disable optimizations" OFF)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 find_package(ALSA REQUIRED)
 
-include_directories(${ALSA_INCLUDE_DIRS} include)
+include_directories(${ALSA_INCLUDE_DIRS} include libs/libtnc/include)
 
 # Set compiler flags based on debug option or build type
 if(MINIWOLF_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -26,17 +26,8 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${DEBUG_FLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${RELEASE_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${RELEASE_LINK_FLAGS}")
 
-# AX25 Library: Protocol stack modules
-set(AX25_SOURCES
-    src/buffer.c
-    src/ax25.c
-    src/kiss.c
-    src/tnc2.c
-    src/hldc.c
-    src/crc.c
-)
-add_library(ax25 STATIC ${AX25_SOURCES})
-target_include_directories(ax25 PUBLIC include)
+# libtnc submodule
+add_subdirectory(libs/libtnc)
 
 # DSP Library: Signal processing modules
 set(DSP_SOURCES
@@ -49,19 +40,6 @@ set(DSP_SOURCES
 )
 add_library(dsp STATIC ${DSP_SOURCES})
 target_include_directories(dsp PUBLIC include)
-
-# Core Library: Shared infrastructure modules
-set(CORE_SOURCES
-    src/buffer.c
-    src/line.c
-    src/common.c
-    src/ring.c
-    src/tcp.c
-    src/udp.c
-    src/conf.c
-)
-add_library(mw_core STATIC ${CORE_SOURCES})
-target_include_directories(mw_core PUBLIC include)
 
 # Modem Library: High level signal processing and frame (de)modulation
 set(MODEM_SOURCES
@@ -78,23 +56,23 @@ set(MODEM_SOURCES
 )
 add_library(mw_modem STATIC ${MODEM_SOURCES})
 target_include_directories(mw_modem PUBLIC include)
-target_link_libraries(mw_modem mw_core)
+target_link_libraries(mw_modem tnc)
 
 # miniwolf
-add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c)
-target_link_libraries(miniwolf mw_core mw_modem ax25 dsp ${ALSA_LIBRARIES} m)
+add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c src/ring.c)
+target_link_libraries(miniwolf mw_modem tnc dsp ${ALSA_LIBRARIES} m)
 
 # mw_test: unit tests
-add_executable(mw_test test/main_test.c test/test.c)
-target_link_libraries(mw_test mw_core mw_modem ax25 dsp m)
+add_executable(mw_test test/main_test.c test/test.c src/ring.c)
+target_link_libraries(mw_test mw_modem tnc dsp m)
 
 # mw_bench: recording/file demodulation tool
-add_executable(mw_bench src/main_bench.c)
-target_link_libraries(mw_bench mw_core mw_modem ax25 dsp m)
+add_executable(mw_bench src/main_bench.c src/ring.c)
+target_link_libraries(mw_bench mw_modem tnc dsp m)
 
 # mw_cal: AF spectrum analyzer
-add_executable(mw_cal src/main_cal.c src/audio.c)
-target_link_libraries(mw_cal mw_core dsp ${ALSA_LIBRARIES} m)
+add_executable(mw_cal src/main_cal.c src/audio.c src/ring.c)
+target_link_libraries(mw_cal tnc dsp ${ALSA_LIBRARIES} m)
 
 # Strip symbols in Release builds
 if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")

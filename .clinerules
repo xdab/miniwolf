@@ -1,6 +1,6 @@
 # .clinerules - Technical Rules for miniwolf
 
-A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightweight Direwolf replacement with packet radio/APRS support. Custom DSP, AX.25/KISS/TNC2 protocols, real-time audio via ALSA, offline file processing.
+A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightweight Direwolf replacement with packet radio/APRS support. Custom DSP, real-time audio via ALSA, offline file processing. Protocol implementation in [libtnc](libs/libtnc/) submodule.
 
 ## Real-Time Constraints (Critical)
 
@@ -12,7 +12,7 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 ## Code Style
 
 - **Minimal comments**—self-explanatory code preferred
-- **Function prefixes** group related functionality: `bf_` (filter), `aud_` (audio), `agc_` (gain control), `fft_`, `grz_` (Goertzel), `ax25_`, `tnc2_`, `kiss_`, `hldc_` (framing), `demod_*`, `bitclk*`, `modem_`, `mod_`, `ring_`, `sql_` (squelch), `dedupe_`, `tcp_*`, `udp_*`, `line_*`, `mavg_`/`ema_` (averages), `crc_ccitt_`
+- **Function prefixes** group related functionality: `bf_` (filter), `aud_` (audio), `agc_` (gain control), `fft_`, `grz_` (Goertzel), `demod_*`, `bitclk*`, `modem_`, `mod_`, `ring_`, `sql_` (squelch), `dedupe_`, `mavg_`/`ema_` (averages)
 - **Struct-based organization** with `init()`, `process()`, `free()` pattern
 - **Buffer safety**: Always pass buffer size, verify available capacity before writes
 - **Error codes**: 0 = success, negative = error
@@ -20,13 +20,9 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 
 ## Module Breakdown
 
-**Protocols** (libax25.a)
+**Protocols** (in [libtnc](libs/libtnc/) submodule)
 
-- `ax25_addr_*` / `ax25_packet_*`: AX.25 (7-byte addresses: 6-char callsign, SSID, repeat flag)
-- `hldc_framer_*` / `hldc_deframer_*`: HDLC framing (NRZI, bit stuffing, CRC-CCITT 0xFFFF, 0x7E flags)
-- `tnc2_*`: TNC2 text format parsing
-- `kiss_*`: KISS binary protocol with escape sequences
-- `crc_ccitt_*`: CRC-CCITT checksums
+- AX.25, HDLC, KISS, TNC2, CRC-CCITT
 
 **DSP** (libdsp.a)
 
@@ -39,11 +35,8 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 **Core** (mw_core)
 
 - `ring_*`: Lock-free ring buffers (thread-safe read/write)
-- `tcp_*`: TCP client/server integration
-- `udp_*`: UDP packet transmission and reception
-- `line_*`: TNC2 line parsing from stdin/TCP
-- `buf_*` / `fbuf_*`: Buffer capacity/size checks
-- `common_*`: Logging macros and utilities
+
+Plus [libtnc](libs/libtnc/) for: buffer, line, tcp, udp, common (logging)
 
 **Modem** (mw_modem)
 
@@ -68,14 +61,6 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 - `main_cal.c`: Real-time FFT spectrum analyzer (8 frequency bins, 1200 Hz reference)
 - `main_log.c`: TCP/UDP packet logger for AX.25 RF traffic
 - `main_test.c`: Unit test runner
-
-## Protocol Details
-
-**AX.25**: 7-byte addresses (6-char space-padded callsign + 4-bit SSID + repeat flag)
-**HDLC**: NRZI encode → bit-stuff (insert 0 after five 1s) → CRC-CCITT → 0x7E delimiters
-**Bell 202**: 1200 bps FSK (mark=2200 Hz, space=1200 Hz), flags pre/post-amble configurable
-**KISS**: PORT + COMMAND + data bytes, 0xC0 frame delimiters, 0xDB escape
-**TNC2**: Human-readable (e.g., STATION>DEST,PATH:DATA)
 
 ## Demodulation Strategy
 
@@ -104,12 +89,13 @@ Messages: lowercase start, no period/newline (auto-added).
 
 ## Build
 
-**Four libraries** (independent compilation):
+**Three libraries** (independent compilation):
 
-- `libax25.a`: ax25, kiss, tnc2, hldc, crc, buffer
 - `libdsp.a`: agc, fft, filter, goertzel, synth, mavg
-- `mw_core`: buffer, line, common, ring, tcp, udp
+- `mw_core`: ring
 - `mw_modem`: bitclk, demod, demod_goertzel, demod_quad, demod_rrc, demod_split, mod, modem, squelch, dedupe
+
+Plus [libtnc](libs/libtnc/) submodule for protocols.
 
 **Executables**:
 

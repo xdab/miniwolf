@@ -141,41 +141,13 @@ udp-tnc2-port=8001
 
 ## Working principles
 
-### Receive chain
+### Signal chain
 
-Audio input → Channel EQ (optional) → Squelch gate (optional) → Demodulators → Dual bit-clock recovery (simple + PLL) → HDLC deframing → CRC deduplication → Output
+**Receive:** Audio input → EQ → Squelch → Demodulators → Bit-clock recovery → HDLC deframe → Output
 
-#### Goertzel demodulators
+**Transmit:** Input (stdin/TCP/UDP) → Protocol parse → AX.25 → HDLC encode → FSK modulate → Audio output
 
-Tone strengths calculated using Goertzel's algorithm, normalized and compared.
-
-For the "optimistic" variant, the "hyperparameters" have been procedurally optimized for [TNC Test CD by WA8LMF](http://wa8lmf.net/TNCtest/) track 1. For the "pessimistic", track 2 was used.
-
-#### Quadrature demodulator
-
-PM or FM-like algorithm. Mixes input with I/Q local oscillators at center frequency (1700 Hz), low-pass filters them, then calculates instantaneous frequency via phase difference (atan2). Output is normalized and clipped to produce soft symbols.
-
-#### Split-filter demodulators
-
-Two variants: mark-focused (low-pass at 2200 Hz) and space-focused (high-pass at 1200 Hz). Each applies envelope detection, post-filtering, and AGC normalization with independently tuned parameters for optimal performance.
-
-#### RRC demodulator
-
-Copied from Direwolf for experimentation, but disabled by default for performance reasons.
-
-Uses Root-Raised-Cosine matched filtering with quadrature mixing via DDS oscillators for both mark and space frequencies. FIR filtering with RRC impulse response, envelope detection, and AGC normalization produce the final mark-space comparison.
-
-#### Bit synchronization
-
-Each demodulator feeds two bit-clock recovery algorithms running in parallel:
-
-**Simple threshold-based:** Detects bit transitions by comparing consecutive samples. When the bit value changes, it resets timing to the middle of the bit period. Fast but sensitive to noise.
-
-**PLL-based (preferred):** Uses a 32-bit phase accumulator with adaptive inertia for phase correction. Tracks zero-crossings with linear interpolation and maintains lock detection through transition timing analysis. Applies conservative corrections when locked (inertia 0.74) and aggressive corrections when searching (inertia 0.50). Hysteresis prevents lock flapping. Significantly more robust than the simple algorithm.
-
-### Transmit chain
-
-Input (stdin/TCP/UDP) → Protocol parsing (TNC2/KISS) → AX.25 framing → HDLC encoding (NRZI + bit stuffing) → Bell 202 FSK modulation (1200 Hz space, 2200 Hz mark) → Audio output
+Protocol implementation (AX.25, HDLC, KISS, TNC2, CRC-CCITT) resides in [libtnc](libs/libtnc/) git submodule.
 
 ## Calibration
 
