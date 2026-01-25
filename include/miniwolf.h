@@ -20,15 +20,18 @@ typedef struct miniwolf_state
     bf_biquad_t hbf_filter;
 
     // Input readers
-    line_reader_t line_reader;
-    line_reader_t tcp_tnc2_line_reader;
+    line_reader_t stdin_line_reader;
+    line_reader_t tcp_line_reader;
+    line_reader_t udp_line_reader;
     kiss_decoder_t kiss_decoder;
 
     // Network servers and senders
     tcp_server_t tcp_kiss_server;
     tcp_server_t tcp_tnc2_server;
+    
     udp_sender_t udp_kiss_sender;
     udp_sender_t udp_tnc2_sender;
+
     udp_server_t udp_kiss_server;
     udp_server_t udp_tnc2_server;
 

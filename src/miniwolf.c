@@ -89,8 +89,9 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     sql_init(&mw->squelch, &sql_params, &sql_params_default);
 
     kiss_decoder_init(&mw->kiss_decoder);
-    line_reader_init(&mw->line_reader, tnc2_input_callback);
-    line_reader_init(&mw->tcp_tnc2_line_reader, tnc2_input_callback);
+    line_reader_init(&mw->stdin_line_reader, tnc2_input_callback);
+    line_reader_init(&mw->tcp_line_reader, tnc2_input_callback);
+    line_reader_init(&mw->udp_line_reader, tnc2_input_callback);
 }
 
 void miniwolf_free(miniwolf_t *mw)
