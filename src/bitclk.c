@@ -69,7 +69,7 @@ int bitclk_detect(bitclk_t *bitclk, float soft_bit)
     // Bit sampling when PLL wraps around +-1.0
     int sampled_bit = BITCLK_NONE;
     if (prev_pll_value > 0.0f && bitclk->pll_clock <= 0.0f)
-        sampled_bit = (soft_bit > 0.0f) ? 1 : 0;
+        sampled_bit = (bitclk->last_soft_bit > 0.0f) ? 1 : 0;
 
     // Phase correction when softbit crosses 0.0
     if (bitclk->last_soft_bit * soft_bit < 0.0f)
@@ -81,7 +81,8 @@ int bitclk_detect(bitclk_t *bitclk, float soft_bit)
         if (fabsf(delta_soft_bit) > 1e-6f)
         {
             float fraction = -bitclk->last_soft_bit / delta_soft_bit;
-            float target_phase = bitclk->pll_clock_tick * fraction;
+            float crossing_error = fraction - 0.5f;
+            float target_phase = -bitclk->pll_clock_tick * crossing_error;
 
             // Adaptive PLL inertia
             float inertia = bitclk->data_detect ? bitclk->pll_locked_inertia : bitclk->pll_searching_inertia;
