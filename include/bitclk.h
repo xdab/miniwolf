@@ -11,13 +11,9 @@ typedef struct bitclk_pll
     float pll_clock;      // Phase accumulator
     float pll_clock_tick; // Step size per audio sample
 
-    uint32_t good_hist; // History of good transition flags
-    uint32_t bad_hist;  // History of bad transition flags
-    uint32_t score;     // Rolling score for hysteresis (good transitions among last 32)
-    int data_detect;    // PLL lock status
-
-    float pll_locked_inertia;    // Conservative corrections when locked
-    float pll_searching_inertia; // Aggressive corrections when searching
+    uint32_t transition_history;
+    int signal_quality;
+    int data_detect;
 
 } bitclk_t;
 
