@@ -4,8 +4,6 @@
 #include <string.h>
 #include <math.h>
 
-#define DEDUPE_TIME 2 // TODO make expiration configurable
-
 const float mark_freq = 1200.0f;
 const float space_freq = 2200.0f;
 const float baud_rate = 1200.0f;
@@ -25,10 +23,17 @@ void md_multi_rx_init(struct md_multi_rx *mrx, float sample_rate, demod_type_t t
         mask <<= 1;
     }
 
-    dedupe_init(&mrx->multi_rx_dedupe, DEDUPE_TIME);
+    mrx->last_modem = -1;
+    mrx->last_crc = 0;
+    mrx->last_time = 0L;
 }
 
 int md_multi_rx_process(struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
+{
+    return md_multi_rx_process_at(mrx, sample_buf, out_frame_buf, time(NULL));
+}
+
+int md_multi_rx_process_at(struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, time_t time)
 {
     nonnull(mrx, "mrx");
     assert_buffer_valid(sample_buf);
@@ -36,18 +41,31 @@ int md_multi_rx_process(struct md_multi_rx *mrx, const float_buffer_t *sample_bu
 
     int ret = 0;
     uint16_t crc = 0;
+    int modem = -2;
 
     for (int i = 0; i < mrx->count; i++)
     {
         struct md_rx *rx = &mrx->rxs[i];
         if (ret == 0)
+        {
             ret = md_rx_process(rx, sample_buf, out_frame_buf, &crc);
+            if (ret > 0)
+                modem = i;
+        }
         else
             (void)md_rx_process(rx, sample_buf, NULL, NULL);
     }
 
-    if (ret > 0 && dedupe_push_frame(&mrx->multi_rx_dedupe, crc))
-        ret = 0; // Duplicate - pretend there was no frame received
+    if (ret > 0)
+    {
+        // If just (within 1s) seen identical frame on another modem
+        if (crc == mrx->last_crc && modem != mrx->last_modem && time - mrx->last_time <= 1)
+            ret = 0; // Pretend there was no frame received
+
+        mrx->last_modem = modem;
+        mrx->last_crc = crc;
+        mrx->last_time = time;
+    }
 
     return ret;
 }
@@ -205,7 +223,8 @@ int modem_modulate(modem_t *modem, const buffer_t *frame_buf, float_buffer_t *ou
         LOGV("modulated frame: %d samples", ret);
 
     // Treat tx crc as already demodulated to filter out self-demodulations
-    dedupe_push_frame(&modem->mrx.multi_rx_dedupe, frame_crc);
+    modem->mrx.last_crc = frame_crc;
+    modem->mrx.last_time = time(NULL);
 
     return ret;
 }

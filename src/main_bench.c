@@ -269,21 +269,17 @@ int main(int argc, char *argv[])
     bf_biquad_t g_hbf_filter;
     bf_hbf_init(&g_hbf_filter, 4, 2200.0f, sample_rate, args.gain_2200);
 
-    // Initialize modem
-    modem_t modem;
-    modem_params_t modem_params = {
-        .sample_rate = sample_rate,
-        .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE,
-        .tx_delay = 300.0f,
-        .tx_tail = 50.0f};
-    modem_init(&modem, &modem_params);
+    // Initialize demod
+    struct md_multi_rx demod;
+    demod_type_t types = DEMOD_QUADRATURE | DEMOD_ALL_GOERTZEL;
+    md_multi_rx_init(&demod, sample_rate, types);
 
     // Initialize squelch (only if enabled)
     sql_t squelch;
     sql_params_t sql_params = {
         .sample_rate = sample_rate,
         .init_threshold = 0.045f,
-        .strength = 0.51f};
+        .strength = 0.50f};
     if (args.use_squelch)
         sql_init(&squelch, &sql_params, &sql_params_default);
 
@@ -297,6 +293,7 @@ int main(int argc, char *argv[])
     LOGV("Processing file...");
 
     clock_t total_time = 0;
+    time_t time_zero = time(NULL);
 
     for (;;)
     {
@@ -329,21 +326,20 @@ int main(int argc, char *argv[])
         }
 
         total_samples += read_count;
+        double time_sec = (double)total_samples / sample_rate;
 
         // Demodulate with timing
-        clock_t start, end;
-        start = clock();
         float_buffer_t sample_buf = {.data = samples, .capacity = CHUNK_SIZE, .size = read_count};
         buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
-        int frame_len = modem_demodulate(&modem, &sample_buf, &frame_buf);
+        clock_t start, end;
+        time_t time_sim = time_zero + (time_t)time_sec;
+        start = clock();
+        int frame_len = md_multi_rx_process_at(&demod, &sample_buf, &frame_buf, time_sim);
         end = clock();
         total_time += end - start;
 
         if (frame_len <= 0)
             continue;
-
-        // Print with counter and timestamp
-        double time_sec = (double)total_samples / sample_rate;
 
         // Unpack AX.25 packet
         ax25_packet_t packet;
@@ -385,7 +381,7 @@ int main(int argc, char *argv[])
     if (sq_fp)
         fclose(sq_fp);
     fclose(fp);
-    modem_free(&modem);
+    md_multi_rx_free(&demod);
     bf_biquad_free(&g_hbf_filter);
 
     return exit_code;
