@@ -9,12 +9,12 @@ update:
 build:
 	mkdir -p build
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ..
-	cd build && make
+	cd build && make -j
 
 release:
 	mkdir -p build
 	cd build && cmake -G "Unix Makefiles" ..
-	cd build && make
+	cd build && make -j
 
 ARCH := $(shell uname -m)
 VERSION := $(shell git describe --tags --always --abbrev=8 2>/dev/null || echo "unknown")
