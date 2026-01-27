@@ -2,7 +2,6 @@
 #include "test_ring.h"
 #include "test_modem.h"
 #include "test_mavg.h"
-#include "test_dedupe.h"
 
 static const float sample_rates[] = {16000.0f, 22050.0f, 32000.0f, 44100.0f, 48000.0f};
 static const uint32_t demod_flags[] = {DEMOD_GOERTZEL_OPTIM, DEMOD_QUADRATURE};
@@ -51,21 +50,6 @@ int main(void)
     test_ema_update_standard();
     test_ema_get_uninitialized();
     test_ema_free();
-    end_module();
-
-    begin_module("Dedupe");
-    test_dedupe_init();
-    test_dedupe_first_frame_not_duplicate();
-    test_dedupe_duplicate_within_expiration();
-    test_dedupe_duplicate_after_expiration();
-    test_dedupe_different_crc_not_duplicate();
-    test_dedupe_slot_eviction();
-    test_dedupe_crc_at_all_indices();
-    test_dedupe_time_boundary();
-    test_dedupe_expired_crc_reuse_slot();
-    test_dedupe_rapid_same_crc();
-    test_dedupe_multiple_expirations();
-    test_dedupe_timestamp_bumping();
     end_module();
 
     begin_module("Bell202");

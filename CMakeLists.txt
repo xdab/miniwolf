@@ -52,7 +52,6 @@ set(MODEM_SOURCES
     src/mod.c
     src/modem.c
     src/squelch.c
-    src/dedupe.c
 )
 add_library(mw_modem STATIC ${MODEM_SOURCES})
 target_include_directories(mw_modem PUBLIC include)

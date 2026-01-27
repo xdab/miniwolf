@@ -5,7 +5,7 @@
 #include "demod.h"
 #include "bitclk.h"
 #include "buffer.h"
-#include "dedupe.h"
+#include <time.h>
 
 #define MD_RX_MAX 6
 
@@ -20,7 +20,11 @@ struct md_multi_rx
 {
     struct md_rx rxs[MD_RX_MAX];
     int count;
-    dedupe_t multi_rx_dedupe;
+
+    // Inter-md_rx deduplication
+    int last_modem;
+    uint16_t last_crc;
+    time_t last_time;
 };
 
 struct md_tx
@@ -58,6 +62,9 @@ void modem_free(modem_t *modem);
 void md_multi_rx_init(struct md_multi_rx *mrx, float sample_rate, demod_type_t types);
 
 int md_multi_rx_process(struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf);
+
+// Variant of md_multi_rx_process for non-real-time processing (i.e. simulation)
+int md_multi_rx_process_at(struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, time_t time);
 
 void md_multi_rx_free(struct md_multi_rx *mrx);
 
