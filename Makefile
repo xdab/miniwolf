@@ -1,6 +1,10 @@
-.PHONY: all build release package run cal log test prof bench bench1 bench2 install clean
+.PHONY: all update build release package run cal log test prof bench bench1 bench2 install clean
 
 all: run
+
+update:
+	git pull
+	git submodule update --init --recursive
 
 build:
 	mkdir -p build
