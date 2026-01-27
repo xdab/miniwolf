@@ -47,8 +47,6 @@ set(MODEM_SOURCES
     src/demod.c
     src/demod_goertzel.c
     src/demod_quad.c
-    src/demod_rrc.c
-    src/demod_split.c
     src/mod.c
     src/modem.c
     src/squelch.c
