@@ -14,12 +14,6 @@ const char *demod_name(uint32_t flags)
         return "Goertzel (Pessimistic)";
     if (flags == DEMOD_QUADRATURE)
         return "Quadrature";
-    if (flags == DEMOD_SPLIT_MARK)
-        return "Split-filter (Mark)";
-    if (flags == DEMOD_SPLIT_SPACE)
-        return "Split-filter (Space)";
-    if (flags == DEMOD_RRC)
-        return "RRC (Direwolf)";
     return "Unknown";
 }
 
