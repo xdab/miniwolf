@@ -64,12 +64,26 @@ int bitclk_detect(bitclk_t *bitclk, float soft_bit)
 
     // Advance PLL
     float prev_pll_value = bitclk->pll_clock;
-    bitclk->pll_clock = wrap_phase(bitclk->pll_clock + bitclk->pll_clock_tick);
+    float curr_pll = prev_pll_value + bitclk->pll_clock_tick;
+    bitclk->pll_clock = wrap_phase(curr_pll);
 
-    // Bit sampling when PLL wraps around +-1.0
+    // Bit sampling when PLL wraps around +-1.0 (falling edge)
     int sampled_bit = BITCLK_NONE;
+<<<<<<< Updated upstream
     if (prev_pll_value > 0.0f && bitclk->pll_clock <= 0.0f)
         sampled_bit = (soft_bit > 0.0f) ? 1 : 0;
+=======
+    if (prev_pll_value > 0.0f && bitclk->pll_clock < 0.0f)
+    {
+        // Find where PLL would be exactly +1.0 (wrapping point)
+        // fraction: 0 = at last sample, 1 = at current sample
+        float fraction_to_max = (PHASE_MAX - prev_pll_value) / bitclk->pll_clock_tick;
+
+        // Interpolate soft_bit value at this point
+        float soft_bit_at_sample = bitclk->last_soft_bit + fraction_to_max * (soft_bit - bitclk->last_soft_bit);
+        sampled_bit = (soft_bit_at_sample > 0.0f) ? 1 : 0;
+    }
+>>>>>>> Stashed changes
 
     // Phase correction when softbit crosses 0.0
     if (bitclk->last_soft_bit * soft_bit < 0.0f)
