@@ -23,6 +23,8 @@
 #define OPT_UDP_TNC2_PORT "udp-tnc2-port"
 #define OPT_UDP_KISS_LISTEN_PORT "udp-kiss-listen"
 #define OPT_UDP_TNC2_LISTEN_PORT "udp-tnc2-listen"
+#define OPT_UDS_KISS_SOCKET "uds-kiss"
+#define OPT_UDS_TNC2_SOCKET "uds-tnc2"
 #define OPT_SQUELCH "squelch"
 #define OPT_GAIN_2200 "eq2200"
 #define OPT_TX_DELAY "tx-delay"
@@ -47,6 +49,8 @@
 #define OPT_SHORT_UDP_TNC2_PORT '\x07'
 #define OPT_SHORT_UDP_KISS_LISTEN_PORT '\x08'
 #define OPT_SHORT_UDP_TNC2_LISTEN_PORT '\x09'
+#define OPT_SHORT_UDS_KISS_SOCKET '\x0a'
+#define OPT_SHORT_UDS_TNC2_SOCKET '\x0b'
 #define OPT_SHORT_SQUELCH 's'
 #define OPT_SHORT_GAIN_2200 '2'
 #define OPT_SHORT_TX_DELAY 'y'
@@ -79,6 +83,9 @@ typedef struct options
 
     int udp_kiss_listen_port;
     int udp_tnc2_listen_port;
+
+    char uds_kiss_socket_path[OPT_STR_SIZE];
+    char uds_tnc2_socket_path[OPT_STR_SIZE];
 
     float squelch;
     float gain_2200;

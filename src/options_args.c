@@ -29,6 +29,9 @@ static struct argp_option options[] = {
     {OPT_UDP_KISS_LISTEN_PORT, OPT_SHORT_UDP_KISS_LISTEN_PORT, "PORT", 0, "UDP server port for receiving KISS packets", 4},
     {OPT_UDP_TNC2_LISTEN_PORT, OPT_SHORT_UDP_TNC2_LISTEN_PORT, "PORT", 0, "UDP server port for receiving TNC2 packets", 4},
 
+    {OPT_UDS_KISS_SOCKET, OPT_SHORT_UDS_KISS_SOCKET, "PATH", 0, "Unix domain socket path for KISS packets", 4},
+    {OPT_UDS_TNC2_SOCKET, OPT_SHORT_UDS_TNC2_SOCKET, "PATH", 0, "Unix domain socket path for TNC2 packets", 4},
+
     {OPT_SQUELCH, OPT_SHORT_SQUELCH, 0, 0, "Enable pseudo-squelch", 5},
     {OPT_GAIN_2200, OPT_SHORT_GAIN_2200, "GAIN", 0, "Equalization to apply at 2200 Hz [dB]", 5},
     {OPT_TX_DELAY, OPT_SHORT_TX_DELAY, "MS", 0, "Time to send flags before a packet (default: 300ms)", 5},
@@ -92,6 +95,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case OPT_SHORT_UDP_TNC2_LISTEN_PORT:
         opts->udp_tnc2_listen_port = atoi(arg);
+        break;
+    case OPT_SHORT_UDS_KISS_SOCKET:
+        strncpy(opts->uds_kiss_socket_path, arg, OPT_STR_SIZE - 1);
+        break;
+    case OPT_SHORT_UDS_TNC2_SOCKET:
+        strncpy(opts->uds_tnc2_socket_path, arg, OPT_STR_SIZE - 1);
         break;
     case OPT_SHORT_RATE:
         opts->rate = atoi(arg);

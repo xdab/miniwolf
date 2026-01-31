@@ -16,29 +16,15 @@
 #define MAX_POLL_FDS 32
 
 int audio_input_callback(float_buffer_t *buf);
+void modulate_and_transmit(const buffer_t *frame_buf);
+
 void tnc2_input_callback(const buffer_t *line_buf);
 void kiss_input_callback(kiss_message_t *kiss_msg);
 
-void process_kiss_bytes(char *buf, int len);
-void process_tnc2_bytes(char *buf, int len);
-void modulate_and_transmit(const buffer_t *frame_buf);
 void process_stdin_input(miniwolf_t *mw);
 void process_tcp_input(miniwolf_t *mw);
 void process_udp_input(miniwolf_t *mw);
-
-void process_kiss_bytes(char *buf, int len)
-{
-    kiss_message_t kiss_msg;
-    for (int i = 0; i < len; ++i)
-        if (kiss_decoder_process(&g_miniwolf.kiss_decoder, buf[i], &kiss_msg))
-            kiss_input_callback(&kiss_msg);
-}
-
-void process_tnc2_bytes(char *buf, int len)
-{
-    for (int i = 0; i < len; ++i)
-        line_reader_process(&g_miniwolf.stdin_line_reader, buf[i]);
-}
+void process_uds_input(miniwolf_t *mw);
 
 void modulate_and_transmit(const buffer_t *frame_buf)
 {
@@ -143,6 +129,44 @@ void loop_run(miniwolf_t *mw)
             nfds++;
         }
 
+        // Add UDS KISS server listen fd
+        if (mw->uds_kiss_enabled && nfds < MAX_POLL_FDS)
+        {
+            pfds[nfds].fd = mw->uds_kiss_server.listen_fd;
+            pfds[nfds].events = POLLIN;
+            nfds++;
+
+            // Add UDS KISS client fds
+            for (int i = 0; i < mw->uds_kiss_server.num_clients && nfds < MAX_POLL_FDS; i++)
+            {
+                if (mw->uds_kiss_server.clients[i].fd >= 0)
+                {
+                    pfds[nfds].fd = mw->uds_kiss_server.clients[i].fd;
+                    pfds[nfds].events = POLLIN;
+                    nfds++;
+                }
+            }
+        }
+
+        // Add UDS TNC2 server listen fd
+        if (mw->uds_tnc2_enabled && nfds < MAX_POLL_FDS)
+        {
+            pfds[nfds].fd = mw->uds_tnc2_server.listen_fd;
+            pfds[nfds].events = POLLIN;
+            nfds++;
+
+            // Add UDS TNC2 client fds
+            for (int i = 0; i < mw->uds_tnc2_server.num_clients && nfds < MAX_POLL_FDS; i++)
+            {
+                if (mw->uds_tnc2_server.clients[i].fd >= 0)
+                {
+                    pfds[nfds].fd = mw->uds_tnc2_server.clients[i].fd;
+                    pfds[nfds].events = POLLIN;
+                    nfds++;
+                }
+            }
+        }
+
         LOGD("poll setup: %d fds (audio: %d at offset %d)", nfds, audio_fd_count, audio_fd_start);
 
         // Wait for any input with 10ms timeout (fast response for audio periods arriving every ~85ms)
@@ -170,16 +194,7 @@ void loop_run(miniwolf_t *mw)
 
         // Process audio capture if ready
         if (audio_fd_count > 0)
-        {
-            for (int i = 0; i < audio_fd_count; i++)
-            {
-                if (pfds[audio_fd_start + i].revents)
-                {
-                    LOGD("audio fd %d has events: 0x%x", i, pfds[audio_fd_start + i].revents);
-                }
-            }
             aud_process_capture_events(&pfds[audio_fd_start], audio_fd_count, audio_input_callback, &audio_buf);
-        }
 
         // Always process playback (non-blocking)
         aud_process_playback();
@@ -187,9 +202,10 @@ void loop_run(miniwolf_t *mw)
         // Process stdin if ready (we check in process_stdin_input since it's non-blocking)
         process_stdin_input(mw);
 
-        // Process TCP/UDP (they use their own select/poll internally)
+        // Process TCP/UDP/UDS inputs (they use their own select/poll internally)
         process_tcp_input(mw);
         process_udp_input(mw);
+        process_uds_input(mw);
 
         // Check exit-idle condition
         time_t current_time = time(NULL);
@@ -256,17 +272,16 @@ int audio_input_callback(float_buffer_t *buf)
             fflush(stdout);
         }
 
+        buffer_t kiss_send_buf = {.data = (unsigned char *)kiss_buffer, .capacity = sizeof(kiss_buffer), .size = kiss_len};
+
         if (g_miniwolf.tcp_kiss_enabled)
-        {
-            buffer_t kiss_buf = {.data = (unsigned char *)kiss_buffer, .capacity = sizeof(kiss_buffer), .size = kiss_len};
-            tcp_server_broadcast(&g_miniwolf.tcp_kiss_server, &kiss_buf);
-        }
+            tcp_server_broadcast(&g_miniwolf.tcp_kiss_server, &kiss_send_buf);
 
         if (g_miniwolf.udp_kiss_enabled)
-        {
-            buffer_t kiss_send_buf = {.data = (unsigned char *)kiss_buffer, .capacity = sizeof(kiss_buffer), .size = kiss_len};
             udp_sender_send(&g_miniwolf.udp_kiss_sender, &kiss_send_buf);
-        }
+
+        if (g_miniwolf.uds_kiss_enabled)
+            uds_server_broadcast(&g_miniwolf.uds_kiss_server, &kiss_send_buf);
     }
 
     if (!g_miniwolf.kiss_mode || g_miniwolf.tcp_tnc2_enabled)
@@ -297,17 +312,16 @@ int audio_input_callback(float_buffer_t *buf)
             fflush(stdout);
         }
 
+        buffer_t tnc2_send_buf = {.data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
+
         if (g_miniwolf.tcp_tnc2_enabled)
-        {
-            buffer_t tnc2_send_buf = {.data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
             tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, &tnc2_send_buf);
-        }
 
         if (g_miniwolf.udp_tnc2_enabled)
-        {
-            buffer_t tnc2_udp_buf = {.data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
-            udp_sender_send(&g_miniwolf.udp_tnc2_sender, &tnc2_udp_buf);
-        }
+            udp_sender_send(&g_miniwolf.udp_tnc2_sender, &tnc2_send_buf);
+
+        if (g_miniwolf.uds_tnc2_enabled)
+            uds_server_broadcast(&g_miniwolf.uds_tnc2_server, &tnc2_send_buf);
     }
 
     return 0;
@@ -361,16 +375,21 @@ void kiss_input_callback(kiss_message_t *kiss_msg)
 
 void process_stdin_input(miniwolf_t *mw)
 {
-    char read_buffer[STDIN_BUFFER_SIZE];
+    static unsigned char read_buffer[STDIN_BUFFER_SIZE];
     int n = read(0, read_buffer, sizeof(read_buffer));
 
-    if (n <= 0)
-        return;
-
     if (mw->kiss_mode)
-        process_kiss_bytes(read_buffer, n);
+    {
+        kiss_message_t kiss_msg;
+        for (int i = 0; i < n; ++i)
+            if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
+                kiss_input_callback(&kiss_msg);
+    }
     else
-        process_tnc2_bytes(read_buffer, n);
+    {
+        for (int i = 0; i < n; ++i)
+            line_reader_process(&mw->stdin_line_reader, read_buffer[i]);
+    }
 }
 
 void process_tcp_input(miniwolf_t *mw)
@@ -383,24 +402,18 @@ void process_tcp_input(miniwolf_t *mw)
 
     if (mw->tcp_kiss_enabled)
     {
+        kiss_message_t kiss_msg;
         int n = tcp_server_listen(&mw->tcp_kiss_server, &buf);
-        if (n > 0)
-        {
-            kiss_message_t kiss_msg;
-            for (int i = 0; i < n; ++i)
-                if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
-                    kiss_input_callback(&kiss_msg);
-        }
+        for (int i = 0; i < n; ++i)
+            if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
+                kiss_input_callback(&kiss_msg);
     }
 
     if (mw->tcp_tnc2_enabled)
     {
         int n = tcp_server_listen(&mw->tcp_tnc2_server, &buf);
-        if (n > 0)
-        {
-            for (int i = 0; i < n; ++i)
-                line_reader_process(&mw->tcp_line_reader, read_buffer[i]);
-        }
+        for (int i = 0; i < n; ++i)
+            line_reader_process(&mw->tcp_line_reader, read_buffer[i]);
     }
 }
 
@@ -414,23 +427,42 @@ void process_udp_input(miniwolf_t *mw)
 
     if (mw->udp_kiss_listen_enabled)
     {
+        kiss_message_t kiss_msg;
         int n = udp_server_listen(&mw->udp_kiss_server, &buf);
-        if (n > 0)
-        {
-            kiss_message_t kiss_msg;
-            for (int i = 0; i < n; ++i)
-                if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
-                    kiss_input_callback(&kiss_msg);
-        }
+        for (int i = 0; i < n; ++i)
+            if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
+                kiss_input_callback(&kiss_msg);
     }
 
     if (mw->udp_tnc2_listen_enabled)
     {
         int n = udp_server_listen(&mw->udp_tnc2_server, &buf);
-        if (n > 0)
-        {
-            for (int i = 0; i < n; ++i)
-                line_reader_process(&mw->udp_line_reader, read_buffer[i]);
-        }
+        for (int i = 0; i < n; ++i)
+            line_reader_process(&mw->udp_line_reader, read_buffer[i]);
+    }
+}
+
+void process_uds_input(miniwolf_t *mw)
+{
+    static unsigned char read_buffer[UDS_READ_BUF_SIZE];
+    buffer_t buf = {
+        .data = read_buffer,
+        .capacity = UDS_READ_BUF_SIZE,
+        .size = 0};
+
+    if (mw->uds_kiss_enabled)
+    {
+        kiss_message_t kiss_msg;
+        int n = uds_server_listen(&mw->uds_kiss_server, &buf);
+        for (int i = 0; i < n; ++i)
+            if (kiss_decoder_process(&mw->kiss_decoder, read_buffer[i], &kiss_msg))
+                kiss_input_callback(&kiss_msg);
+    }
+
+    if (mw->uds_tnc2_enabled)
+    {
+        int n = uds_server_listen(&mw->uds_tnc2_server, &buf);
+        for (int i = 0; i < n; ++i)
+            line_reader_process(&mw->uds_line_reader, read_buffer[i]);
     }
 }
