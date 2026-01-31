@@ -27,7 +27,7 @@ package: release
 	rm -rf miniwolf_package
 
 run: build
-	./build/miniwolf -v -io -d default -r 44100 --tcp-tnc2 8144 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 18144 --udp-tnc2-listen 28144
+	./build/miniwolf -c sample.conf
 
 cal: build
 	./build/mw_cal -v -d default -r 44100

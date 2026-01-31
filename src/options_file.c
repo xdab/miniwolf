@@ -42,4 +42,12 @@ void opts_parse_conf_file(options_t *opts, const char *filename)
     val = conf_get_str_or_default(&conf, OPT_UDP_TNC2_ADDR, opts->udp_tnc2_addr);
     if (opts->udp_tnc2_addr[0] == '\0')
         strncpy(opts->udp_tnc2_addr, val, OPT_STR_SIZE - 1);
+
+    val = conf_get_str_or_default(&conf, OPT_UDS_KISS_SOCKET, opts->uds_kiss_socket_path);
+    if (opts->uds_kiss_socket_path[0] == '\0')
+        strncpy(opts->uds_kiss_socket_path, val, OPT_STR_SIZE - 1);
+
+    val = conf_get_str_or_default(&conf, OPT_UDS_TNC2_SOCKET, opts->uds_tnc2_socket_path);
+    if (opts->uds_tnc2_socket_path[0] == '\0')
+        strncpy(opts->uds_tnc2_socket_path, val, OPT_STR_SIZE - 1);
 }

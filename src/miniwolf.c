@@ -64,6 +64,22 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
         LOG("udp tnc2 server enabled on port %d", opts->udp_tnc2_listen_port);
     }
 
+    // UDS KISS server
+    mw->uds_kiss_enabled = 0;
+    if (opts->uds_kiss_socket_path[0] && !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path))
+    {
+        mw->uds_kiss_enabled = 1;
+        LOG("uds kiss server enabled on %s", opts->uds_kiss_socket_path);
+    }
+
+    // UDS TNC2 server
+    mw->uds_tnc2_enabled = 0;
+    if (opts->uds_tnc2_socket_path[0] && !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path))
+    {
+        mw->uds_tnc2_enabled = 1;
+        LOG("uds tnc2 server enabled on %s", opts->uds_tnc2_socket_path);
+    }
+
     // Make stdin non-blocking
     fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 
@@ -92,6 +108,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     line_reader_init(&mw->stdin_line_reader, tnc2_input_callback);
     line_reader_init(&mw->tcp_line_reader, tnc2_input_callback);
     line_reader_init(&mw->udp_line_reader, tnc2_input_callback);
+    line_reader_init(&mw->uds_line_reader, tnc2_input_callback);
 }
 
 void miniwolf_free(miniwolf_t *mw)
@@ -110,6 +127,11 @@ void miniwolf_free(miniwolf_t *mw)
         udp_server_free(&mw->udp_kiss_server);
     if (mw->udp_tnc2_listen_enabled)
         udp_server_free(&mw->udp_tnc2_server);
+
+    if (mw->uds_kiss_enabled)
+        uds_server_free(&mw->uds_kiss_server);
+    if (mw->uds_tnc2_enabled)
+        uds_server_free(&mw->uds_tnc2_server);
 
     modem_free(&mw->modem);
     bf_biquad_free(&mw->hbf_filter);
