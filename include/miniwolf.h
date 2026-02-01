@@ -10,6 +10,7 @@
 #include "tcp.h"
 #include "udp.h"
 #include "uds.h"
+#include "socket.h"
 #include <time.h>
 
 typedef struct miniwolf_state
@@ -30,15 +31,13 @@ typedef struct miniwolf_state
     // Network servers and senders
     tcp_server_t tcp_kiss_server;
     tcp_server_t tcp_tnc2_server;
-    
     udp_sender_t udp_kiss_sender;
     udp_sender_t udp_tnc2_sender;
-
     udp_server_t udp_kiss_server;
     udp_server_t udp_tnc2_server;
-
     uds_server_t uds_kiss_server;
     uds_server_t uds_tnc2_server;
+    socket_selector_t selector;
 
     // Configuration flags
     int kiss_mode;
