@@ -68,8 +68,8 @@ void loop_run(miniwolf_t *mw)
         .capacity = INPUT_CALLBACK_SIZE,
         .size = 0};
 
-    mw->audio_capture_fd_count = aud_get_capture_fd_count();
-    for (int i = 0; i < mw->audio_capture_fd_count; i++)
+    int audio_capture_fd_count = aud_get_capture_fd_count();
+    for (int i = 0; i < audio_capture_fd_count; i++)
     {
         int fd = aud_get_capture_fd(i);
         if (fd >= 0)
@@ -91,7 +91,7 @@ void loop_run(miniwolf_t *mw)
             continue; // Timeout
 
         // Process audio capture if any fds are ready
-        for (int i = 0; i < mw->audio_capture_fd_count; i++)
+        for (int i = 0; i < audio_capture_fd_count; i++)
         {
             int fd = aud_get_capture_fd(i);
             if (fd >= 0 && socket_selector_is_ready(&mw->selector, fd))
