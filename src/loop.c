@@ -84,20 +84,17 @@ void loop_run(miniwolf_t *mw)
 
         // Wait for socket activity using selector
         int sel_ret = socket_selector_wait(&mw->selector, 100);
-        if (sel_ret > 0)
-        {
-            if (socket_selector_is_ready(&mw->selector, 0))
-                process_stdin_input(mw);
+        if (sel_ret > 0 && socket_selector_is_ready(&mw->selector, 0))
+            process_stdin_input(mw);
 
-            if (mw->tcp_kiss_enabled)
-                process_tcp_input(mw);
+        if (mw->tcp_kiss_enabled)
+            process_tcp_input(mw);
 
-            if (mw->udp_kiss_listen_enabled)
-                process_udp_input(mw);
+        if (mw->udp_kiss_listen_enabled)
+            process_udp_input(mw);
 
-            if (mw->uds_kiss_enabled)
-                process_uds_input(mw);
-        }
+        if (mw->uds_kiss_enabled)
+            process_uds_input(mw);
 
         // Check exit-idle condition
         time_t current_time = time(NULL);
