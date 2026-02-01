@@ -34,7 +34,6 @@ void modulate_and_transmit(const buffer_t *frame_buf)
         .capacity = sizeof(sample_data) / sizeof(float),
         .size = 0};
     modem_modulate(&g_miniwolf.modem, frame_buf, &sample_buf);
-    LOGV("modulated packet: %d samples", sample_buf.size);
     aud_output(&sample_buf);
 }
 
@@ -67,109 +66,6 @@ void loop_run(miniwolf_t *mw)
         int audio_fd_start = nfds;
         nfds += audio_fd_count;
 
-        // Add stdin
-        if (nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = STDIN_FILENO;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-        }
-
-        // Add TCP KISS server listen fd
-        if (mw->tcp_kiss_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->tcp_kiss_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add TCP KISS client fds
-            for (int i = 0; i < mw->tcp_kiss_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->tcp_kiss_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->tcp_kiss_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        // Add TCP TNC2 server listen fd
-        if (mw->tcp_tnc2_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->tcp_tnc2_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add TCP TNC2 client fds
-            for (int i = 0; i < mw->tcp_tnc2_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->tcp_tnc2_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->tcp_tnc2_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        // Add UDP KISS server fd
-        if (mw->udp_kiss_listen_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->udp_kiss_server.fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-        }
-
-        // Add UDP TNC2 server fd
-        if (mw->udp_tnc2_listen_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->udp_tnc2_server.fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-        }
-
-        // Add UDS KISS server listen fd
-        if (mw->uds_kiss_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->uds_kiss_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add UDS KISS client fds
-            for (int i = 0; i < mw->uds_kiss_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->uds_kiss_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->uds_kiss_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        // Add UDS TNC2 server listen fd
-        if (mw->uds_tnc2_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->uds_tnc2_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add UDS TNC2 client fds
-            for (int i = 0; i < mw->uds_tnc2_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->uds_tnc2_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->uds_tnc2_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        LOGD("poll setup: %d fds (audio: %d at offset %d)", nfds, audio_fd_count, audio_fd_start);
-
-        // Wait for any input with 10ms timeout (fast response for audio periods arriving every ~85ms)
         int ret = poll(pfds, nfds, 10);
 
         if (ret < 0)
@@ -181,15 +77,6 @@ void loop_run(miniwolf_t *mw)
             }
             LOG("poll error: %s", strerror(errno));
             return;
-        }
-
-        if (ret == 0)
-        {
-            LOGD("poll timeout (no events)");
-        }
-        else
-        {
-            LOGD("poll returned: %d events ready", ret);
         }
 
         // Process audio capture if ready
