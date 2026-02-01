@@ -11,7 +11,6 @@ void aud_terminate();
 
 // Configuration
 int aud_configure(const char *device_name, int sample_rate, bool do_input, bool do_output);
-void aud_list_devices();
 int aud_start();
 
 // Streaming
