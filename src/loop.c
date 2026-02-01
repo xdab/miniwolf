@@ -48,10 +48,6 @@ void loop_run(miniwolf_t *mw)
     struct pollfd pfds[MAX_POLL_FDS];
     int nfds = 0;
 
-    // Set stdin to non-blocking mode
-    int flags = fcntl(0, F_GETFL, 0);
-    fcntl(0, F_SETFL, flags | O_NONBLOCK);
-
     for (;;)
     {
         nfds = 0;
@@ -86,13 +82,26 @@ void loop_run(miniwolf_t *mw)
         // Always process playback (non-blocking)
         aud_process_playback();
 
-        // Process stdin if ready (we check in process_stdin_input since it's non-blocking)
-        process_stdin_input(mw);
+        // Wait for socket activity using selector
+        int sel_ret = socket_selector_wait(&mw->selector, 100);
+        if (sel_ret > 0)
+        {
+            // Process stdin if ready
+            if (socket_selector_is_ready(&mw->selector, 0))
+                process_stdin_input(mw);
 
-        // Process TCP/UDP/UDS inputs (they use their own select/poll internally)
-        process_tcp_input(mw);
-        process_udp_input(mw);
-        process_uds_input(mw);
+            // Process TCP servers if ready
+            if (mw->tcp_kiss_enabled && socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.listen_fd))
+                process_tcp_input(mw);
+
+            // Process UDP servers if ready
+            if (mw->udp_kiss_listen_enabled && socket_selector_is_ready(&mw->selector, mw->udp_kiss_server.fd))
+                process_udp_input(mw);
+
+            // Process UDS servers if ready
+            if (mw->uds_kiss_enabled && socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.listen_fd))
+                process_uds_input(mw);
+        }
 
         // Check exit-idle condition
         time_t current_time = time(NULL);
