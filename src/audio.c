@@ -85,6 +85,16 @@ static int aud_pcm_recover(snd_pcm_t *pcm, int err)
             LOG("failed to recover from xrun: %s", snd_strerror(err));
             return err;
         }
+        // For capture streams, we also need to start the stream
+        if (pcm == pcm_capture)
+        {
+            err = snd_pcm_start(pcm);
+            if (err < 0)
+            {
+                LOG("failed to start capture after xrun recovery: %s", snd_strerror(err));
+                return err;
+            }
+        }
         return 0;
     }
     else if (err == -ESTRPIPE)
@@ -98,6 +108,16 @@ static int aud_pcm_recover(snd_pcm_t *pcm, int err)
             if (err < 0)
             {
                 LOG("failed to recover from suspend: %s", snd_strerror(err));
+                return err;
+            }
+        }
+        // For capture streams, ensure stream is started after suspend recovery
+        if (pcm == pcm_capture)
+        {
+            err = snd_pcm_start(pcm);
+            if (err < 0)
+            {
+                LOG("failed to start capture after suspend recovery: %s", snd_strerror(err));
                 return err;
             }
         }
@@ -375,7 +395,15 @@ static int process_single_capture_period(input_callback_t *callback, float_buffe
             LOG("avail error: %s", snd_strerror(avail));
             return -1;
         }
-        return 1;
+        // After recovery, retry getting available frames
+        avail = snd_pcm_avail_update(pcm_capture);
+        if (avail < 0)
+        {
+            LOG("avail error after recovery: %s", snd_strerror(avail));
+            return -1;
+        }
+        if (avail < period_size)
+            return 1;
     }
 
     if (avail < period_size)
