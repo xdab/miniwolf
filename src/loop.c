@@ -80,7 +80,7 @@ void loop_run(miniwolf_t *mw)
     {
         aud_process_playback();
 
-        int sel_ret = socket_selector_wait(&mw->selector, 200);
+        int sel_ret = socket_selector_wait(&mw->selector, 50);
         if (sel_ret < 0)
         {
             if (errno == EINTR)
