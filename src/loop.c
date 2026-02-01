@@ -26,6 +26,31 @@ void process_tcp_input(miniwolf_t *mw);
 void process_udp_input(miniwolf_t *mw);
 void process_uds_input(miniwolf_t *mw);
 
+// Callbacks for TCP/UDS client socket registration with selector
+void tcp_client_connect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_add(&mw->selector, fd, SELECT_READ);
+}
+
+void tcp_client_disconnect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_remove(&mw->selector, fd);
+}
+
+void uds_client_connect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_add(&mw->selector, fd, SELECT_READ);
+}
+
+void uds_client_disconnect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_remove(&mw->selector, fd);
+}
+
 void modulate_and_transmit(const buffer_t *frame_buf)
 {
     static float sample_data[96000];
@@ -84,16 +109,46 @@ void loop_run(miniwolf_t *mw)
 
         // Wait for socket activity using selector
         int sel_ret = socket_selector_wait(&mw->selector, 100);
-        if (sel_ret > 0 && socket_selector_is_ready(&mw->selector, 0))
+        if (sel_ret <= 0)
+            continue;
+
+        int stdin_input = socket_selector_is_ready(&mw->selector, 0);
+        if (stdin_input)
             process_stdin_input(mw);
 
-        if (mw->tcp_kiss_enabled)
+        int tcp_input = 0;
+        if (mw->tcp_kiss_enabled || mw->tcp_tnc2_enabled)
+        {
+            tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.listen_fd);
+            tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_tnc2_server.listen_fd);
+            for (int i = 0; i < mw->tcp_kiss_server.num_clients; i++)
+                tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.clients[i].fd);
+            for (int i = 0; i < mw->tcp_tnc2_server.num_clients; i++)
+                tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_tnc2_server.clients[i].fd);
+        }
+        if (tcp_input)
             process_tcp_input(mw);
 
-        if (mw->udp_kiss_listen_enabled)
+        int udp_input = 0;
+        if (mw->udp_kiss_listen_enabled || mw->udp_tnc2_listen_enabled)
+        {
+            udp_input |= socket_selector_is_ready(&mw->selector, mw->udp_kiss_server.fd);
+            udp_input |= socket_selector_is_ready(&mw->selector, mw->udp_tnc2_server.fd);
+        }
+        if (udp_input)
             process_udp_input(mw);
 
-        if (mw->uds_kiss_enabled)
+        int uds_input = 0;
+        if (mw->uds_kiss_enabled || mw->uds_tnc2_enabled)
+        {
+            uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.listen_fd);
+            uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_tnc2_server.listen_fd);
+            for (int i = 0; i < mw->uds_kiss_server.num_clients; i++)
+                uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.clients[i].fd);
+            for (int i = 0; i < mw->uds_tnc2_server.num_clients; i++)
+                uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_tnc2_server.clients[i].fd);
+        }
+        if (uds_input)
             process_uds_input(mw);
 
         // Check exit-idle condition
