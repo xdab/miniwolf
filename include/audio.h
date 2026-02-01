@@ -16,7 +16,6 @@ int aud_start();
 
 // Streaming
 void aud_output(const float_buffer_t *buf);
-void aud_input(input_callback_t *callback, float_buffer_t *buf);
 
 // File descriptor polling integration
 int aud_get_capture_fd_count(void);

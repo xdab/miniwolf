@@ -11,6 +11,7 @@
 #define RING_BUFFER_SIZE 131072
 #define MAX_ALSA_FDS 8
 
+// State
 static snd_pcm_t *pcm_capture = NULL;
 static snd_pcm_t *pcm_playback = NULL;
 static ring_buffer_t *output_ring = NULL;
@@ -19,7 +20,11 @@ static int period_size = ALSA_PERIOD_SIZE;
 static struct pollfd capture_pfds[MAX_ALSA_FDS];
 static int capture_pfd_count = 0;
 
-static int aud_pcm_setup(snd_pcm_t *pcm, int rate, int period_frames)
+// ============================================================================
+// ALSA Hardware Configuration
+// ============================================================================
+
+static int aud_hw_params_apply(snd_pcm_t *pcm, int rate, int period_frames)
 {
     snd_pcm_hw_params_t *hw_params = NULL;
     int err;
@@ -74,7 +79,19 @@ fail_alloc:
     return -1;
 }
 
-static int aud_pcm_recover(snd_pcm_t *pcm, int err)
+// ============================================================================
+// ALSA Error Recovery
+// ============================================================================
+
+static int aud_capture_restart(void)
+{
+    int err = snd_pcm_start(pcm_capture);
+    if (err < 0)
+        LOG("failed to start capture after recovery: %s", snd_strerror(err));
+    return err;
+}
+
+static int aud_stream_recover(snd_pcm_t *pcm, int err)
 {
     if (err == -EPIPE)
     {
@@ -85,16 +102,8 @@ static int aud_pcm_recover(snd_pcm_t *pcm, int err)
             LOG("failed to recover from xrun: %s", snd_strerror(err));
             return err;
         }
-        // For capture streams, we also need to start the stream
         if (pcm == pcm_capture)
-        {
-            err = snd_pcm_start(pcm);
-            if (err < 0)
-            {
-                LOG("failed to start capture after xrun recovery: %s", snd_strerror(err));
-                return err;
-            }
-        }
+            return aud_capture_restart();
         return 0;
     }
     else if (err == -ESTRPIPE)
@@ -111,62 +120,54 @@ static int aud_pcm_recover(snd_pcm_t *pcm, int err)
                 return err;
             }
         }
-        // For capture streams, ensure stream is started after suspend recovery
         if (pcm == pcm_capture)
-        {
-            err = snd_pcm_start(pcm);
-            if (err < 0)
-            {
-                LOG("failed to start capture after suspend recovery: %s", snd_strerror(err));
-                return err;
-            }
-        }
+            return aud_capture_restart();
         return 0;
     }
     return err;
 }
 
-static snd_pcm_sframes_t safe_pcm_read(snd_pcm_t *pcm, void *buf, size_t frames)
+// ============================================================================
+// Safe ALSA I/O with Recovery
+// ============================================================================
+
+typedef snd_pcm_sframes_t (*pcm_io_func_t)(snd_pcm_t *, void *, snd_pcm_uframes_t);
+
+static snd_pcm_sframes_t aud_io_with_recovery(snd_pcm_t *pcm, void *buf, size_t frames,
+                                              pcm_io_func_t io_func, const char *op_name)
 {
-    snd_pcm_sframes_t n = snd_pcm_readi(pcm, buf, frames);
+    snd_pcm_sframes_t n = io_func(pcm, buf, frames);
     if (n < 0)
     {
-        n = aud_pcm_recover(pcm, n);
+        n = aud_stream_recover(pcm, n);
         if (n < 0)
         {
-            LOG("read error: %s", snd_strerror(n));
+            LOG("%s error: %s", op_name, snd_strerror(n));
             return -1;
         }
-        n = snd_pcm_readi(pcm, buf, frames);
+        n = io_func(pcm, buf, frames);
         if (n < 0)
         {
-            LOG("read error after recovery: %s", snd_strerror(n));
+            LOG("%s error after recovery: %s", op_name, snd_strerror(n));
             return -1;
         }
     }
     return n;
 }
 
-static snd_pcm_sframes_t safe_pcm_write(snd_pcm_t *pcm, const void *buf, size_t frames)
+static snd_pcm_sframes_t aud_read_frames(snd_pcm_t *pcm, void *buf, size_t frames)
 {
-    snd_pcm_sframes_t n = snd_pcm_writei(pcm, buf, frames);
-    if (n < 0)
-    {
-        n = aud_pcm_recover(pcm, n);
-        if (n < 0)
-        {
-            LOG("write error: %s", snd_strerror(n));
-            return -1;
-        }
-        n = snd_pcm_writei(pcm, buf, frames);
-        if (n < 0)
-        {
-            LOG("write error after recovery: %s", snd_strerror(n));
-            return -1;
-        }
-    }
-    return n;
+    return aud_io_with_recovery(pcm, buf, frames, (pcm_io_func_t)snd_pcm_readi, "read");
 }
+
+static snd_pcm_sframes_t aud_write_frames(snd_pcm_t *pcm, const void *buf, size_t frames)
+{
+    return aud_io_with_recovery(pcm, (void *)buf, frames, (pcm_io_func_t)snd_pcm_writei, "write");
+}
+
+// ============================================================================
+// Public API: Lifecycle
+// ============================================================================
 
 int aud_initialize()
 {
@@ -195,6 +196,10 @@ void aud_terminate()
     ring_destroy(output_ring);
     output_ring = NULL;
 }
+
+// ============================================================================
+// Public API: Device Enumeration
+// ============================================================================
 
 void aud_list_devices()
 {
@@ -241,6 +246,10 @@ void aud_list_devices()
     snd_device_name_free_hint(hints);
 }
 
+// ============================================================================
+// Public API: Configuration
+// ============================================================================
+
 int aud_configure(const char *device_name, int sample_rate, bool do_input, bool do_output)
 {
     int err;
@@ -255,81 +264,47 @@ int aud_configure(const char *device_name, int sample_rate, bool do_input, bool 
     {
         err = snd_pcm_open(&pcm_capture, device_name, SND_PCM_STREAM_CAPTURE, 0);
         if (err < 0)
-            goto fail_capture_open;
+        {
+            LOG("failed to open capture device '%s': %s", device_name, snd_strerror(err));
+            return -1;
+        }
 
-        err = aud_pcm_setup(pcm_capture, sample_rate, period_size);
+        err = aud_hw_params_apply(pcm_capture, sample_rate, period_size);
         if (err < 0)
-            goto fail_capture_setup;
+        {
+            snd_pcm_close(pcm_capture);
+            pcm_capture = NULL;
+            return -1;
+        }
     }
 
     if (do_output)
     {
         err = snd_pcm_open(&pcm_playback, device_name, SND_PCM_STREAM_PLAYBACK, 0);
         if (err < 0)
-            goto fail_playback_open;
+        {
+            LOG("failed to open playback device '%s': %s", device_name, snd_strerror(err));
+            goto fail_cleanup;
+        }
 
-        err = aud_pcm_setup(pcm_playback, sample_rate, period_size);
+        err = aud_hw_params_apply(pcm_playback, sample_rate, period_size);
         if (err < 0)
-            goto fail_playback_setup;
+        {
+            snd_pcm_close(pcm_playback);
+            pcm_playback = NULL;
+            goto fail_cleanup;
+        }
     }
 
     return 0;
 
-fail_playback_setup:
-    snd_pcm_close(pcm_playback);
-    pcm_playback = NULL;
-fail_playback_open:
-    LOG("failed to configure playback: %s", snd_strerror(err));
-fail_capture_setup:
+fail_cleanup:
     if (pcm_capture)
     {
         snd_pcm_close(pcm_capture);
         pcm_capture = NULL;
     }
-fail_capture_open:
-    if (pcm_capture == NULL && pcm_playback == NULL)
-        LOG("failed to open capture device '%s': %s", device_name, snd_strerror(err));
     return -1;
-}
-
-void aud_output(const float_buffer_t *buf)
-{
-    assert_buffer_valid(buf);
-
-    ring_write(output_ring, buf->data, buf->size);
-}
-
-void aud_input(input_callback_t *callback, float_buffer_t *buf)
-{
-    if (!callback)
-        return;
-
-    assert_buffer_valid(buf);
-
-    if (pcm_capture)
-    {
-        snd_pcm_sframes_t frames_read = safe_pcm_read(pcm_capture, buf->data, buf->capacity);
-        if (frames_read < 0)
-            return;
-
-        buf->size = frames_read;
-        callback(buf);
-    }
-
-    if (pcm_playback)
-    {
-        unsigned long available = ring_available(output_ring);
-        if (available > 0)
-        {
-            static float output_buffer[ALSA_PERIOD_SIZE];
-            unsigned long to_write = available < ALSA_PERIOD_SIZE ? available : ALSA_PERIOD_SIZE;
-            unsigned long actually_read = ring_read(output_ring, output_buffer, to_write);
-
-            snd_pcm_sframes_t frames_written = safe_pcm_write(pcm_playback, output_buffer, actually_read);
-            if (frames_written < 0)
-                return;
-        }
-    }
 }
 
 int aud_start()
@@ -353,7 +328,6 @@ int aud_start()
         }
         LOGV("capture stream started");
 
-        // Populate capture poll fd array for socket selector integration
         int count = snd_pcm_poll_descriptors_count(pcm_capture);
         if (count > MAX_ALSA_FDS)
         {
@@ -384,18 +358,44 @@ int aud_start()
     return 0;
 }
 
-static int process_single_capture_period(input_callback_t *callback, float_buffer_t *buf)
+// ============================================================================
+// Public API: Streaming Output
+// ============================================================================
+
+void aud_output(const float_buffer_t *buf)
+{
+    assert_buffer_valid(buf);
+
+    ring_write(output_ring, buf->data, buf->size);
+}
+
+// ============================================================================
+// Public API: Poll-based Capture
+// ============================================================================
+
+int aud_get_capture_fd_count(void)
+{
+    return capture_pfd_count;
+}
+
+int aud_get_capture_fd(int index)
+{
+    if (index < 0 || index >= capture_pfd_count)
+        return -1;
+    return capture_pfds[index].fd;
+}
+
+static int aud_capture_process_period(input_callback_t *callback, float_buffer_t *buf)
 {
     snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm_capture);
     if (avail < 0)
     {
-        avail = aud_pcm_recover(pcm_capture, avail);
+        avail = aud_stream_recover(pcm_capture, avail);
         if (avail < 0)
         {
             LOG("avail error: %s", snd_strerror(avail));
             return -1;
         }
-        // After recovery, retry getting available frames
         avail = snd_pcm_avail_update(pcm_capture);
         if (avail < 0)
         {
@@ -409,7 +409,7 @@ static int process_single_capture_period(input_callback_t *callback, float_buffe
     if (avail < period_size)
         return 1;
 
-    snd_pcm_sframes_t frames_read = safe_pcm_read(pcm_capture, buf->data, buf->capacity);
+    snd_pcm_sframes_t frames_read = aud_read_frames(pcm_capture, buf->data, buf->capacity);
     if (frames_read < 0)
         return -1;
 
@@ -427,18 +427,6 @@ static int process_single_capture_period(input_callback_t *callback, float_buffe
     return 0;
 }
 
-int aud_get_capture_fd_count(void)
-{
-    return capture_pfd_count;
-}
-
-int aud_get_capture_fd(int index)
-{
-    if (index < 0 || index >= capture_pfd_count)
-        return -1;
-    return capture_pfds[index].fd;
-}
-
 int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t *buf)
 {
     if (!pcm_capture || !callback || capture_pfd_count == 0)
@@ -446,7 +434,6 @@ int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t
 
     assert_buffer_valid(buf);
 
-    // Find the pollfd index for this fd
     int pfd_index = -1;
     for (int i = 0; i < capture_pfd_count; i++)
     {
@@ -460,7 +447,6 @@ int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t
     if (pfd_index < 0)
         return -1;
 
-    // Mark this fd as ready for POLLIN
     capture_pfds[pfd_index].revents = POLLIN;
 
     unsigned short revents;
@@ -478,7 +464,7 @@ int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t
         int periods_processed = 0;
         int result;
 
-        while ((result = process_single_capture_period(callback, buf)) == 0)
+        while ((result = aud_capture_process_period(callback, buf)) == 0)
             periods_processed++;
 
         if (result == -1)
@@ -498,7 +484,11 @@ int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t
     return 0;
 }
 
-static int process_single_playback_period(void)
+// ============================================================================
+// Public API: Playback Processing
+// ============================================================================
+
+static int aud_playback_write_period(void)
 {
     static float output_buffer[ALSA_PERIOD_SIZE];
 
@@ -512,7 +502,7 @@ static int process_single_playback_period(void)
     if (actually_read == 0)
         return 1;
 
-    snd_pcm_sframes_t frames_written = safe_pcm_write(pcm_playback, output_buffer, actually_read);
+    snd_pcm_sframes_t frames_written = aud_write_frames(pcm_playback, output_buffer, actually_read);
     if (frames_written < 0)
         return -1;
 
@@ -527,7 +517,7 @@ void aud_process_playback()
     int periods_written = 0;
     int result;
 
-    while ((result = process_single_playback_period()) == 0)
+    while ((result = aud_playback_write_period()) == 0)
         periods_written++;
 
     if (periods_written > 1)

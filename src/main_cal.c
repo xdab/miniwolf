@@ -9,6 +9,7 @@
 #include "filter.h"
 #include <argp.h>
 #include <time.h>
+#include <poll.h>
 
 #define INPUT_CALLBACK_SIZE 1024
 #define EMA_TIME_CONSTANT 100
@@ -192,20 +193,38 @@ int main(int argc, char *argv[])
     if (aud_start())
         EXIT("Failed to start audio streams");
 
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 100000000L; // 100ms
-
     static float audio_input_buffer[INPUT_CALLBACK_SIZE];
     static float_buffer_t audio_buf = {
         .data = audio_input_buffer,
         .capacity = INPUT_CALLBACK_SIZE,
         .size = 0};
 
+    int capture_fd_count = aud_get_capture_fd_count();
+    struct pollfd pfds[8];
+
+    for (int i = 0; i < capture_fd_count; i++)
+    {
+        pfds[i].fd = aud_get_capture_fd(i);
+        pfds[i].events = POLLIN;
+    }
+
     for (;;)
     {
-        aud_input(audio_input_callback, &audio_buf);
-        nanosleep(&ts, NULL);
+        int ret = poll(pfds, capture_fd_count, 100);
+        if (ret < 0)
+        {
+            LOG("poll error");
+            break;
+        }
+
+        for (int i = 0; i < capture_fd_count; i++)
+        {
+            if (pfds[i].revents & POLLIN)
+            {
+                aud_process_capture_ready(pfds[i].fd, audio_input_callback, &audio_buf);
+                pfds[i].revents = 0;
+            }
+        }
     }
 
 NICE_EXIT:
