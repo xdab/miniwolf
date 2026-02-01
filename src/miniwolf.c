@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#define SELECT_TIMEOUT_MS 33
+
 miniwolf_t g_miniwolf;
 
 extern void tnc2_input_callback(const buffer_t *line_buf);
@@ -21,14 +23,14 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // TCP servers
     mw->tcp_kiss_enabled = 0;
-    if (opts->tcp_kiss_port > 0 && !tcp_server_init(&mw->tcp_kiss_server, opts->tcp_kiss_port))
+    if (opts->tcp_kiss_port > 0 && !tcp_server_init(&mw->tcp_kiss_server, opts->tcp_kiss_port, SELECT_TIMEOUT_MS))
     {
         mw->tcp_kiss_enabled = 1;
         LOG("tcp kiss server enabled on port %d", opts->tcp_kiss_port);
     }
 
     mw->tcp_tnc2_enabled = 0;
-    if (opts->tcp_tnc2_port > 0 && !tcp_server_init(&mw->tcp_tnc2_server, opts->tcp_tnc2_port))
+    if (opts->tcp_tnc2_port > 0 && !tcp_server_init(&mw->tcp_tnc2_server, opts->tcp_tnc2_port, SELECT_TIMEOUT_MS))
     {
         mw->tcp_tnc2_enabled = 1;
         LOG("tcp tnc2 server enabled on port %d", opts->tcp_tnc2_port);
@@ -51,14 +53,14 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDP servers
     mw->udp_kiss_listen_enabled = 0;
-    if (opts->udp_kiss_listen_port > 0 && !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port))
+    if (opts->udp_kiss_listen_port > 0 && !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port, SELECT_TIMEOUT_MS))
     {
         mw->udp_kiss_listen_enabled = 1;
         LOG("udp kiss server enabled on port %d", opts->udp_kiss_listen_port);
     }
 
     mw->udp_tnc2_listen_enabled = 0;
-    if (opts->udp_tnc2_listen_port > 0 && !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port))
+    if (opts->udp_tnc2_listen_port > 0 && !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port, SELECT_TIMEOUT_MS))
     {
         mw->udp_tnc2_listen_enabled = 1;
         LOG("udp tnc2 server enabled on port %d", opts->udp_tnc2_listen_port);
@@ -66,7 +68,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDS KISS server
     mw->uds_kiss_enabled = 0;
-    if (opts->uds_kiss_socket_path[0] && !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path))
+    if (opts->uds_kiss_socket_path[0] && !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path, SELECT_TIMEOUT_MS))
     {
         mw->uds_kiss_enabled = 1;
         LOG("uds kiss server enabled on %s", opts->uds_kiss_socket_path);
@@ -74,7 +76,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDS TNC2 server
     mw->uds_tnc2_enabled = 0;
-    if (opts->uds_tnc2_socket_path[0] && !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path))
+    if (opts->uds_tnc2_socket_path[0] && !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path, SELECT_TIMEOUT_MS))
     {
         mw->uds_tnc2_enabled = 1;
         LOG("uds tnc2 server enabled on %s", opts->uds_tnc2_socket_path);
