@@ -9,12 +9,15 @@
 
 #define ALSA_PERIOD_SIZE 4096
 #define RING_BUFFER_SIZE 131072
+#define MAX_ALSA_FDS 8
 
 static snd_pcm_t *pcm_capture = NULL;
 static snd_pcm_t *pcm_playback = NULL;
 static ring_buffer_t *output_ring = NULL;
 static int configured_rate = 0;
 static int period_size = ALSA_PERIOD_SIZE;
+static struct pollfd capture_pfds[MAX_ALSA_FDS];
+static int capture_pfd_count = 0;
 
 static int aud_pcm_setup(snd_pcm_t *pcm, int rate, int period_frames)
 {
@@ -329,6 +332,23 @@ int aud_start()
             return -1;
         }
         LOGV("capture stream started");
+
+        // Populate capture poll fd array for socket selector integration
+        int count = snd_pcm_poll_descriptors_count(pcm_capture);
+        if (count > MAX_ALSA_FDS)
+        {
+            LOG("too many capture poll fds: %d > %d", count, MAX_ALSA_FDS);
+            return -1;
+        }
+
+        capture_pfd_count = snd_pcm_poll_descriptors(pcm_capture, capture_pfds, MAX_ALSA_FDS);
+        if (capture_pfd_count < 0)
+        {
+            LOG("failed to get capture poll descriptors: %s", snd_strerror(capture_pfd_count));
+            capture_pfd_count = 0;
+            return -1;
+        }
+        LOGD("initialized %d capture poll fds for selector", capture_pfd_count);
     }
 
     if (pcm_playback)
@@ -342,32 +362,6 @@ int aud_start()
     }
 
     return 0;
-}
-
-int aud_get_capture_poll_fds(struct pollfd *pfds, int max_fds)
-{
-    if (!pcm_capture)
-    {
-        LOGD("no capture device configured");
-        return 0;
-    }
-
-    int count = snd_pcm_poll_descriptors_count(pcm_capture);
-    if (count > max_fds)
-    {
-        LOG("not enough space for capture poll fds: need %d, have %d", count, max_fds);
-        return -1;
-    }
-
-    int actual = snd_pcm_poll_descriptors(pcm_capture, pfds, max_fds);
-    if (actual < 0)
-    {
-        LOG("failed to get capture poll descriptors: %s", snd_strerror(actual));
-        return -1;
-    }
-
-    LOGD("got %d capture poll descriptors", actual);
-    return actual;
 }
 
 static int process_single_capture_period(input_callback_t *callback, float_buffer_t *buf)
@@ -405,18 +399,44 @@ static int process_single_capture_period(input_callback_t *callback, float_buffe
     return 0;
 }
 
-int aud_process_capture_events(struct pollfd *pfds, int nfds, input_callback_t *callback, float_buffer_t *buf)
+int aud_get_capture_fd_count(void)
 {
-    if (!pcm_capture || !callback)
-    {
-        LOGD("capture disabled or no callback");
+    return capture_pfd_count;
+}
+
+int aud_get_capture_fd(int index)
+{
+    if (index < 0 || index >= capture_pfd_count)
+        return -1;
+    return capture_pfds[index].fd;
+}
+
+int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t *buf)
+{
+    if (!pcm_capture || !callback || capture_pfd_count == 0)
         return 0;
-    }
 
     assert_buffer_valid(buf);
 
+    // Find the pollfd index for this fd
+    int pfd_index = -1;
+    for (int i = 0; i < capture_pfd_count; i++)
+    {
+        if (capture_pfds[i].fd == fd)
+        {
+            pfd_index = i;
+            break;
+        }
+    }
+
+    if (pfd_index < 0)
+        return -1;
+
+    // Mark this fd as ready for POLLIN
+    capture_pfds[pfd_index].revents = POLLIN;
+
     unsigned short revents;
-    int err = snd_pcm_poll_descriptors_revents(pcm_capture, pfds, nfds, &revents);
+    int err = snd_pcm_poll_descriptors_revents(pcm_capture, capture_pfds, capture_pfd_count, &revents);
     if (err < 0)
     {
         LOG("failed to get poll revents: %s", snd_strerror(err));

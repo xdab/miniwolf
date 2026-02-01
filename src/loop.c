@@ -4,7 +4,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <poll.h>
 #include <errno.h>
 #include "audio.h"
 #include "ax25.h"
@@ -13,7 +12,6 @@
 
 #define INPUT_CALLBACK_SIZE 4096
 #define STDIN_BUFFER_SIZE 2048
-#define MAX_POLL_FDS 32
 
 int audio_input_callback(float_buffer_t *buf);
 void modulate_and_transmit(const buffer_t *frame_buf);
@@ -70,47 +68,35 @@ void loop_run(miniwolf_t *mw)
         .capacity = INPUT_CALLBACK_SIZE,
         .size = 0};
 
-    struct pollfd pfds[MAX_POLL_FDS];
-    int nfds = 0;
+    mw->audio_capture_fd_count = aud_get_capture_fd_count();
+    for (int i = 0; i < mw->audio_capture_fd_count; i++)
+    {
+        int fd = aud_get_capture_fd(i);
+        if (fd >= 0)
+            socket_selector_add(&mw->selector, fd, SELECT_READ);
+    }
 
     for (;;)
     {
-        nfds = 0;
-
-        // Add ALSA capture poll descriptors
-        int audio_fd_count = aud_get_capture_poll_fds(&pfds[nfds], MAX_POLL_FDS - nfds);
-        if (audio_fd_count < 0)
-        {
-            LOG("failed to get audio poll fds");
-            return;
-        }
-        int audio_fd_start = nfds;
-        nfds += audio_fd_count;
-
-        int ret = poll(pfds, nfds, 10);
-
-        if (ret < 0)
-        {
-            if (errno == EINTR)
-            {
-                LOGD("poll interrupted by signal");
-                continue;
-            }
-            LOG("poll error: %s", strerror(errno));
-            return;
-        }
-
-        // Process audio capture if ready
-        if (audio_fd_count > 0)
-            aud_process_capture_events(&pfds[audio_fd_start], audio_fd_count, audio_input_callback, &audio_buf);
-
-        // Always process playback (non-blocking)
         aud_process_playback();
 
-        // Wait for socket activity using selector
-        int sel_ret = socket_selector_wait(&mw->selector, 100);
-        if (sel_ret <= 0)
-            continue;
+        int sel_ret = socket_selector_wait(&mw->selector, 200);
+        if (sel_ret < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            EXIT("socket selector wait error: %s", strerror(errno));
+        }
+        if (sel_ret == 0)
+            continue; // Timeout
+
+        // Process audio capture if any fds are ready
+        for (int i = 0; i < mw->audio_capture_fd_count; i++)
+        {
+            int fd = aud_get_capture_fd(i);
+            if (fd >= 0 && socket_selector_is_ready(&mw->selector, fd))
+                aud_process_capture_ready(fd, audio_input_callback, &audio_buf);
+        }
 
         int stdin_input = socket_selector_is_ready(&mw->selector, 0);
         if (stdin_input)

@@ -39,6 +39,9 @@ typedef struct miniwolf_state
     uds_server_t uds_tnc2_server;
     socket_selector_t selector;
 
+    // Audio capture fd tracking for socket selector
+    int audio_capture_fd_count;
+
     // Configuration flags
     int kiss_mode;
     int tcp_kiss_enabled;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "buffer.h"
-#include <poll.h>
 #include <stdbool.h>
 
 typedef int input_callback_t(float_buffer_t *buf);
@@ -19,7 +18,8 @@ int aud_start();
 void aud_output(const float_buffer_t *buf);
 void aud_input(input_callback_t *callback, float_buffer_t *buf);
 
-// Poll/Event handling
-int aud_get_capture_poll_fds(struct pollfd *pfds, int max_fds);
-int aud_process_capture_events(struct pollfd *pfds, int nfds, input_callback_t *callback, float_buffer_t *buf);
-void aud_process_playback();
+// File descriptor polling integration
+int aud_get_capture_fd_count(void);
+int aud_get_capture_fd(int index);
+int aud_process_capture_ready(int fd, input_callback_t *callback, float_buffer_t *buf);
+void aud_process_playback(void);
