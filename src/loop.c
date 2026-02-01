@@ -26,6 +26,31 @@ void process_tcp_input(miniwolf_t *mw);
 void process_udp_input(miniwolf_t *mw);
 void process_uds_input(miniwolf_t *mw);
 
+// Callbacks for TCP/UDS client socket registration with selector
+void tcp_client_connect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_add(&mw->selector, fd, SELECT_READ);
+}
+
+void tcp_client_disconnect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_remove(&mw->selector, fd);
+}
+
+void uds_client_connect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_add(&mw->selector, fd, SELECT_READ);
+}
+
+void uds_client_disconnect_cb(int fd, void *user_data)
+{
+    miniwolf_t *mw = user_data;
+    socket_selector_remove(&mw->selector, fd);
+}
+
 void modulate_and_transmit(const buffer_t *frame_buf)
 {
     static float sample_data[96000];
@@ -34,7 +59,6 @@ void modulate_and_transmit(const buffer_t *frame_buf)
         .capacity = sizeof(sample_data) / sizeof(float),
         .size = 0};
     modem_modulate(&g_miniwolf.modem, frame_buf, &sample_buf);
-    LOGV("modulated packet: %d samples", sample_buf.size);
     aud_output(&sample_buf);
 }
 
@@ -48,10 +72,6 @@ void loop_run(miniwolf_t *mw)
 
     struct pollfd pfds[MAX_POLL_FDS];
     int nfds = 0;
-
-    // Set stdin to non-blocking mode
-    int flags = fcntl(0, F_GETFL, 0);
-    fcntl(0, F_SETFL, flags | O_NONBLOCK);
 
     for (;;)
     {
@@ -67,109 +87,6 @@ void loop_run(miniwolf_t *mw)
         int audio_fd_start = nfds;
         nfds += audio_fd_count;
 
-        // Add stdin
-        if (nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = STDIN_FILENO;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-        }
-
-        // Add TCP KISS server listen fd
-        if (mw->tcp_kiss_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->tcp_kiss_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add TCP KISS client fds
-            for (int i = 0; i < mw->tcp_kiss_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->tcp_kiss_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->tcp_kiss_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        // Add TCP TNC2 server listen fd
-        if (mw->tcp_tnc2_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->tcp_tnc2_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add TCP TNC2 client fds
-            for (int i = 0; i < mw->tcp_tnc2_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->tcp_tnc2_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->tcp_tnc2_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        // Add UDP KISS server fd
-        if (mw->udp_kiss_listen_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->udp_kiss_server.fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-        }
-
-        // Add UDP TNC2 server fd
-        if (mw->udp_tnc2_listen_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->udp_tnc2_server.fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-        }
-
-        // Add UDS KISS server listen fd
-        if (mw->uds_kiss_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->uds_kiss_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add UDS KISS client fds
-            for (int i = 0; i < mw->uds_kiss_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->uds_kiss_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->uds_kiss_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        // Add UDS TNC2 server listen fd
-        if (mw->uds_tnc2_enabled && nfds < MAX_POLL_FDS)
-        {
-            pfds[nfds].fd = mw->uds_tnc2_server.listen_fd;
-            pfds[nfds].events = POLLIN;
-            nfds++;
-
-            // Add UDS TNC2 client fds
-            for (int i = 0; i < mw->uds_tnc2_server.num_clients && nfds < MAX_POLL_FDS; i++)
-            {
-                if (mw->uds_tnc2_server.clients[i].fd >= 0)
-                {
-                    pfds[nfds].fd = mw->uds_tnc2_server.clients[i].fd;
-                    pfds[nfds].events = POLLIN;
-                    nfds++;
-                }
-            }
-        }
-
-        LOGD("poll setup: %d fds (audio: %d at offset %d)", nfds, audio_fd_count, audio_fd_start);
-
-        // Wait for any input with 10ms timeout (fast response for audio periods arriving every ~85ms)
         int ret = poll(pfds, nfds, 10);
 
         if (ret < 0)
@@ -183,15 +100,6 @@ void loop_run(miniwolf_t *mw)
             return;
         }
 
-        if (ret == 0)
-        {
-            LOGD("poll timeout (no events)");
-        }
-        else
-        {
-            LOGD("poll returned: %d events ready", ret);
-        }
-
         // Process audio capture if ready
         if (audio_fd_count > 0)
             aud_process_capture_events(&pfds[audio_fd_start], audio_fd_count, audio_input_callback, &audio_buf);
@@ -199,13 +107,49 @@ void loop_run(miniwolf_t *mw)
         // Always process playback (non-blocking)
         aud_process_playback();
 
-        // Process stdin if ready (we check in process_stdin_input since it's non-blocking)
-        process_stdin_input(mw);
+        // Wait for socket activity using selector
+        int sel_ret = socket_selector_wait(&mw->selector, 100);
+        if (sel_ret <= 0)
+            continue;
 
-        // Process TCP/UDP/UDS inputs (they use their own select/poll internally)
-        process_tcp_input(mw);
-        process_udp_input(mw);
-        process_uds_input(mw);
+        int stdin_input = socket_selector_is_ready(&mw->selector, 0);
+        if (stdin_input)
+            process_stdin_input(mw);
+
+        int tcp_input = 0;
+        if (mw->tcp_kiss_enabled || mw->tcp_tnc2_enabled)
+        {
+            tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.listen_fd);
+            tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_tnc2_server.listen_fd);
+            for (int i = 0; i < mw->tcp_kiss_server.num_clients; i++)
+                tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.clients[i].fd);
+            for (int i = 0; i < mw->tcp_tnc2_server.num_clients; i++)
+                tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_tnc2_server.clients[i].fd);
+        }
+        if (tcp_input)
+            process_tcp_input(mw);
+
+        int udp_input = 0;
+        if (mw->udp_kiss_listen_enabled || mw->udp_tnc2_listen_enabled)
+        {
+            udp_input |= socket_selector_is_ready(&mw->selector, mw->udp_kiss_server.fd);
+            udp_input |= socket_selector_is_ready(&mw->selector, mw->udp_tnc2_server.fd);
+        }
+        if (udp_input)
+            process_udp_input(mw);
+
+        int uds_input = 0;
+        if (mw->uds_kiss_enabled || mw->uds_tnc2_enabled)
+        {
+            uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.listen_fd);
+            uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_tnc2_server.listen_fd);
+            for (int i = 0; i < mw->uds_kiss_server.num_clients; i++)
+                uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.clients[i].fd);
+            for (int i = 0; i < mw->uds_tnc2_server.num_clients; i++)
+                uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_tnc2_server.clients[i].fd);
+        }
+        if (uds_input)
+            process_uds_input(mw);
 
         // Check exit-idle condition
         time_t current_time = time(NULL);

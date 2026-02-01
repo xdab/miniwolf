@@ -7,6 +7,12 @@ miniwolf_t g_miniwolf;
 
 extern void tnc2_input_callback(const buffer_t *line_buf);
 
+// Callbacks defined in loop.c
+extern void tcp_client_connect_cb(int fd, void *user_data);
+extern void tcp_client_disconnect_cb(int fd, void *user_data);
+extern void uds_client_connect_cb(int fd, void *user_data);
+extern void uds_client_disconnect_cb(int fd, void *user_data);
+
 void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 {
     nonnull(mw, "mw");
@@ -19,18 +25,28 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     mw->kiss_mode = opts->kiss;
     float sample_rate = (float)opts->rate;
 
+    socket_selector_init(&mw->selector);
+
     // TCP servers
     mw->tcp_kiss_enabled = 0;
-    if (opts->tcp_kiss_port > 0 && !tcp_server_init(&mw->tcp_kiss_server, opts->tcp_kiss_port))
+    if (opts->tcp_kiss_port > 0 && !tcp_server_init(&mw->tcp_kiss_server, opts->tcp_kiss_port, 0))
     {
         mw->tcp_kiss_enabled = 1;
+        mw->tcp_kiss_server.on_client_connect = tcp_client_connect_cb;
+        mw->tcp_kiss_server.on_client_disconnect = tcp_client_disconnect_cb;
+        mw->tcp_kiss_server.user_data = mw;
+        socket_selector_add(&mw->selector, mw->tcp_kiss_server.listen_fd, SELECT_READ);
         LOG("tcp kiss server enabled on port %d", opts->tcp_kiss_port);
     }
 
     mw->tcp_tnc2_enabled = 0;
-    if (opts->tcp_tnc2_port > 0 && !tcp_server_init(&mw->tcp_tnc2_server, opts->tcp_tnc2_port))
+    if (opts->tcp_tnc2_port > 0 && !tcp_server_init(&mw->tcp_tnc2_server, opts->tcp_tnc2_port, 0))
     {
         mw->tcp_tnc2_enabled = 1;
+        mw->tcp_tnc2_server.on_client_connect = tcp_client_connect_cb;
+        mw->tcp_tnc2_server.on_client_disconnect = tcp_client_disconnect_cb;
+        mw->tcp_tnc2_server.user_data = mw;
+        socket_selector_add(&mw->selector, mw->tcp_tnc2_server.listen_fd, SELECT_READ);
         LOG("tcp tnc2 server enabled on port %d", opts->tcp_tnc2_port);
     }
 
@@ -51,37 +67,48 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDP servers
     mw->udp_kiss_listen_enabled = 0;
-    if (opts->udp_kiss_listen_port > 0 && !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port))
+    if (opts->udp_kiss_listen_port > 0 && !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port, 0))
     {
         mw->udp_kiss_listen_enabled = 1;
+        socket_selector_add(&mw->selector, mw->udp_kiss_server.fd, SELECT_READ);
         LOG("udp kiss server enabled on port %d", opts->udp_kiss_listen_port);
     }
 
     mw->udp_tnc2_listen_enabled = 0;
-    if (opts->udp_tnc2_listen_port > 0 && !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port))
+    if (opts->udp_tnc2_listen_port > 0 && !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port, 0))
     {
         mw->udp_tnc2_listen_enabled = 1;
+        socket_selector_add(&mw->selector, mw->udp_tnc2_server.fd, SELECT_READ);
         LOG("udp tnc2 server enabled on port %d", opts->udp_tnc2_listen_port);
     }
 
-    // UDS KISS server
+    // UDS KISS server (timeout 0 - non-blocking, selector handles waiting)
     mw->uds_kiss_enabled = 0;
-    if (opts->uds_kiss_socket_path[0] && !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path))
+    if (opts->uds_kiss_socket_path[0] && !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path, 0))
     {
         mw->uds_kiss_enabled = 1;
+        mw->uds_kiss_server.on_client_connect = uds_client_connect_cb;
+        mw->uds_kiss_server.on_client_disconnect = uds_client_disconnect_cb;
+        mw->uds_kiss_server.user_data = mw;
+        socket_selector_add(&mw->selector, mw->uds_kiss_server.listen_fd, SELECT_READ);
         LOG("uds kiss server enabled on %s", opts->uds_kiss_socket_path);
     }
 
     // UDS TNC2 server
     mw->uds_tnc2_enabled = 0;
-    if (opts->uds_tnc2_socket_path[0] && !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path))
+    if (opts->uds_tnc2_socket_path[0] && !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path, 0))
     {
         mw->uds_tnc2_enabled = 1;
+        mw->uds_tnc2_server.on_client_connect = uds_client_connect_cb;
+        mw->uds_tnc2_server.on_client_disconnect = uds_client_disconnect_cb;
+        mw->uds_tnc2_server.user_data = mw;
+        socket_selector_add(&mw->selector, mw->uds_tnc2_server.listen_fd, SELECT_READ);
         LOG("uds tnc2 server enabled on %s", opts->uds_tnc2_socket_path);
     }
 
-    // Make stdin non-blocking
+    // Make stdin non-blocking and add to selector
     fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+    socket_selector_add(&mw->selector, 0, SELECT_READ);
 
     if (opts->gain_2200 != 0.0f)
     {
