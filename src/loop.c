@@ -86,20 +86,16 @@ void loop_run(miniwolf_t *mw)
         int sel_ret = socket_selector_wait(&mw->selector, 100);
         if (sel_ret > 0)
         {
-            // Process stdin if ready
             if (socket_selector_is_ready(&mw->selector, 0))
                 process_stdin_input(mw);
 
-            // Process TCP servers if ready
-            if (mw->tcp_kiss_enabled && socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.listen_fd))
+            if (mw->tcp_kiss_enabled)
                 process_tcp_input(mw);
 
-            // Process UDP servers if ready
-            if (mw->udp_kiss_listen_enabled && socket_selector_is_ready(&mw->selector, mw->udp_kiss_server.fd))
+            if (mw->udp_kiss_listen_enabled)
                 process_udp_input(mw);
 
-            // Process UDS servers if ready
-            if (mw->uds_kiss_enabled && socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.listen_fd))
+            if (mw->uds_kiss_enabled)
                 process_uds_input(mw);
         }
 
