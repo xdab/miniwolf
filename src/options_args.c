@@ -32,7 +32,7 @@ static struct argp_option options[] = {
     {OPT_UDS_KISS_SOCKET, OPT_SHORT_UDS_KISS_SOCKET, "PATH", 0, "Unix domain socket path for KISS packets", 4},
     {OPT_UDS_TNC2_SOCKET, OPT_SHORT_UDS_TNC2_SOCKET, "PATH", 0, "Unix domain socket path for TNC2 packets", 4},
 
-    {OPT_SQUELCH, OPT_SHORT_SQUELCH, 0, 0, "Enable pseudo-squelch", 5},
+    {OPT_SQUELCH, OPT_SHORT_SQUELCH, "VAL", 0, "Enable pseudo-squelch with given strength (0.0-1.0)", 5},
     {OPT_GAIN_2200, OPT_SHORT_GAIN_2200, "GAIN", 0, "Equalization to apply at 2200 Hz [dB]", 5},
     {OPT_TX_DELAY, OPT_SHORT_TX_DELAY, "MS", 0, "Time to send flags before a packet (default: 300ms)", 5},
     {OPT_TX_TAIL, OPT_SHORT_TX_TAIL, "MS", 0, "Time to send flags after a packet (default: 30ms)", 5},
@@ -43,6 +43,7 @@ static struct argp_option options[] = {
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
     options_t *opts = state->input;
+    LOG("parsing arg key %c(%d) arg '%s'", key, key, arg ? arg : "(null)");
     switch (key)
     {
     case OPT_SHORT_CONFIG:

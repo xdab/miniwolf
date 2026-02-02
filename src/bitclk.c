@@ -44,15 +44,9 @@ static void update_pll_lock_detection(bitclk_t *bitclk, float timing_error_in_bi
     bitclk->signal_quality = __builtin_popcount(bitclk->transition_history);
 
     if (bitclk->signal_quality >= DCD_ON_THR && !bitclk->data_detect)
-    {
         bitclk->data_detect = 1;
-        LOGD("PLL locked");
-    }
     else if (bitclk->signal_quality <= DCD_OFF_THR && bitclk->data_detect)
-    {
         bitclk->data_detect = 0;
-        LOGD("PLL unlocked");
-    }
 }
 
 int bitclk_detect(bitclk_t *bitclk, float soft_bit)

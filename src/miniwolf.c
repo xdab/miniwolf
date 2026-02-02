@@ -1,5 +1,6 @@
 #include "miniwolf.h"
 #include "options.h"
+#include "audio.h"
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -25,7 +26,13 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     mw->kiss_mode = opts->kiss;
     float sample_rate = (float)opts->rate;
 
-    socket_selector_init(&mw->selector);
+    socket_poller_init(&mw->poller);
+
+    // Add audio capture fd to poller
+    mw->audio_fd = aud_get_poll_fd();
+    nonzero(mw->audio_fd, "audio_fd");
+    if (socket_poller_add(&mw->poller, mw->audio_fd, POLLER_EV_IN) < 0)
+        EXIT("failed to add audio fd to poller");
 
     // TCP servers
     mw->tcp_kiss_enabled = 0;
@@ -35,7 +42,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
         mw->tcp_kiss_server.on_client_connect = tcp_client_connect_cb;
         mw->tcp_kiss_server.on_client_disconnect = tcp_client_disconnect_cb;
         mw->tcp_kiss_server.user_data = mw;
-        socket_selector_add(&mw->selector, mw->tcp_kiss_server.listen_fd, SELECT_READ);
+        socket_poller_add(&mw->poller, mw->tcp_kiss_server.listen_fd, POLLER_EV_IN);
         LOG("tcp kiss server enabled on port %d", opts->tcp_kiss_port);
     }
 
@@ -46,7 +53,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
         mw->tcp_tnc2_server.on_client_connect = tcp_client_connect_cb;
         mw->tcp_tnc2_server.on_client_disconnect = tcp_client_disconnect_cb;
         mw->tcp_tnc2_server.user_data = mw;
-        socket_selector_add(&mw->selector, mw->tcp_tnc2_server.listen_fd, SELECT_READ);
+        socket_poller_add(&mw->poller, mw->tcp_tnc2_server.listen_fd, POLLER_EV_IN);
         LOG("tcp tnc2 server enabled on port %d", opts->tcp_tnc2_port);
     }
 
@@ -70,7 +77,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     if (opts->udp_kiss_listen_port > 0 && !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port, 0))
     {
         mw->udp_kiss_listen_enabled = 1;
-        socket_selector_add(&mw->selector, mw->udp_kiss_server.fd, SELECT_READ);
+        socket_poller_add(&mw->poller, mw->udp_kiss_server.fd, POLLER_EV_IN);
         LOG("udp kiss server enabled on port %d", opts->udp_kiss_listen_port);
     }
 
@@ -78,7 +85,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     if (opts->udp_tnc2_listen_port > 0 && !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port, 0))
     {
         mw->udp_tnc2_listen_enabled = 1;
-        socket_selector_add(&mw->selector, mw->udp_tnc2_server.fd, SELECT_READ);
+        socket_poller_add(&mw->poller, mw->udp_tnc2_server.fd, POLLER_EV_IN);
         LOG("udp tnc2 server enabled on port %d", opts->udp_tnc2_listen_port);
     }
 
@@ -90,7 +97,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
         mw->uds_kiss_server.on_client_connect = uds_client_connect_cb;
         mw->uds_kiss_server.on_client_disconnect = uds_client_disconnect_cb;
         mw->uds_kiss_server.user_data = mw;
-        socket_selector_add(&mw->selector, mw->uds_kiss_server.listen_fd, SELECT_READ);
+        socket_poller_add(&mw->poller, mw->uds_kiss_server.listen_fd, POLLER_EV_IN);
         LOG("uds kiss server enabled on %s", opts->uds_kiss_socket_path);
     }
 
@@ -102,13 +109,13 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
         mw->uds_tnc2_server.on_client_connect = uds_client_connect_cb;
         mw->uds_tnc2_server.on_client_disconnect = uds_client_disconnect_cb;
         mw->uds_tnc2_server.user_data = mw;
-        socket_selector_add(&mw->selector, mw->uds_tnc2_server.listen_fd, SELECT_READ);
+        socket_poller_add(&mw->poller, mw->uds_tnc2_server.listen_fd, POLLER_EV_IN);
         LOG("uds tnc2 server enabled on %s", opts->uds_tnc2_socket_path);
     }
 
     // Make stdin non-blocking and add to selector
     fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
-    socket_selector_add(&mw->selector, 0, SELECT_READ);
+    socket_poller_add(&mw->poller, 0, POLLER_EV_IN);
 
     if (opts->gain_2200 != 0.0f)
     {
@@ -162,4 +169,5 @@ void miniwolf_free(miniwolf_t *mw)
 
     modem_free(&mw->modem);
     bf_biquad_free(&mw->hbf_filter);
+    socket_poller_free(&mw->poller);
 }

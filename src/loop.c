@@ -1,19 +1,20 @@
 #include "loop.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <poll.h>
 #include <errno.h>
 #include "audio.h"
 #include "ax25.h"
 #include "tnc2.h"
 #include "common.h"
 
-#define INPUT_CALLBACK_SIZE 4096
+#define INPUT_CALLBACK_SIZE 4800
 #define STDIN_BUFFER_SIZE 2048
-#define MAX_POLL_FDS 32
+#define POLL_TIMEOUT_LONG 250
+#define POLL_TIMEOUT_SHORT 10
 
 int audio_input_callback(float_buffer_t *buf);
 void modulate_and_transmit(const buffer_t *frame_buf);
@@ -26,29 +27,29 @@ void process_tcp_input(miniwolf_t *mw);
 void process_udp_input(miniwolf_t *mw);
 void process_uds_input(miniwolf_t *mw);
 
-// Callbacks for TCP/UDS client socket registration with selector
+// Callbacks for TCP/UDS client socket registration with poller
 void tcp_client_connect_cb(int fd, void *user_data)
 {
     miniwolf_t *mw = user_data;
-    socket_selector_add(&mw->selector, fd, SELECT_READ);
+    socket_poller_add(&mw->poller, fd, POLLER_EV_IN);
 }
 
 void tcp_client_disconnect_cb(int fd, void *user_data)
 {
     miniwolf_t *mw = user_data;
-    socket_selector_remove(&mw->selector, fd);
+    socket_poller_remove(&mw->poller, fd);
 }
 
 void uds_client_connect_cb(int fd, void *user_data)
 {
     miniwolf_t *mw = user_data;
-    socket_selector_add(&mw->selector, fd, SELECT_READ);
+    socket_poller_add(&mw->poller, fd, POLLER_EV_IN);
 }
 
 void uds_client_disconnect_cb(int fd, void *user_data)
 {
     miniwolf_t *mw = user_data;
-    socket_selector_remove(&mw->selector, fd);
+    socket_poller_remove(&mw->poller, fd);
 }
 
 void modulate_and_transmit(const buffer_t *frame_buf)
@@ -70,86 +71,81 @@ void loop_run(miniwolf_t *mw)
         .capacity = INPUT_CALLBACK_SIZE,
         .size = 0};
 
-    struct pollfd pfds[MAX_POLL_FDS];
-    int nfds = 0;
+    int timeout_ms = POLL_TIMEOUT_LONG;
 
     for (;;)
     {
-        nfds = 0;
+        // When transmitting, sleep for less to prevent RX starvation
+        timeout_ms = aud_process_playback_period() ? POLL_TIMEOUT_SHORT : POLL_TIMEOUT_LONG;
 
-        // Add ALSA capture poll descriptors
-        int audio_fd_count = aud_get_capture_poll_fds(&pfds[nfds], MAX_POLL_FDS - nfds);
-        if (audio_fd_count < 0)
-        {
-            LOG("failed to get audio poll fds");
-            return;
-        }
-        int audio_fd_start = nfds;
-        nfds += audio_fd_count;
-
-        int ret = poll(pfds, nfds, 10);
-
-        if (ret < 0)
+        int poll_ret = socket_poller_wait(&mw->poller, timeout_ms);
+        if (poll_ret < 0)
         {
             if (errno == EINTR)
             {
-                LOGD("poll interrupted by signal");
+                LOGD("poller wait interrupted");
                 continue;
             }
-            LOG("poll error: %s", strerror(errno));
-            return;
+            EXIT("socket poller wait error: %s", strerror(errno));
         }
 
-        // Process audio capture if ready
-        if (audio_fd_count > 0)
-            aud_process_capture_events(&pfds[audio_fd_start], audio_fd_count, audio_input_callback, &audio_buf);
+        // Process audio if ready
+        if (socket_poller_is_ready(&mw->poller, mw->audio_fd))
+        {
+            LOGD("audio is ready");
+            aud_process_capture(audio_input_callback, &audio_buf);
+        }
 
-        // Always process playback (non-blocking)
-        aud_process_playback();
-
-        // Wait for socket activity using selector
-        int sel_ret = socket_selector_wait(&mw->selector, 100);
-        if (sel_ret <= 0)
-            continue;
-
-        int stdin_input = socket_selector_is_ready(&mw->selector, 0);
+        int stdin_input = socket_poller_is_ready(&mw->poller, 0);
         if (stdin_input)
+        {
+            LOGV("stdin input ready");
             process_stdin_input(mw);
+        }
 
         int tcp_input = 0;
         if (mw->tcp_kiss_enabled || mw->tcp_tnc2_enabled)
         {
-            tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.listen_fd);
-            tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_tnc2_server.listen_fd);
+            tcp_input |= socket_poller_is_ready(&mw->poller, mw->tcp_kiss_server.listen_fd);
+            tcp_input |= socket_poller_is_ready(&mw->poller, mw->tcp_tnc2_server.listen_fd);
             for (int i = 0; i < mw->tcp_kiss_server.num_clients; i++)
-                tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_kiss_server.clients[i].fd);
+                tcp_input |= socket_poller_is_ready(&mw->poller, mw->tcp_kiss_server.clients[i].fd);
             for (int i = 0; i < mw->tcp_tnc2_server.num_clients; i++)
-                tcp_input |= socket_selector_is_ready(&mw->selector, mw->tcp_tnc2_server.clients[i].fd);
+                tcp_input |= socket_poller_is_ready(&mw->poller, mw->tcp_tnc2_server.clients[i].fd);
         }
         if (tcp_input)
+        {
+            LOGV("tcp input ready");
             process_tcp_input(mw);
+        }
 
         int udp_input = 0;
         if (mw->udp_kiss_listen_enabled || mw->udp_tnc2_listen_enabled)
         {
-            udp_input |= socket_selector_is_ready(&mw->selector, mw->udp_kiss_server.fd);
-            udp_input |= socket_selector_is_ready(&mw->selector, mw->udp_tnc2_server.fd);
+            udp_input |= socket_poller_is_ready(&mw->poller, mw->udp_kiss_server.fd);
+            udp_input |= socket_poller_is_ready(&mw->poller, mw->udp_tnc2_server.fd);
         }
         if (udp_input)
+        {
+            LOGV("udp input ready");
             process_udp_input(mw);
+        }
 
         int uds_input = 0;
         if (mw->uds_kiss_enabled || mw->uds_tnc2_enabled)
         {
-            uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.listen_fd);
-            uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_tnc2_server.listen_fd);
+            uds_input |= socket_poller_is_ready(&mw->poller, mw->uds_kiss_server.listen_fd);
+            uds_input |= socket_poller_is_ready(&mw->poller, mw->uds_tnc2_server.listen_fd);
             for (int i = 0; i < mw->uds_kiss_server.num_clients; i++)
-                uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_kiss_server.clients[i].fd);
+                uds_input |= socket_poller_is_ready(&mw->poller, mw->uds_kiss_server.clients[i].fd);
             for (int i = 0; i < mw->uds_tnc2_server.num_clients; i++)
-                uds_input |= socket_selector_is_ready(&mw->selector, mw->uds_tnc2_server.clients[i].fd);
+                uds_input |= socket_poller_is_ready(&mw->poller, mw->uds_tnc2_server.clients[i].fd);
         }
         if (uds_input)
+        {
+            LOGV("uds input ready");
             process_uds_input(mw);
+        }
 
         // Check exit-idle condition
         time_t current_time = time(NULL);
@@ -171,8 +167,9 @@ int audio_input_callback(float_buffer_t *buf)
     // If configured, apply squelch
     if (g_miniwolf.squelch_enabled)
     {
+        int samples_in = buf->size;
         int samples_passed = 0;
-        for (int i = 0; i < buf->size; i++)
+        for (int i = 0; i < samples_in; i++)
         {
             buf->data[i] = agc_filter(&g_miniwolf.input_agc, buf->data[i]);
             if (sql_process(&g_miniwolf.squelch, buf->data[i]))
@@ -182,7 +179,10 @@ int audio_input_callback(float_buffer_t *buf)
     }
 
     if (buf->size == 0)
+    {
+        LOGD("audio callback: no samples after processing");
         return 0;
+    }
 
     char frame_buffer[512];
     buffer_t frame_buf = {
@@ -196,6 +196,7 @@ int audio_input_callback(float_buffer_t *buf)
 
     g_miniwolf.last_packet_time = time(NULL);
     LOGV("demodulated packet: %d bytes", frame_len);
+    LOGD("frame decoded: %d bytes", frame_len);
 
     if (g_miniwolf.kiss_mode || g_miniwolf.tcp_kiss_enabled)
     {

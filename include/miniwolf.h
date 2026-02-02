@@ -10,7 +10,7 @@
 #include "tcp.h"
 #include "udp.h"
 #include "uds.h"
-#include "socket.h"
+#include "poller.h"
 #include <time.h>
 
 typedef struct miniwolf_state
@@ -37,7 +37,7 @@ typedef struct miniwolf_state
     udp_server_t udp_tnc2_server;
     uds_server_t uds_kiss_server;
     uds_server_t uds_tnc2_server;
-    socket_selector_t selector;
+    socket_poller_t poller;
 
     // Configuration flags
     int kiss_mode;
@@ -50,6 +50,9 @@ typedef struct miniwolf_state
     int uds_kiss_enabled;
     int uds_tnc2_enabled;
     int squelch_enabled;
+
+    // Audio
+    int audio_fd;
 
     // Timing
     time_t max_idle_time;
