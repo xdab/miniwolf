@@ -1,11 +1,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <alsa/asoundlib.h>
 #include "common.h"
 #include "options.h"
 #include "audio.h"
 #include "loop.h"
 #include "miniwolf.h"
+
+static void list_devices(void)
+{
+    void **hints;
+
+    if (snd_device_name_hint(-1, "pcm", &hints) < 0)
+    {
+        LOG("failed to get device hints");
+        return;
+    }
+
+    printf("%-5s%-60s\n", "Cap", "Name");
+
+    for (void **n = hints; *n != NULL; n++)
+    {
+        char *name = snd_device_name_get_hint(*n, "NAME");
+        if (!name)
+            continue;
+
+        char *io = snd_device_name_get_hint(*n, "IOID");
+
+        char cap[3] = "--";
+        if (io == NULL)
+        {
+            cap[0] = 'I';
+            cap[1] = 'O';
+        }
+        else if (strcmp(io, "Input") == 0)
+            cap[0] = 'I';
+        else if (strcmp(io, "Output") == 0)
+            cap[1] = 'O';
+
+        printf("%-5s%-60s\n", cap, name);
+
+        free(name);
+        free(io);
+    }
+
+    snd_device_name_free_hint(hints);
+}
 
 int main(int argc, char *argv[])
 {
@@ -22,7 +63,7 @@ int main(int argc, char *argv[])
 
     if (opts.list)
     {
-        aud_list_devices();
+        list_devices();
         goto NICE_EXIT;
     }
 

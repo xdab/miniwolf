@@ -1,7 +1,6 @@
 #pragma once
 
 #include "buffer.h"
-#include <poll.h>
 #include <stdbool.h>
 
 typedef int input_callback_t(float_buffer_t *buf);
@@ -12,14 +11,18 @@ void aud_terminate();
 
 // Configuration
 int aud_configure(const char *device_name, int sample_rate, bool do_input, bool do_output);
-void aud_list_devices();
 int aud_start();
 
 // Streaming
 void aud_output(const float_buffer_t *buf);
-void aud_input(input_callback_t *callback, float_buffer_t *buf);
 
-// Poll/Event handling
-int aud_get_capture_poll_fds(struct pollfd *pfds, int max_fds);
-int aud_process_capture_events(struct pollfd *pfds, int nfds, input_callback_t *callback, float_buffer_t *buf);
-void aud_process_playback();
+// Audio processing
+int aud_process_capture(input_callback_t *callback, float_buffer_t *buf);
+void aud_process_playback(void);
+
+// Audio processing of single ALSA period for interleaved TX/RX
+bool aud_process_capture_period(input_callback_t *callback, float_buffer_t *buf);
+bool aud_process_playback_period(void);
+
+// Get poll descriptor for integration with poll/epoll/select
+int aud_get_poll_fd(void);

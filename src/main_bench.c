@@ -25,6 +25,7 @@ typedef struct bench_args
     int little_endian;
     float gain_2200;
     int use_squelch;
+    float squelch_strength;
     int save_squelched;
 } bench_args_t;
 
@@ -132,7 +133,7 @@ static struct argp_option bench_options[] = {
     {"format", 'F', "FORMAT", 0, "Audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32)", 2},
     {"endian", 'e', "ENDIAN", 0, "Byte order: LE (little-endian, default) or BE (big-endian)", 2},
     {"eq2200", '2', "GAIN", 0, "Extra gain to apply at 2200Hz in dB (default: 0.0)", 2},
-    {"squelch", 's', 0, 0, "Enable squelch processing", 2},
+    {"squelch", 's', "STRENGTH", 0, "Enable squelch with given strength (0.0-1.0)", 2},
     {"save-squelched", 'S', 0, 0, "Save squelched audio to squelched_<input>.raw (requires --squelch)", 3},
     {"verbose", 'v', 0, 0, "Enable verbose logs", 3},
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
@@ -167,6 +168,7 @@ static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case 's':
         args->use_squelch = 1;
+        args->squelch_strength = atof(arg);
         break;
     case 'S':
         args->save_squelched = 1;
@@ -201,6 +203,7 @@ static void bench_args_parse(int argc, char *argv[], bench_args_t *args)
     args->little_endian = 1;
     args->gain_2200 = 0.0f;
     args->use_squelch = 0;
+    args->squelch_strength = 0.50f;
     args->save_squelched = 0;
 
     argp_parse(&bench_argp, argc, argv, 0, 0, args);
@@ -279,7 +282,7 @@ int main(int argc, char *argv[])
     sql_params_t sql_params = {
         .sample_rate = sample_rate,
         .init_threshold = 0.045f,
-        .strength = 0.50f};
+        .strength = args.squelch_strength};
     if (args.use_squelch)
         sql_init(&squelch, &sql_params, &sql_params_default);
 

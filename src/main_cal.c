@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 #include "common.h"
 #include "audio.h"
 #include "fft.h"
@@ -192,10 +193,6 @@ int main(int argc, char *argv[])
     if (aud_start())
         EXIT("Failed to start audio streams");
 
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 100000000L; // 100ms
-
     static float audio_input_buffer[INPUT_CALLBACK_SIZE];
     static float_buffer_t audio_buf = {
         .data = audio_input_buffer,
@@ -204,8 +201,8 @@ int main(int argc, char *argv[])
 
     for (;;)
     {
-        aud_input(audio_input_callback, &audio_buf);
-        nanosleep(&ts, NULL);
+        aud_process_capture(audio_input_callback, &audio_buf);
+        usleep(50000); // 50ms polling interval
     }
 
 NICE_EXIT:
