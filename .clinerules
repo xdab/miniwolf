@@ -1,6 +1,6 @@
 # .clinerules - Technical Rules for miniwolf
 
-A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightweight Direwolf replacement with packet radio/APRS support. Custom DSP, real-time audio via ALSA, offline file processing. Protocol implementation in [libtnc](libs/libtnc/) submodule.
+A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightweight Direwolf replacement with packet radio/APRS support. Custom DSP, real-time audio via ALSA, offline file processing.
 
 ## Real-Time Constraints (Critical)
 
@@ -20,9 +20,13 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 
 ## Module Breakdown
 
-**Protocols** (in [libtnc](libs/libtnc/) submodule)
+**Amateur protocols** (in [libtnc](libs/libtnc/) submodule)
 
 - AX.25, HDLC, KISS, TNC2, CRC-CCITT
+
+**Networking and IPC** (in [libcomm](libs/libcomm/) submodule)
+
+- TCP, UDP, UDS
 
 **DSP** (libdsp.a)
 
@@ -36,7 +40,7 @@ A minimalist C soundcard modem/TNC for Bell 202 (1200 bps) amateur radio. Lightw
 
 - `ring_*`: Lock-free ring buffers (thread-safe read/write)
 
-Plus [libtnc](libs/libtnc/) for: buffer, line, tcp, udp, common (logging)
+Plus [libtnc](libs/libtnc/) for: buffer, line, common (logging)
 
 **Modem** (mw_modem)
 
@@ -93,8 +97,6 @@ Messages: lowercase start, no period/newline (auto-added).
 - `libdsp.a`: agc, fft, filter, goertzel, synth, mavg
 - `mw_core`: ring
 - `mw_modem`: bitclk, demod, demod_goertzel, demod_quad, demod_rrc, demod_split, mod, modem, squelch, dedupe
-
-Plus [libtnc](libs/libtnc/) submodule for protocols.
 
 **Executables**:
 
