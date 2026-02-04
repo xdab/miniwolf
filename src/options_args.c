@@ -43,7 +43,7 @@ static struct argp_option options[] = {
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
     options_t *opts = state->input;
-    LOG("parsing arg key %c(%d) arg '%s'", key, key, arg ? arg : "(null)");
+    LOGV("parsing arg key %c(%d) arg '%s'", key, key, arg ? arg : "(null)");
     switch (key)
     {
     case OPT_SHORT_CONFIG:
