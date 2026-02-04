@@ -1,3 +1,6 @@
 [submodule "libs/libtnc"]
 	path = libs/libtnc
 	url = git@github.com:xdab/libtnc.git
+[submodule "libs/libcomm"]
+	path = libs/libcomm
+	url = git@github.com:xdab/libcomm.git
