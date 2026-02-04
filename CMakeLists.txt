@@ -26,8 +26,9 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${DEBUG_FLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${RELEASE_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${RELEASE_LINK_FLAGS}")
 
-# libtnc submodule
+# Submodules
 add_subdirectory(libs/libtnc)
+add_subdirectory(libs/libcomm)
 
 # DSP Library: Signal processing modules
 set(DSP_SOURCES
@@ -57,7 +58,7 @@ target_link_libraries(mw_modem tnc)
 
 # miniwolf
 add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c src/ring.c)
-target_link_libraries(miniwolf mw_modem tnc dsp ${ALSA_LIBRARIES} m)
+target_link_libraries(miniwolf mw_modem comm tnc dsp ${ALSA_LIBRARIES} m)
 
 # mw_test: unit tests
 add_executable(mw_test test/main_test.c test/test.c src/ring.c)
