@@ -9,7 +9,6 @@ ExecStart=/usr/local/bin/miniwolf -d default -r 44100 --tcp-kiss 8144 --udp-tnc2
 # Restart policy: Retry forever every 5 seconds on failure
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=0
 
 # Type simple ensures it doesn't block system startup
 Type=simple
