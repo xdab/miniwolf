@@ -8,7 +8,7 @@ _Danger! Parts of the code and docs may be LLM-written._
 
 Soundcard modem/TNC for amateur radio packet communications designed as a simple, lightweight alternative to well-known and respected [Direwolf by WB2OSZ](https://github.com/wb2osz/direwolf).
 
-It supports encoding and decoding AX.25 packets over 1200 baud AFSK while interfacing with existing tools over stdin/stdout, TCP as well as UDP. On each of these "interfacing layers" both TNC2 and KISS can be used.
+It supports encoding and decoding AX.25 packets over 1200 baud AFSK while interfacing with existing tools over stdin/stdout, TCP, UDP as well as their IPC equivalents with Unix domain sockers. On each of these "interfacing layers" both TNC2 and KISS can be used.
 
 ### What it isn't
 
@@ -20,11 +20,14 @@ This project is **not** a:
   - It is built around ALSA, the Advanced **Linux** Sound Architecture, the implication is fairly obvious
 - Multi-mode modem (for now)
   - Only Bell202 / 1200 baud AFSK is supported
-    - hardcoded actually...
-- Full-featured APRS station
+- Perhaps most importantly: Fully-featured APRS station
   - No built-in digipeating, beaconing, APRS-IS connectivity
   
-This **is the whole point!** To have a focused tool that does one job well. Let other tools figure out the rest.
+This **is the point!** To have a focused tool that does one job well. Let other tools figure out the rest.
+
+[APRX](https://github.com/PhirePhly/aprx) is one compatible implementation of digipeating, cross-digipeating, beaconing, bidirectional gateway, telemetry and probably more.
+
+I don't know of any smaller tools which serve subsets of these functionalities, hence I'll be trying to provide such tools as well. For example [axdigi](https://github.com/xdab/axdigi) implements explicit, implicit traced and untraced digipeating, while [aprsfmt](https://github.com/xdab/aprsfmt) can format APRS packets and in conjunction with `cron`, `netcat` or `socat` easily provides beaconing.
 
 ## Build and installation
 
