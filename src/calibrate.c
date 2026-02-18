@@ -3,6 +3,7 @@
 #include "audio.h"
 #include "fft.h"
 #include "filter.h"
+#include "mavg.h"
 #include "ring.h"
 #include "poller.h"
 #include "common.h"
@@ -22,6 +23,7 @@
 static fft_t g_fft;
 static bf_biquad_t g_hbf_filter;
 static agc_t g_agc;
+static ema_t g_balance_ema;
 static int g_sample_rate = 0;
 static int g_bin_start = 0;
 static int g_bin_count = 0;
@@ -82,7 +84,7 @@ static void print_numeric(void)
 
     float mag_1200 = fft_get_magnitude_db(&g_fft, bin_1200, reference);
     float mag_2200 = fft_get_magnitude_db(&g_fft, bin_2200, reference);
-    float balance = mag_2200 - mag_1200;
+    float balance = ema_update(&g_balance_ema, mag_2200 - mag_1200);
 
     printf(" L:%.2f %+.1fdB  B:%+.1f\n", level, level_db, balance);
 }
@@ -119,6 +121,7 @@ int calibrate_init(int sample_rate, float gain_2200)
     fft_init(&g_fft, INPUT_CALLBACK_SIZE);
     bf_hbf_init(&g_hbf_filter, 4, 2200.0f, g_sample_rate, gain_2200);
     agc_init(&g_agc, 2.5f, 250.0f, g_sample_rate);
+    ema_init(&g_balance_ema, 10);
 
     ring_error_t ring_err = ring_init(&g_ring, RING_BUFFER_SIZE);
     if (ring_err != RING_SUCCESS)
@@ -207,6 +210,7 @@ void calibrate_free(void)
         g_ring = NULL;
     }
 
+    ema_free(&g_balance_ema);
     bf_biquad_free(&g_hbf_filter);
     fft_free(&g_fft);
 }
