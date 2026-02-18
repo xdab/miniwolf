@@ -12,12 +12,12 @@
 
 #define INPUT_CALLBACK_SIZE 8192
 #define RING_BUFFER_SIZE 16384
-#define WATERFALL_MAX_WIDTH 50
+#define WATERFALL_MAX_WIDTH 55
 
 #define FREQ_MIN 100.0f
-#define FREQ_MAX 3300.0f
+#define FREQ_MAX 4100.0f
 #define DB_MIN -36.0f
-#define DB_MAX -6.0f
+#define DB_MAX -12.0f
 
 static fft_t g_fft;
 static bf_biquad_t g_hbf_filter;
