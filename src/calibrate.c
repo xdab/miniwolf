@@ -47,10 +47,8 @@ static void print_markers(void)
 
     for (int i = 0; i < g_bin_count; i++)
     {
-        if (i == col_space)
-            putchar('S');
-        else if (i == col_mark)
-            putchar('M');
+        if (i == col_space || i == col_mark)
+            putchar('|');
         else
             putchar(' ');
     }
@@ -59,7 +57,7 @@ static void print_markers(void)
 
 static void print_waterfall(void)
 {
-    float reference = INPUT_CALLBACK_SIZE / 2.0f;
+    float reference = (INPUT_CALLBACK_SIZE / 2.0f) * g_agc.envelope;
 
     for (int i = 0; i < g_bin_count; i++)
     {
@@ -76,7 +74,7 @@ static void print_numeric(void)
 
     int bin_1200 = (int)(1200.0f * INPUT_CALLBACK_SIZE / g_sample_rate + 0.5f);
     int bin_2200 = (int)(2200.0f * INPUT_CALLBACK_SIZE / g_sample_rate + 0.5f);
-    float reference = INPUT_CALLBACK_SIZE / 2.0f;
+    float reference = (INPUT_CALLBACK_SIZE / 2.0f) * g_agc.envelope;
 
     float mag_1200 = fft_get_magnitude_db(&g_fft, bin_1200, reference);
     float mag_2200 = fft_get_magnitude_db(&g_fft, bin_2200, reference);
