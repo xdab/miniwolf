@@ -11,7 +11,7 @@
 
 #define FREQ_MIN 300.0f
 #define FREQ_MAX 5000.0f
-#define DB_MIN -48.0f
+#define DB_MIN -30.0f
 #define DB_MAX 0.0f
 
 static fft_t g_fft;
@@ -27,18 +27,16 @@ static char magnitude_to_char(float db)
     if (db <= DB_MIN)
         return '0';
     if (db >= DB_MAX)
-        return 'Z';
+        return '9';
 
     float normalized = (db - DB_MIN) / (DB_MAX - DB_MIN);
-    int level = (int)(normalized * 35.0f + 0.5f);
+    int level = (int)(normalized * 9.0f + 0.5f);
     if (level < 0)
         level = 0;
-    if (level > 35)
-        level = 35;
+    if (level > 9)
+        level = 9;
 
-    if (level < 10)
-        return '0' + level;
-    return 'A' + (level - 10);
+    return '0' + level;
 }
 
 static void print_waterfall(void)
