@@ -9,8 +9,8 @@
 
 #define INPUT_CALLBACK_SIZE 512
 
-#define FREQ_MIN 300.0f
-#define FREQ_MAX 5000.0f
+#define FREQ_MIN 100.0f
+#define FREQ_MAX 3300.0f
 #define DB_MIN -30.0f
 #define DB_MAX 0.0f
 
@@ -37,6 +37,24 @@ static char magnitude_to_char(float db)
         level = 9;
 
     return '0' + level;
+}
+
+static void print_markers(void)
+{
+    float bin_width = (float)g_sample_rate / INPUT_CALLBACK_SIZE;
+    int col_space = (int)((1200.0f - FREQ_MIN) / bin_width + 0.5f);
+    int col_mark = (int)((2200.0f - FREQ_MIN) / bin_width + 0.5f);
+
+    for (int i = 0; i < g_bin_count; i++)
+    {
+        if (i == col_space)
+            putchar('S');
+        else if (i == col_mark)
+            putchar('M');
+        else
+            putchar(' ');
+    }
+    putchar('\n');
 }
 
 static void print_waterfall(void)
@@ -99,6 +117,7 @@ int calibrate_audio_callback(float_buffer_t *buf)
     if (g_print_counter >= chunks_per_second)
     {
         g_print_counter = 0;
+        print_markers();
         print_waterfall();
         print_numeric();
     }
