@@ -7,7 +7,8 @@
 #include <math.h>
 #include <unistd.h>
 
-#define INPUT_CALLBACK_SIZE 512
+#define INPUT_CALLBACK_SIZE 2048
+#define WATERFALL_MAX_WIDTH 60
 
 #define FREQ_MIN 100.0f
 #define FREQ_MAX 3300.0f
@@ -39,31 +40,27 @@ static char magnitude_to_char(float db)
     return '0' + level;
 }
 
-static void print_markers(void)
-{
-    float bin_width = (float)g_sample_rate / INPUT_CALLBACK_SIZE;
-    int col_space = (int)((1200.0f - FREQ_MIN) / bin_width + 0.5f);
-    int col_mark = (int)((2200.0f - FREQ_MIN) / bin_width + 0.5f);
-
-    for (int i = 0; i < g_bin_count; i++)
-    {
-        if (i == col_space || i == col_mark)
-            putchar('|');
-        else
-            putchar(' ');
-    }
-    putchar('\n');
-}
-
 static void print_waterfall(void)
 {
     float reference = (INPUT_CALLBACK_SIZE / 2.0f) * g_agc.envelope;
+    int output_width = (g_bin_count <= WATERFALL_MAX_WIDTH) ? g_bin_count : WATERFALL_MAX_WIDTH;
 
-    for (int i = 0; i < g_bin_count; i++)
+    for (int out = 0; out < output_width; out++)
     {
-        int bin = g_bin_start + i;
-        float mag = fft_get_magnitude_db(&g_fft, bin, reference);
-        putchar(magnitude_to_char(mag));
+        float bin_start = (float)out * g_bin_count / output_width;
+        float bin_end = (float)(out + 1) * g_bin_count / output_width;
+
+        float sum = 0.0f;
+        int count = 0;
+        for (int bin = (int)bin_start; bin < (int)bin_end && bin < g_bin_count; bin++)
+        {
+            int actual_bin = g_bin_start + bin;
+            sum += fft_get_magnitude_db(&g_fft, actual_bin, reference);
+            count++;
+        }
+
+        float avg_db = (count > 0) ? sum / count : -INFINITY;
+        putchar(magnitude_to_char(avg_db));
     }
 }
 
@@ -110,15 +107,8 @@ int calibrate_audio_callback(float_buffer_t *buf)
 
     fft_process(&g_fft, buf->data);
 
-    g_print_counter++;
-    int chunks_per_second = g_sample_rate / INPUT_CALLBACK_SIZE;
-    if (g_print_counter >= chunks_per_second)
-    {
-        g_print_counter = 0;
-        print_markers();
-        print_waterfall();
-        print_numeric();
-    }
+    print_waterfall();
+    print_numeric();
 
     return 0;
 }
