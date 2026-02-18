@@ -3,11 +3,15 @@
 #include "audio.h"
 #include "fft.h"
 #include "filter.h"
+#include "ring.h"
+#include "poller.h"
 #include "common.h"
 #include <math.h>
 #include <unistd.h>
+#include <errno.h>
 
-#define INPUT_CALLBACK_SIZE 2048
+#define INPUT_CALLBACK_SIZE 8192
+#define RING_BUFFER_SIZE 16384
 #define WATERFALL_MAX_WIDTH 60
 
 #define FREQ_MIN 100.0f
@@ -19,9 +23,12 @@ static fft_t g_fft;
 static bf_biquad_t g_hbf_filter;
 static agc_t g_agc;
 static int g_sample_rate = 0;
-static int g_print_counter = 0;
 static int g_bin_start = 0;
 static int g_bin_count = 0;
+
+static ring_buffer_t *g_ring = NULL;
+static socket_poller_t g_poller;
+static int g_audio_fd = -1;
 
 static char magnitude_to_char(float db)
 {
@@ -80,6 +87,27 @@ static void print_numeric(void)
     printf("  L:%.2f %+.1fdB  Bal:%+.1f\n", level, level_db, balance);
 }
 
+static void process_fft(float *samples, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        samples[i] = bf_biquad_filter(&g_hbf_filter, samples[i]);
+        agc_filter(&g_agc, samples[i]);
+    }
+
+    fft_process(&g_fft, samples);
+
+    print_waterfall();
+    print_numeric();
+}
+
+static int accumulate_audio_callback(float_buffer_t *buf)
+{
+    assert_buffer_valid(buf);
+    ring_write(g_ring, buf->data, buf->size);
+    return 0;
+}
+
 int calibrate_init(int sample_rate, float gain_2200)
 {
     g_sample_rate = sample_rate;
@@ -91,6 +119,28 @@ int calibrate_init(int sample_rate, float gain_2200)
     fft_init(&g_fft, INPUT_CALLBACK_SIZE);
     bf_hbf_init(&g_hbf_filter, 4, 2200.0f, g_sample_rate, gain_2200);
     agc_init(&g_agc, 2.5f, 250.0f, g_sample_rate);
+
+    ring_error_t ring_err = ring_init(&g_ring, RING_BUFFER_SIZE);
+    if (ring_err != RING_SUCCESS)
+    {
+        LOG("failed to initialize ring buffer: %d", ring_err);
+        return -1;
+    }
+
+    socket_poller_init(&g_poller);
+
+    g_audio_fd = aud_get_poll_fd();
+    if (g_audio_fd < 0)
+    {
+        LOG("failed to get audio poll descriptor");
+        return -1;
+    }
+
+    if (socket_poller_add(&g_poller, g_audio_fd, POLLER_EV_IN) < 0)
+    {
+        LOG("failed to add audio fd to poller");
+        return -1;
+    }
 
     return 0;
 }
@@ -116,6 +166,7 @@ int calibrate_audio_callback(float_buffer_t *buf)
 void calibrate_run(void)
 {
     static float audio_input_buffer[INPUT_CALLBACK_SIZE];
+    static float fft_buffer[INPUT_CALLBACK_SIZE];
     static float_buffer_t audio_buf = {
         .data = audio_input_buffer,
         .capacity = INPUT_CALLBACK_SIZE,
@@ -123,13 +174,41 @@ void calibrate_run(void)
 
     for (;;)
     {
-        aud_process_capture(calibrate_audio_callback, &audio_buf);
-        usleep(50000);
+        int poll_ret = socket_poller_wait(&g_poller, -1);
+        if (poll_ret < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            LOG("poller wait error");
+            break;
+        }
+
+        if (socket_poller_is_ready(&g_poller, g_audio_fd))
+        {
+            aud_process_capture(accumulate_audio_callback, &audio_buf);
+
+            while (ring_available(g_ring) >= INPUT_CALLBACK_SIZE)
+            {
+                size_t read = ring_read(g_ring, fft_buffer, INPUT_CALLBACK_SIZE);
+                if (read == INPUT_CALLBACK_SIZE)
+                {
+                    process_fft(fft_buffer, INPUT_CALLBACK_SIZE);
+                }
+            }
+        }
     }
 }
 
 void calibrate_free(void)
 {
+    socket_poller_free(&g_poller);
+
+    if (g_ring)
+    {
+        ring_destroy(g_ring);
+        g_ring = NULL;
+    }
+
     bf_biquad_free(&g_hbf_filter);
     fft_free(&g_fft);
 }
