@@ -57,7 +57,7 @@ target_include_directories(mw_modem PUBLIC include)
 target_link_libraries(mw_modem tnc)
 
 # miniwolf
-add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c src/ring.c)
+add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c src/ring.c src/calibrate.c)
 target_link_libraries(miniwolf mw_modem comm tnc dsp ${ALSA_LIBRARIES} m)
 
 # mw_test: unit tests
@@ -68,21 +68,16 @@ target_link_libraries(mw_test mw_modem tnc dsp m)
 add_executable(mw_bench src/main_bench.c src/ring.c)
 target_link_libraries(mw_bench mw_modem tnc dsp m)
 
-# mw_cal: AF spectrum analyzer
-add_executable(mw_cal src/main_cal.c src/audio.c src/ring.c)
-target_link_libraries(mw_cal tnc dsp ${ALSA_LIBRARIES} m)
-
 # Strip symbols in Release builds
 if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_command(TARGET miniwolf POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf>)
     add_custom_command(TARGET mw_test POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_test>)
     add_custom_command(TARGET mw_bench POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_bench>)
-    add_custom_command(TARGET mw_cal POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_cal>)
 endif()
 
 # Installation
 include(GNUInstallDirs)
-install(TARGETS miniwolf mw_cal
+install(TARGETS miniwolf
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 

@@ -10,6 +10,7 @@ void opts_init(options_t *opts)
     opts->list = false;
     opts->noop = false;
     opts->kiss = false;
+    opts->calibrate = false;
     opts->log_level = LOG_LEVEL_STANDARD;
 
     opts->dev_name[0] = '\0';
