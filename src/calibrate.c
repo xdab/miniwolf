@@ -74,7 +74,7 @@ static void print_waterfall(void)
 static void print_numeric(void)
 {
     float level = g_agc.envelope;
-    float level_db = (level > 0.0f) ? 20.0f * log10f(level) : -INFINITY;
+    float level_db = (level > 0.0f) ? 10.0f * log10f(level) : -INFINITY;
 
     int bin_1200 = (int)(1200.0f * INPUT_CALLBACK_SIZE / g_sample_rate + 0.5f);
     int bin_2200 = (int)(2200.0f * INPUT_CALLBACK_SIZE / g_sample_rate + 0.5f);
@@ -84,7 +84,7 @@ static void print_numeric(void)
     float mag_2200 = fft_get_magnitude_db(&g_fft, bin_2200, reference);
     float balance = mag_2200 - mag_1200;
 
-    printf("  L:%.2f %+.1fdB  Bal:%+.1f\n", level, level_db, balance);
+    printf(" L:%.2f %+.1fdB  B:%+.1f\n", level, level_db, balance);
 }
 
 static void process_fft(float *samples, int size)
@@ -183,18 +183,16 @@ void calibrate_run(void)
             break;
         }
 
-        if (socket_poller_is_ready(&g_poller, g_audio_fd))
-        {
-            aud_process_capture(accumulate_audio_callback, &audio_buf);
+        if (!socket_poller_is_ready(&g_poller, g_audio_fd))
+            continue;
 
-            while (ring_available(g_ring) >= INPUT_CALLBACK_SIZE)
-            {
-                size_t read = ring_read(g_ring, fft_buffer, INPUT_CALLBACK_SIZE);
-                if (read == INPUT_CALLBACK_SIZE)
-                {
-                    process_fft(fft_buffer, INPUT_CALLBACK_SIZE);
-                }
-            }
+        aud_process_capture(accumulate_audio_callback, &audio_buf);
+
+        while (ring_available(g_ring) >= INPUT_CALLBACK_SIZE)
+        {
+            size_t read = ring_read(g_ring, fft_buffer, INPUT_CALLBACK_SIZE);
+            if (read == INPUT_CALLBACK_SIZE)
+                process_fft(fft_buffer, INPUT_CALLBACK_SIZE);
         }
     }
 }
