@@ -33,9 +33,9 @@ static int g_audio_fd = -1;
 static char magnitude_to_char(float db)
 {
     if (db <= DB_MIN)
-        return '0';
+        return ' ';
     if (db >= DB_MAX)
-        return '9';
+        return '^';
 
     float normalized = (db - DB_MIN) / (DB_MAX - DB_MIN);
     int level = (int)(normalized * 9.0f + 0.5f);
@@ -44,7 +44,7 @@ static char magnitude_to_char(float db)
     if (level > 9)
         level = 9;
 
-    return '0' + level;
+    return " .:345678#"[level];
 }
 
 static void print_waterfall(void)
