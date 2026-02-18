@@ -12,8 +12,8 @@
 
 #define FREQ_MIN 100.0f
 #define FREQ_MAX 3300.0f
-#define DB_MIN -30.0f
-#define DB_MAX 0.0f
+#define DB_MIN -36.0f
+#define DB_MAX -6.0f
 
 static fft_t g_fft;
 static bf_biquad_t g_hbf_filter;
