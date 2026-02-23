@@ -7,6 +7,7 @@
 #include "audio.h"
 #include "loop.h"
 #include "miniwolf.h"
+#include "calibrate.h"
 
 static void list_devices(void)
 {
@@ -75,10 +76,13 @@ int main(int argc, char *argv[])
 
     LOG("Using device '%s'", opts.dev_name);
 
-    if (aud_configure(opts.dev_name, opts.rate, opts.dev_input, opts.dev_output))
+    if (aud_configure(opts.dev_name, opts.rate, opts.dev_input || opts.calibrate, opts.dev_output))
         EXIT("Failed to configure sound device");
 
-    miniwolf_init(&g_miniwolf, &opts);
+    if (opts.calibrate)
+        calibrate_init(opts.rate, opts.gain_2200);
+    else
+        miniwolf_init(&g_miniwolf, &opts);
 
     if (opts.noop)
     {
@@ -89,10 +93,14 @@ int main(int argc, char *argv[])
     if (aud_start())
         EXIT("Failed to start audio streams");
 
-    loop_run(&g_miniwolf);
+    if (opts.calibrate)
+        calibrate_run();
+    else
+        loop_run(&g_miniwolf);
 
 NICE_EXIT:
     miniwolf_free(&g_miniwolf);
+    calibrate_free();
     aud_terminate();
     return EXIT_SUCCESS;
 }

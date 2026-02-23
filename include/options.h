@@ -30,6 +30,7 @@
 #define OPT_TX_DELAY "tx-delay"
 #define OPT_TX_TAIL "tx-tail"
 #define OPT_EXIT_IDLE_S "exit-idle"
+#define OPT_CALIBRATE "calibrate"
 
 #define OPT_SHORT_CONFIG 'c'
 #define OPT_SHORT_LIST 'l'
@@ -56,6 +57,7 @@
 #define OPT_SHORT_TX_DELAY 'y'
 #define OPT_SHORT_TX_TAIL 'z'
 #define OPT_SHORT_EXIT_IDLE_S 12
+#define OPT_SHORT_CALIBRATE 'C'
 
 #define OPT_STR_SIZE 256
 
@@ -66,6 +68,7 @@ typedef struct options
     bool list;
     bool noop;
     bool kiss;
+    bool calibrate;
     log_level_e log_level;
 
     char dev_name[OPT_STR_SIZE];

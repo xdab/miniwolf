@@ -30,7 +30,7 @@ run: build
 	./build/miniwolf -c sample.conf
 
 cal: build
-	./build/mw_cal -v -d default -r 44100
+	./build/miniwolf -C -v -d default -r 44100
 
 test: build
 	./build/mw_test
