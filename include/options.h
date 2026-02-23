@@ -31,6 +31,7 @@
 #define OPT_TX_TAIL "tx-tail"
 #define OPT_EXIT_IDLE_S "exit-idle"
 #define OPT_CALIBRATE "calibrate"
+#define OPT_TNC2_EXTRAS "tnc2-extras"
 
 #define OPT_SHORT_CONFIG 'c'
 #define OPT_SHORT_LIST 'l'
@@ -58,6 +59,7 @@
 #define OPT_SHORT_TX_TAIL 'z'
 #define OPT_SHORT_EXIT_IDLE_S 12
 #define OPT_SHORT_CALIBRATE 'C'
+#define OPT_SHORT_TNC2_EXTRAS 'T'
 
 #define OPT_STR_SIZE 256
 
@@ -95,6 +97,8 @@ typedef struct options
     float tx_delay;
     float tx_tail;
     long exit_idle_s;
+    bool tnc2_extras;
+
 } options_t;
 
 // Clears out options_t setting null/zero values.

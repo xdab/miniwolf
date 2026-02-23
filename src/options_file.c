@@ -18,6 +18,7 @@ void opts_parse_conf_file(options_t *opts, const char *filename)
     opts->kiss = conf_get_bool_or_default(&conf, OPT_KISS, opts->kiss);
     opts->dev_input = conf_get_bool_or_default(&conf, OPT_DEV_INPUT, opts->dev_input);
     opts->dev_output = conf_get_bool_or_default(&conf, OPT_DEV_OUTPUT, opts->dev_output);
+    opts->tnc2_extras = conf_get_bool_or_default(&conf, OPT_TNC2_EXTRAS, opts->tnc2_extras);
 
     opts->rate = conf_get_int_or_default(&conf, OPT_RATE, opts->rate);
     opts->tcp_kiss_port = conf_get_int_or_default(&conf, OPT_TCP_KISS_PORT, opts->tcp_kiss_port);

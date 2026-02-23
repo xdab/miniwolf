@@ -50,6 +50,7 @@ typedef struct miniwolf_state
     int uds_kiss_enabled;
     int uds_tnc2_enabled;
     int squelch_enabled;
+    int tnc2_extras;
 
     // Audio
     int audio_fd;

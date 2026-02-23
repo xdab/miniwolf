@@ -18,6 +18,7 @@
 
 int audio_input_callback(float_buffer_t *buf);
 void modulate_and_transmit(const buffer_t *frame_buf);
+void send_tnc2_extra(const char *header, const char *string);
 
 void tnc2_input_callback(const buffer_t *line_buf);
 void kiss_input_callback(kiss_message_t *kiss_msg);
@@ -61,6 +62,50 @@ void modulate_and_transmit(const buffer_t *frame_buf)
         .size = 0};
     modem_modulate(&g_miniwolf.modem, frame_buf, &sample_buf);
     aud_output(&sample_buf);
+
+    if (g_miniwolf.tnc2_extras)
+    {
+        ax25_packet_t packet;
+        if (ax25_packet_unpack(&packet, frame_buf))
+            return;
+
+        char tnc2_data[512] = {0};
+        buffer_t tnc2_buf = {
+            .data = tnc2_data,
+            .capacity = sizeof(tnc2_data),
+            .size = 0};
+        if (tnc2_packet_to_string(&packet, &tnc2_buf) <= 0)
+            return;
+
+        send_tnc2_extra("TX", tnc2_data);
+    }
+}
+
+void send_tnc2_extra(const char *header, const char *string)
+{
+    if (g_miniwolf.kiss_mode && !g_miniwolf.tcp_tnc2_enabled)
+        return;
+
+    char telem_str[512] = {0};
+    struct timespec now;
+    if (clock_gettime(CLOCK_BOOTTIME, &now))
+        return;
+
+    size_t telem_str_len = snprintf(telem_str, sizeof(telem_str) - 1, "# %ld.%06ld %s %s\n", now.tv_sec, now.tv_nsec / 1000, header, string);
+
+    if (!g_miniwolf.kiss_mode)
+    {
+        fwrite(telem_str, 1, telem_str_len, stdout);
+        fflush(stdout);
+    }
+
+    buffer_t telem_send_buf = {.data = telem_str, .capacity = sizeof(telem_str), .size = telem_str_len};
+
+    if (g_miniwolf.tcp_tnc2_enabled)
+        tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, &telem_send_buf);
+
+    if (g_miniwolf.uds_tnc2_enabled)
+        uds_server_broadcast(&g_miniwolf.uds_tnc2_server, &telem_send_buf);
 }
 
 void loop_run(miniwolf_t *mw)

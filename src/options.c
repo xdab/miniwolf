@@ -29,11 +29,15 @@ void opts_init(options_t *opts)
     opts->udp_kiss_listen_port = 0;
     opts->udp_tnc2_listen_port = 0;
 
+    opts->uds_kiss_socket_path[0] = '\0';
+    opts->uds_tnc2_socket_path[0] = '\0';
+
     opts->squelch = 0.0f;
     opts->gain_2200 = 0.0f;
     opts->tx_delay = 0.0f;
     opts->tx_tail = 0.0f;
     opts->exit_idle_s = 0;
+    opts->tnc2_extras = false;
 }
 
 void opts_defaults(options_t *opts)

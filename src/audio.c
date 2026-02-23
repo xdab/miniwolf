@@ -85,11 +85,7 @@ static int aud_stream_recover(snd_pcm_t *pcm, int err)
             err = snd_pcm_prepare(pcm);
     }
 
-    if (err < 0)
-    {
-        LOG("failed to recover: %s", snd_strerror(err));
-        return err;
-    }
+    EXITIF(err < 0, EXIT_FAILURE, "failed to recover: %s", snd_strerror(err));
 
     int restart_err = (pcm == g_pcm_capture) ? aud_capture_restart() : 0;
     if (restart_err < 0)
