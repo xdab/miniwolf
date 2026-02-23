@@ -12,6 +12,7 @@ static struct argp_option options[] = {
     {OPT_DEBUG, OPT_SHORT_DEBUG, 0, 0, "Enable verbose and debugging logs", 2},
     {OPT_NOOP, OPT_SHORT_NOOP, 0, 0, "Do not enter main processing loop", 2},
     {OPT_KISS, OPT_SHORT_KISS, 0, 0, "Use KISS protocol instead of TNC2", 2},
+    {OPT_CALIBRATE, OPT_SHORT_CALIBRATE, 0, 0, "Run spectrum analyzer instead of modem", 2},
 
     {OPT_DEV_NAME, OPT_SHORT_DEV_NAME, "NAME", 0, "Sound device name", 3},
     {OPT_DEV_INPUT, OPT_SHORT_DEV_INPUT, 0, 0, "Use sound device for input", 3},
@@ -63,6 +64,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case OPT_SHORT_KISS:
         opts->kiss = true;
+        break;
+    case OPT_SHORT_CALIBRATE:
+        opts->calibrate = true;
         break;
     case OPT_SHORT_DEV_NAME:
         strncpy(opts->dev_name, arg, OPT_STR_SIZE - 1);
