@@ -38,6 +38,7 @@ static struct argp_option options[] = {
     {OPT_TX_DELAY, OPT_SHORT_TX_DELAY, "MS", 0, "Time to send flags before a packet (default: 300ms)", 5},
     {OPT_TX_TAIL, OPT_SHORT_TX_TAIL, "MS", 0, "Time to send flags after a packet (default: 30ms)", 5},
     {OPT_EXIT_IDLE_S, OPT_SHORT_EXIT_IDLE_S, "S", 0, "Exit the program if no packets received in S seconds", 5},
+    {OPT_TNC2_EXTRAS, OPT_SHORT_TNC2_EXTRAS, 0, 0, "Send extra telemetry as comments on TNC2 sockets (except UDP)", 5},
 
     {0, 0, 0, 0, 0, 0}};
 
@@ -124,6 +125,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case OPT_SHORT_EXIT_IDLE_S:
         opts->exit_idle_s = atoi(arg);
+        break;
+    case OPT_SHORT_TNC2_EXTRAS:
+        opts->tnc2_extras = true;
         break;
     case ARGP_KEY_NO_ARGS:
         break;

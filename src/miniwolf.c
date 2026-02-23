@@ -24,6 +24,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     mw->squelch_enabled = opts->squelch > 0.0f;
     mw->kiss_mode = opts->kiss;
+    mw->tnc2_extras = opts->tnc2_extras;
     float sample_rate = (float)opts->rate;
 
     socket_poller_init(&mw->poller);
