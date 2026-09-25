@@ -2,135 +2,135 @@
 
 # miniwolf
 
-_Danger! Parts of the code and docs may be LLM-written._
+A soundcard modem/TNC for amateur radio packet communications: it encodes and decodes AX.25 packets over 1200 baud AFSK (Bell 202) and exchanges them with other tools over stdin/stdout, TCP, UDP, and Unix domain sockets.
 
-### What it is
+> **Warning:** parts of the code and docs may be LLM-written.
 
-Soundcard modem/TNC for amateur radio packet communications designed as a simple, lightweight alternative to well-known and respected [Direwolf by WB2OSZ](https://github.com/wb2osz/direwolf).
+## Why
 
-It supports encoding and decoding AX.25 packets over 1200 baud AFSK while interfacing with existing tools over stdin/stdout, TCP, UDP as well as their IPC equivalents with Unix domain sockers. On each of these "interfacing layers" both TNC2 and KISS can be used.
+A simple, lightweight alternative to the well-known and respected [Direwolf](https://github.com/wb2osz/direwolf), built around the idea of a focused tool that does one job well and lets other tools do the rest.
 
-### What it isn't
+It is deliberately **not**:
 
-This project is **not** a:
+- A drop-in replacement for Direwolf (configuration and CLI are not compatible)
+- Cross-platform (it is built around ALSA, the Advanced **Linux** Sound Architecture)
+- A multi-mode modem (only Bell 202 / 1200 baud AFSK, for now)
+- A fully-featured APRS station (no built-in digipeating, beaconing, or APRS-IS connectivity)
 
-- Drop-in replacement for Direwolf
-  - Configuration files and command line arguments are not compatible
-- Cross-platform program
-  - It is built around ALSA, the Advanced **Linux** Sound Architecture, the implication is fairly obvious
-- Multi-mode modem (for now)
-  - Only Bell202 / 1200 baud AFSK is supported
-- Perhaps most importantly: Fully-featured APRS station
-  - No built-in digipeating, beaconing, APRS-IS connectivity
-  
-This **is the point!** To have a focused tool that does one job well. Let other tools figure out the rest.
+For the missing pieces, pair it with dedicated tools. [APRX](https://github.com/PhirePhly/aprx) provides digipeating, cross-digipeating, beaconing, and bidirectional gating; [axdigi](https://github.com/xdab/axdigi) implements digipeating on its own; [aprsfmt](https://github.com/xdab/aprsfmt) formats APRS packets and, combined with `cron`, `netcat`, or `socat`, easily provides beaconing.
 
-[APRX](https://github.com/PhirePhly/aprx) is one compatible implementation of digipeating, cross-digipeating, beaconing, bidirectional gateway, telemetry and probably more.
+## Features
 
-I don't know of any smaller tools which serve subsets of these functionalities, hence I'll be trying to provide such tools as well. For example [axdigi](https://github.com/xdab/axdigi) implements explicit, implicit traced and untraced digipeating, while [aprsfmt](https://github.com/xdab/aprsfmt) can format APRS packets and in conjunction with `cron`, `netcat` or `socat` easily provides beaconing.
+- AX.25 encode/decode over 1200 baud AFSK
+- TNC2 or KISS framing on every interface layer
+- stdin/stdout, TCP, UDP, and Unix domain socket interfaces
+- Configurable pseudo-squelch, 2200 Hz equalization, TX delay and TX tail
+- Built-in spectrum analyzer for audio level calibration
 
-## Build and installation
+## Installation
 
-While cloning the project is entirely standard, the building differs slightly from other projects using CMake. A root-level Makefile is specified with some shortcuts for building and even installing.
+Prerequisites:
 
-### Prerequisites
-
-- Linux
+- Linux with ALSA
 - GCC or Clang
 - CMake
 - ALSA development libraries (`libasound2-dev` on Debian/Ubuntu)
-
-First steps may go like this:
 
 ```bash
 git clone https://github.com/xdab/miniwolf.git
 cd miniwolf
 git submodule update --init --recursive
-make build # builds with debug flags
-make release # builds properly 
-make install # builds in release mode and installs to the system
+make release      # build
+make install      # build in release mode and install system-wide
 ```
 
-## Sample usage
+`make install` installs the `miniwolf` binary and the systemd service files from [systemd/](systemd/), then reloads the systemd daemon. `make build` produces a debug build instead. See the [Makefile](Makefile) for other targets (`test`, `bench`, `package`).
+
+## Usage
 
 ```bash
 # List available audio devices
 miniwolf -l
 
-# Receive and transmit with TCP KISS server on port 8100
+# Receive and transmit with a TCP KISS server on port 8100
 miniwolf -d "default" -io -r 44100 --tcp-kiss 8100
 
-# Use configuration file
+# Use a configuration file
 miniwolf -c ~/miniwolf.conf
+
+# Transmit a packet from stdin (TNC2 format)
+echo "N0CALL>APRS:!4903.50N/07201.75W>test" | miniwolf -d "default" -o -r 44100
 ```
 
-## Command line arguments
+With no `--kiss` flag, stdin/stdout and all servers use TNC2 format (one packet per line).
 
-### Audio setup
+## Command-line options
 
-| Short option | Long option         | Description                                   |
-| ------------ | ------------------- | --------------------------------------------- |
-| `-l`         | `--list`            | List audio devices and exit                   |
-| `-d NAME`    | `--dev=NAME`        | Audio device name (e.g., "default", "hw:1,0") |
-| `-r RATE`    | `--rate=RATE`       | Sample rate in Hz (typically 44100 or 48000)  |
-| `-i`         | `--input`           | Enable audio input (receive)                  |
-| `-o`         | `--output`          | Enable audio output (transmit)                |
+### Audio
+
+| Short | Long           | Description                                   |
+| ----- | -------------- | --------------------------------------------- |
+| `-l`  | `--list`       | List audio devices and exit                   |
+| `-d`  | `--dev=NAME`   | Audio device name (e.g. `default`, `hw:1,0`)  |
+| `-r`  | `--rate=RATE`  | Sample rate in Hz (default: 44100)            |
+| `-i`  | `--input`      | Enable audio input (receive)                  |
+| `-o`  | `--output`     | Enable audio output (transmit)                |
 
 ### Protocol
 
-| Short option | Long option | Description                                        |
-| ------------ | ----------- | -------------------------------------------------- |
-| `-k`         | `--kiss`    | Use KISS protocol instead of TNC2 for stdin/stdout |
+| Short | Long             | Description                                                                    |
+| ----- | ---------------- | ------------------------------------------------------------------------------ |
+|       | `--kiss`         | Use KISS protocol instead of TNC2 for stdin/stdout                             |
+| `-T`  | `--tnc2-extras`  | Send extra telemetry as comments on TNC2 sockets (except UDP)                  |
 
 ### Network
 
-| Long option                                     | Description                                 |
+| Long                                            | Description                                 |
 | ----------------------------------------------- | ------------------------------------------- |
-| `--tcp-kiss PORT`                               | Start TCP server for KISS clients           |
-| `--tcp-tnc2 PORT`                               | Start TCP server for TNC2 clients           |
+| `--tcp-kiss PORT`                               | TCP server for KISS clients                 |
+| `--tcp-tnc2 PORT`                               | TCP server for TNC2 clients                 |
 | `--udp-kiss-addr ADDR` / `--udp-kiss-port PORT` | Send received packets via UDP (KISS)        |
 | `--udp-tnc2-addr ADDR` / `--udp-tnc2-port PORT` | Send received packets via UDP (TNC2)        |
-| `--udp-kiss-listen PORT`                        | Listen for KISS packets to transmit via UDP |
-| `--udp-tnc2-listen PORT`                        | Listen for TNC2 packets to transmit via UDP |
+| `--udp-kiss-listen PORT`                        | Listen for KISS packets to transmit         |
+| `--udp-tnc2-listen PORT`                        | Listen for TNC2 packets to transmit         |
+| `--uds-kiss PATH`                               | Unix domain socket server for KISS packets  |
+| `--uds-tnc2 PATH`                               | Unix domain socket server for TNC2 packets  |
 
 ### Signal processing
 
-| Short option | Long option     | Description                                                           |
-| ------------ | --------------- | --------------------------------------------------------------------- |
-| `-s VAL`     | `--squelch=VAL` | Squelch strength (float in range 0.0-1.0, larger means more strict)   |
-|              | `--eq2200 GAIN` | Apply gain at 2200 Hz in dB (use with `mw_cal` to find optimal value) |
-|              | `--tx-delay MS` | Transmit preamble duration in milliseconds (default: 300)             |
-|              | `--tx-tail MS`  | Transmit postamble duration in milliseconds (default: 50)             |
+| Short | Long              | Description                                                            |
+| ----- | ----------------- | ---------------------------------------------------------------------- |
+| `-s`  | `--squelch=VAL`   | Pseudo-squelch strength, 0.0–1.0 (higher is stricter)                  |
+| `-2`  | `--eq2200 GAIN`   | Equalization applied at 2200 Hz in dB (use `--calibrate` to tune)      |
+| `-y`  | `--tx-delay MS`   | Preamble duration in milliseconds (default: 300)                       |
+| `-z`  | `--tx-tail MS`    | Postamble duration in milliseconds (default: 30)                       |
 
 ### Other
 
-| Short option | Long option     | Description                               |
-| ------------ | --------------- | ----------------------------------------- |
-|              | `--exit-idle S` | Exit if no packets received for S seconds |
-| `-v`         | `--verbose`     | Verbose logging                           |
-| `-V`         | `--debug`       | Debug logging                             |
+| Short | Long              | Description                                    |
+| ----- | ----------------- | ---------------------------------------------- |
+| `-c`  | `--config=FILE`   | Read configuration from FILE                   |
+| `-C`  | `--calibrate`     | Run the spectrum analyzer instead of the modem |
+|       | `--exit-idle S`   | Exit if no packets received for S seconds      |
+| `-x`  | `--noop`          | Do not enter the main processing loop          |
+| `-v`  | `--verbose`       | Verbose logging                                |
+| `-V`  | `--debug`         | Debug logging                                  |
 
 ## Configuration file
 
-Optionally, configuration can be read from a file using `-c FILE` or `--config=FILE`.
+Configuration can optionally be read from a file with `-c FILE`.
 
-The file uses simple `key=value` syntax with `#` comments.
-Keys in the file are the same as long option names of CLI arguments.
-
-File-based configuration is secondary to CLI arguments.
-Arguments override entries in the configuration file.
-
-### Example
+The file uses `key=value` syntax with `#` comments. Keys mostly match the long option names; boolean options take `true`/`false`. CLI arguments override file entries.
 
 ```bash
 # CLI
-miniwolf -d "hw:1,0" -io -r 48000 -k -s 0.5 --eq2200 2.5 --tcp-tnc2 8101 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 8001
+miniwolf -d "hw:1,0" -io -r 48000 --kiss -s 0.5 --eq2200 2.5 --tcp-tnc2 8101 --udp-tnc2-addr 127.0.0.1 --udp-tnc2-port 8001
 ```
 
 is equivalent to:
 
 ```ini
-# Equivalent.conf
+# equivalent.conf
 dev=hw:1,0
 input=true
 output=true
@@ -143,25 +143,40 @@ udp-tnc2-addr=127.0.0.1
 udp-tnc2-port=8001
 ```
 
+See [sample.conf](sample.conf) for a complete example.
+
 ## Working principles
 
-### Signal chain
+Receive chain:
 
-**Receive:** Audio input → EQ → Squelch → Demodulators → Bit-clock recovery → HDLC deframe → Output
+1. Audio input
+2. Equalization
+3. Squelch
+4. Demodulation
+5. Bit-clock recovery
+6. HDLC deframing
+7. Output (stdin/stdout, TCP, UDP, Unix domain socket)
 
-**Transmit:** Input (stdin/TCP/UDP) → Protocol parse → AX.25 → HDLC encode → FSK modulate → Audio output
+Transmit chain:
 
-Protocol implementation (AX.25, HDLC, KISS, TNC2, CRC-CCITT) resides in [libtnc](libs/libtnc/) git submodule.
+1. Input (stdin/stdout, TCP, UDP, Unix domain socket)
+2. Protocol parsing (TNC2 or KISS)
+3. AX.25 encoding
+4. HDLC framing
+5. FSK modulation
+6. Audio output
+
+The protocol implementations (AX.25, HDLC, KISS, TNC2, CRC-CCITT) live in the [libtnc](libs/libtnc) git submodule.
 
 ## Calibration
 
-Use `mw_cal` to find the optimal `--eq2200` value for your radio:
+Use the built-in spectrum analyzer to find the optimal `--eq2200` value for your radio:
 
 ```bash
-mw_cal -d "hw:1,0" -r 48000
+miniwolf -C -d "hw:1,0" -r 48000
 ```
 
-This displays real-time spectrum analysis with 8 frequency bins, using 1200 Hz as the reference (0 dB). Adjust whatever you've got available to try and make the 1200 and 2200 Hz bins equal. Otherwise, try to use `--eq2200` to compensate.
+This displays a real-time spectrum analysis with 8 frequency bins, using 1200 Hz as the reference (0 dB). Adjust whatever you have available to make the 1200 Hz and 2200 Hz bins equal, or compensate with `--eq2200`:
 
 ```bash
 # If 2200 Hz shows -5 dB relative to 1200 Hz, add +5 dB boost
@@ -170,8 +185,4 @@ miniwolf -d "hw:1,0" -io -r 48000 --eq2200 5.0
 
 ## License
 
-GNU General Public License v3.0 - see [LICENSE](LICENSE)
-
----
-
-**Development notes:** See [.clinerules](.clinerules) for AI-friendly instructions.
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
