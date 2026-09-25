@@ -26,7 +26,7 @@ To skip the module load entirely at boot (preferred alternative), blacklist-styl
 miniwolf has no network audio input; it captures samples only from an ALSA device. This bridge feeds it from a TCP stream instead:
 
 ```
-TCP server (raw mono f32le) -> nc -> ffmpeg (resample) -> aplay -> snd-aloop playback end
+TCP server (raw mono s16le/f32le) -> nc -> ffmpeg/sox (resample) -> aplay -> snd-aloop playback end
 miniwolf <- snd-aloop capture end
 ```
 
@@ -49,11 +49,13 @@ Configuration via `Environment=` lines in the unit (or exported variables when r
 | `MW_AUDIO_OUT_RATE`     | 48000     | Rate miniwolf captures at (both loopback ends) |
 | `MW_AUDIO_IDLE_TIMEOUT` | 30        | Seconds without data before exiting (`nc -w`)  |
 | `MW_AUDIO_RESAMPLER`    | `auto`    | `sox`, `ffmpeg`, or `auto` (prefers sox)       |
+| `MW_AUDIO_FORMAT`       | `f32le`   | Stream sample format: `f32le` or `s16le`       |
 
 Notes:
 
 - If the server only streams while transmitting, raise `MW_AUDIO_IDLE_TIMEOUT` or the bridge will restart continuously during silence
-- Input format is assumed raw mono `f32le`; for `s16le` streams change the input format accordingly (`-f s16le` for ffmpeg, `-e signed-integer -b 16` for sox) — the demodulator does not care about the absolute scale
+- Input format is assumed raw mono `f32le`; set `MW_AUDIO_FORMAT=s16le` for 16-bit little-endian streams (a common server default). Wrong format both sounds wrong and consumes the stream at the wrong rate — symptom: constant underruns
+- The stream rate must be declared honestly: measure it with `nc HOST PORT | dd of=/dev/null bs=16k count=25 2>&1 | grep copied` — `kB/s ÷ 2` (s16le) or `÷ 4` (f32le) = sample rate
 - Start miniwolf before the bridge, or the first moments of a stream may be lost while the loopback blocks
 - Persistent `underrun!!!` messages from aplay mean the playback buffer runs dry: usually `MW_AUDIO_IN_RATE` does not match the real stream rate, or the source is bursty. Measure the actual rate with `timeout 10 nc HOST PORT | wc -c` — bytes/s ÷ 4 = sample rate. The default `--buffer-size=32768` (≈0.7 s at 48 kHz) absorbs normal jitter
 
