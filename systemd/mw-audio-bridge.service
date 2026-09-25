@@ -1,0 +1,21 @@
+[Unit]
+Description=miniwolf TCP audio bridge (ALSA loopback feeder)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=MW_AUDIO_HOST=127.0.0.1
+Environment=MW_AUDIO_PORT=7355
+Environment=MW_AUDIO_IN_RATE=16000
+Environment=MW_AUDIO_OUT_RATE=48000
+Environment=MW_AUDIO_IDLE_TIMEOUT=30
+# snd-aloop is loaded once at boot by the root-level mw-loopback.service;
+# this unit may run as a system or user service and only consumes the device
+ExecStart=/usr/local/bin/mw-audio-bridge.sh
+Restart=always
+RestartSec=5
+
+[Install]
+# default.target exists in both system and user managers
+WantedBy=default.target

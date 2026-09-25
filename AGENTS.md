@@ -19,7 +19,7 @@ miniwolf is a minimalist C soundcard modem/TNC for amateur radio packet communic
 | `libs/libtnc/`        | Submodule: AX.25, HDLC, KISS, TNC2, CRC-CCITT, conf, line, buffer, logging (`common.h`)              |
 | `libs/libcomm/`       | Submodule: TCP, UDP, UDS, socket poller, net helpers                                                 |
 | `test/`               | Unit tests: `test_*.h` headers + `main_test.c` runner                                                |
-| `systemd/`            | `miniwolf.service`, installed by `make install`                                                      |
+| `systemd/`            | `miniwolf.service`, `mw-loopback.service` (snd-aloop loader), `mw-audio-bridge.service` + `mw-audio-bridge.sh` (TCP audio bridge), installed by `make install` |
 
 ## Build & test
 

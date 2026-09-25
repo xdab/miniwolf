@@ -87,5 +87,10 @@ install(FILES ${SYSTEMD_SERVICE_FILES}
     DESTINATION /etc/systemd/system
 )
 
+# Install the TCP audio bridge script (used by mw-audio-bridge.service)
+install(PROGRAMS systemd/mw-audio-bridge.sh
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
 # Reload systemd daemon after installation
 install(CODE "execute_process(COMMAND systemctl daemon-reload)")

@@ -1,0 +1,11 @@
+[Unit]
+Description=ALSA loopback device for miniwolf audio bridge
+Documentation=man:modprobe(8)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/modprobe snd-aloop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -183,6 +183,20 @@ This displays a real-time spectrum analysis with 8 frequency bins, using 1200 Hz
 miniwolf -d "hw:1,0" -io -r 48000 --eq2200 5.0
 ```
 
+## TCP audio bridge (optional)
+
+miniwolf reads audio only from an ALSA capture device. To feed it samples from a network stream, use the bundled bridge: it connects to a raw mono `f32le` TCP audio stream, resamples it, and writes it into an ALSA loopback device that miniwolf captures from.
+
+```bash
+sudo modprobe snd-aloop
+# terminal 1
+/usr/local/bin/mw-audio-bridge.sh          # or: systemctl start mw-audio-bridge
+# terminal 2
+miniwolf -d plughw:Loopback,1,0 -i -r 48000
+```
+
+The script exits on any connection problem or idle timeout, so `mw-audio-bridge.service` (installed by `make install`, configured via its `Environment=` lines) can restart it automatically. Host, port, input/output rates, and idle timeout are set through `MW_AUDIO_*` environment variables — see the script header. The unit works both system-wide and as a user service (`systemctl --user`); details in [systemd/README.md](systemd/README.md).
+
 ## License
 
 GNU General Public License v3.0 — see [LICENSE](LICENSE).
