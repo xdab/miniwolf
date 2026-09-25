@@ -34,7 +34,7 @@ The script:
 
 1. Checks that a loopback device exists (exits if not — enable `mw-loopback.service` first)
 2. Connects with `nc -w IDLE_TIMEOUT` — the connection is dropped after that many seconds without data
-3. Resamples the stream from `MW_AUDIO_IN_RATE` to `MW_AUDIO_OUT_RATE` with ffmpeg. This must happen in userspace: `snd-aloop` is a dumb sample pipe, its two ends must run at the same rate or audio comes out pitch-shifted
+3. Resamples the stream from `MW_AUDIO_IN_RATE` to `MW_AUDIO_OUT_RATE`. This must happen in userspace: `snd-aloop` is a dumb sample pipe, its two ends must run at the same rate or audio comes out pitch-shifted. With `MW_AUDIO_RESAMPLER=auto` (default) sox is used when installed and ffmpeg otherwise; sox is the lighter choice for simple mono resampling, ffmpeg the more common one. Both expect the stream rate to be declared honestly — see the rate-mismatch note below
 4. Writes raw `f32le` samples into `plughw:Loopback,0,0` (the loopback's playback end); miniwolf captures from the paired `plughw:Loopback,1,0`
 
 `set -euo pipefail` means any stage failing (connection refused, reset, EOF, ffmpeg/aplay death, device gone) exits the script — and so does a clean disconnect. Combined with the unit's `Restart=always` / `RestartSec=5`, the bridge self-heals: it comes back within 5 seconds until the stream is usable again. This also covers the boot-order edge case: if the bridge starts before `mw-loopback.service` has run, it exits with a clear message and retries until the device appears.
@@ -48,12 +48,14 @@ Configuration via `Environment=` lines in the unit (or exported variables when r
 | `MW_AUDIO_IN_RATE`      | 16000     | Sample rate of the TCP stream                  |
 | `MW_AUDIO_OUT_RATE`     | 48000     | Rate miniwolf captures at (both loopback ends) |
 | `MW_AUDIO_IDLE_TIMEOUT` | 30        | Seconds without data before exiting (`nc -w`)  |
+| `MW_AUDIO_RESAMPLER`    | `auto`    | `sox`, `ffmpeg`, or `auto` (prefers sox)       |
 
 Notes:
 
 - If the server only streams while transmitting, raise `MW_AUDIO_IDLE_TIMEOUT` or the bridge will restart continuously during silence
-- Input format is assumed raw mono `f32le`; for `s16le` streams change `-f f32le` on ffmpeg's input side (the demodulator does not care about the absolute scale)
+- Input format is assumed raw mono `f32le`; for `s16le` streams change the input format accordingly (`-f s16le` for ffmpeg, `-e signed-integer -b 16` for sox) — the demodulator does not care about the absolute scale
 - Start miniwolf before the bridge, or the first moments of a stream may be lost while the loopback blocks
+- Persistent `underrun!!!` messages from aplay mean the playback buffer runs dry: usually `MW_AUDIO_IN_RATE` does not match the real stream rate, or the source is bursty. Measure the actual rate with `timeout 10 nc HOST PORT | wc -c` — bytes/s ÷ 4 = sample rate. The default `--buffer-size=32768` (≈0.7 s at 48 kHz) absorbs normal jitter
 
 Install (done automatically by `make install`):
 
