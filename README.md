@@ -44,7 +44,7 @@ make release      # build
 make install      # build in release mode and install system-wide
 ```
 
-`make install` installs the `miniwolf` binary and the systemd service files from [systemd/](systemd/), then reloads the systemd daemon. `make build` produces a debug build instead. See the [Makefile](Makefile) for other targets (`test`, `bench`, `package`).
+`make install` installs the `miniwolf` binary and the systemd service files from [systemd/](systemd/), then reloads the systemd daemon. `make build` produces a debug build instead. See `make help` for other targets.
 
 ## Usage
 

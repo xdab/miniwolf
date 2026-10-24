@@ -2,24 +2,15 @@
 
 miniwolf is a minimalist C soundcard modem/TNC for amateur radio packet communications: AX.25 over 1200 baud AFSK (Bell 202), Linux-only, ALSA audio. See [README.md](README.md) for the user-facing story (features, install, usage, CLI options, configuration).
 
-## Project layout
+## Orientation
 
-| Path                  | Contents                                                                                            |
-| --------------------- | --------------------------------------------------------------------------------------------------- |
-| `src/main.c`          | Entry point: options, audio, main loop, cleanup                                                     |
-| `src/loop.c`          | Real-time loop and `audio_input_callback` — the RX/TX packet routing core                            |
-| `src/miniwolf.c`      | Wiring of all interface layers (TCP/UDP/UDS servers, stdin/stdout, TNC2 extras/telemetry)            |
-| `src/audio.c`         | ALSA initialization and callback glue (`aud_*`)                                                      |
-| `src/options*.c`      | CLI parsing (argp) and config-file parsing; keys defined in `include/options.h`                      |
-| `src/calibrate.c`     | Spectrum analyzer mode (`-C`), 8 bins with 1200 Hz reference                                         |
-| `src/main_bench.c`    | `mw_bench`: offline demodulation from binary audio files                                             |
-| `src/ring.c`          | Lock-free ring buffers (`ring_*`), compiled directly into the executables                            |
-| `src/` (rest)         | DSP and modem libraries, see Architecture below                                                      |
-| `include/`            | Public headers for everything in `src/`                                                              |
-| `libs/libtnc/`        | Submodule: AX.25, HDLC, KISS, TNC2, CRC-CCITT, conf, line, buffer, logging (`common.h`)              |
-| `libs/libcomm/`       | Submodule: TCP, UDP, UDS, socket poller, net helpers                                                 |
-| `test/`               | Unit tests: `test_*.h` headers + `main_test.c` runner                                                |
-| `systemd/`            | `miniwolf.service`, `mw-loopback.service` (snd-aloop loader), `mw-audio-bridge.service` + `mw-audio-bridge.sh` (TCP audio bridge), installed by `make install` |
+The user-facing story (features, install, CLI options, configuration) lives in [README.md](README.md); the target inventory is `make help`. Layout is what `ls` shows; the load-bearing pieces:
+
+- `src/main.c` — entry point; `src/loop.c` — real-time loop and `audio_input_callback`, the RX/TX packet routing core; `src/miniwolf.c` — wiring of all interface layers
+- `src/` (rest) — DSP and modem libraries, see Architecture below; public headers in `include/`
+- `libs/libtnc/` and `libs/libcomm/` — required submodules (protocols, sockets)
+- `test/` — unit tests: `test_*.h` headers + `main_test.c` runner
+- `systemd/` — service units and the TCP audio bridge script, installed by `make install` (details in [systemd/README.md](systemd/README.md))
 
 ## Build & test
 
@@ -27,15 +18,9 @@ Prerequisites: Linux with ALSA, GCC or Clang, CMake, ALSA dev headers (`libasoun
 
 ```bash
 git submodule update --init --recursive
-make release   # release build into build/
-make build     # debug build (with -pg -O0 -DDEBUG)
-make test      # build, then run build/mw_test
-make run       # debug build, then run against sample.conf
-make cal       # run the spectrum analyzer (-C)
-make clean     # remove build/
 ```
 
-CMake targets: static libs `dsp`, `mw_modem`, plus submodules `tnc` and `comm`; executables `miniwolf`, `mw_test`, `mw_bench`. Release builds are stripped and LTO-optimized.
+See `make help` for targets. CMake targets: static libs `dsp`, `mw_modem`, plus submodules `tnc` and `comm`; executables `miniwolf`, `mw_test`, `mw_bench`. Release builds are stripped and LTO-optimized.
 
 ## Architecture
 
@@ -72,8 +57,16 @@ Demodulation: up to `MD_RX_MAX` (6) parallel demodulators per RX chain, but only
 
 - `make test` must pass — unit tests live in `test/test_*.h` as `void test_name(void)` functions registered in `test/main_test.c`, using assertion macros from `test/test.h` (`assert_equal_int`, `assert_equal_float`, `assert_true`, `assert_memory`, `assert_string`)
 - Test coverage expectations: normal operation, boundary conditions (empty/full/wrap), init/free pairs, diverse and noisy inputs (see `test/test_modem.h` for modem round-trip patterns)
-- CI: GitHub Actions builds on push (`.github/workflows/c-cpp.yml`)
-- Update [README.md](README.md) whenever CLI options or user-visible behavior change
+- `make fmt-check` must pass — clang-format gate, config in `.clang-format`; reformat with `make fmt`
+- `make tidy` must pass (needs a configured `build/`) — clang-tidy gate, check set in `.clang-tidy`; findings are triaged one by one: fix the code, or a `// NOLINT(check)` at the site; no check-wide disables without an attached reason
+- CI: GitHub Actions runs build, test, fmt-check and tidy on push (`.github/workflows/c-cpp.yml`)
+
+### Documentation
+
+- no historical narratives (war stories) — docs describe the **current** state of things — let history be handled by Git alone; the same applies to source comments
+- no pointless duplication — if some fact can be read off a `--help`, `ls` or `make help`, leave it out
+- every in-repo reference must resolve correctly: file exists, cited symbol is in it, description is accurate
+- material is scoped to the appropriate location, e.g. subdirectory details live in their READMEs
 
 ## Constraints
 
