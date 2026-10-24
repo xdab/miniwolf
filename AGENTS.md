@@ -80,7 +80,6 @@ Demodulation: up to `MD_RX_MAX` (6) parallel demodulators per RX chain, but only
 - **Real-time:** no malloc/free, locks, IO, or syscalls inside `audio_input_callback` and anything it calls — static buffers and pre-allocated structures only
 - **Linux/ALSA only** by design; do not add portability layers
 - Do not turn miniwolf into a full APRS station (no digipeating, beaconing, APRS-IS) — pair with external tools instead, see README
-- The `package` Makefile target is stale: it still tries to copy the removed `mw_cal` and `mw_log` binaries
 - Submodules `libs/libtnc` and `libs/libcomm` are required for the build; protocol changes belong there, not in `src/`
 
 ## Glossary

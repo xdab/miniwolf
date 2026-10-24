@@ -1,4 +1,4 @@
-.PHONY: all update build release package run cal log test prof bench bench1 bench2 install clean
+.PHONY: all update build release run cal log test prof bench bench1 bench2 install clean
 
 all: run
 
@@ -15,16 +15,6 @@ release:
 	mkdir -p build
 	cd build && cmake -G "Unix Makefiles" ..
 	cd build && make -j
-
-ARCH := $(shell uname -m)
-VERSION := $(shell git describe --tags --always --abbrev=8 2>/dev/null || echo "unknown")
-
-package: release
-	rm -rf miniwolf_package
-	mkdir -p miniwolf_package
-	cp build/miniwolf build/mw_cal build/mw_log build/mw_test build/mw_bench miniwolf_package/
-	tar -czf miniwolf-$(ARCH)-$(VERSION).tar.gz -C miniwolf_package .
-	rm -rf miniwolf_package
 
 run: build
 	./build/miniwolf -c sample.conf
