@@ -76,11 +76,13 @@ int bitclk_detect(bitclk_t *bitclk, float soft_bit)
             // Estimate PLL value at crossing time and compute timing error
             float pll_at_crossing = prev_pll_value + bitclk->pll_clock_tick * fraction;
             float timing_error_in_samples = -pll_at_crossing / bitclk->pll_clock_tick;
-            float timing_error_in_bit_periods = timing_error_in_samples * bitclk->pll_clock_tick / 2.0f;
+            float timing_error_in_bit_periods =
+                timing_error_in_samples * bitclk->pll_clock_tick / 2.0f;
             update_pll_lock_detection(bitclk, timing_error_in_bit_periods);
 
             // Adaptive PLL inertia
-            float inertia = MIN_INERTIA + (MAX_INERTIA - MIN_INERTIA) * (bitclk->signal_quality / 32.0f);
+            float inertia =
+                MIN_INERTIA + (MAX_INERTIA - MIN_INERTIA) * (bitclk->signal_quality / 32.0f);
             float ideal_pll = (1.0f - fraction) * bitclk->pll_clock_tick;
             bitclk->pll_clock = bitclk->pll_clock * inertia + ideal_pll * (1.0f - inertia);
         }

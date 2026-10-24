@@ -1,7 +1,7 @@
 #include "filter.h"
-#include <stdlib.h>
-#include <math.h>
 #include "common.h"
+#include <math.h>
+#include <stdlib.h>
 
 void bf_lpf_init(bf_spf_t *filter, int order, float cutoff_freq, float sample_rate)
 {
@@ -119,7 +119,8 @@ void bf_hpf_free(bf_spf_t *filter)
     free(filter->w2);
 }
 
-void bf_bpf_init(bf_bpf_t *filter, int order, float low_cutoff_freq, float high_cutoff_freq, float sample_rate)
+void bf_bpf_init(
+    bf_bpf_t *filter, int order, float low_cutoff_freq, float high_cutoff_freq, float sample_rate)
 {
     nonnull(filter, "filter");
     nonzero(order, "order");
@@ -167,7 +168,8 @@ float bf_bpf_filter(bf_bpf_t *filter, float sample)
 
     for (int i = 0; i < filter->n; i++)
     {
-        float temp_w0 = filter->d1[i] * filter->w1[i] + filter->d2[i] * filter->w2[i] + filter->d3[i] * filter->w3[i] + filter->d4[i] * filter->w4[i] + sample;
+        float temp_w0 = filter->d1[i] * filter->w1[i] + filter->d2[i] * filter->w2[i] +
+                        filter->d3[i] * filter->w3[i] + filter->d4[i] * filter->w4[i] + sample;
         filter->w0[i] = temp_w0;
         sample = filter->A[i] * (temp_w0 - 2.0f * filter->w2[i] + filter->w4[i]);
         filter->w4[i] = filter->w3[i];
@@ -194,7 +196,8 @@ void bf_bpf_free(bf_bpf_t *filter)
     free(filter->w4);
 }
 
-void bf_hbf_init(bf_biquad_t *filter, int order, float cutoff_freq, float sample_rate, float gain_db_max)
+void bf_hbf_init(
+    bf_biquad_t *filter, int order, float cutoff_freq, float sample_rate, float gain_db_max)
 {
     nonnull(filter, "filter");
     nonzero(order, "order");
@@ -214,7 +217,7 @@ void bf_hbf_init(bf_biquad_t *filter, int order, float cutoff_freq, float sample
     float cosw0 = cosf(w0);
     float sinw0 = sinf(w0);
     float A = powf(10.0f, gain_db_max / 40.0f); // shelf amplitude (max gain)
-    float alpha = sinw0 / 2.0f * sqrtf(2.0f); // S = 1 (Butterworth)
+    float alpha = sinw0 / 2.0f * sqrtf(2.0f);   // S = 1 (Butterworth)
 
     for (int i = 0; i < filter->n; i++)
     {

@@ -1,8 +1,8 @@
 #include "ring.h"
 #include "common.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 struct ring_buffer
 {

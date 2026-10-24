@@ -1,13 +1,12 @@
-#include "demod.h"
 #include "common.h"
+#include "demod.h"
 #include <math.h>
 #include <stdio.h>
 
-demod_quad_params_t quad_params_default = {
-    .iq_lpf_order = 2,
-    .iq_lpf_cutoff_mul = 0.5444f,
-    .post_lpf_order = 4,
-    .post_lpf_cutoff_mul = 0.5750f};
+demod_quad_params_t quad_params_default = {.iq_lpf_order = 2,
+                                           .iq_lpf_cutoff_mul = 0.5444f,
+                                           .post_lpf_order = 4,
+                                           .post_lpf_cutoff_mul = 0.5750f};
 
 void demod_quad_init(demod_quad_t *demod, demod_params_t *params, demod_quad_params_t *adv_params)
 {
@@ -27,7 +26,8 @@ void demod_quad_init(demod_quad_t *demod, demod_params_t *params, demod_quad_par
     bf_lpf_init(&demod->i_lpf, adv_params->iq_lpf_order, iq_cutoff, params->sample_rate);
     bf_lpf_init(&demod->q_lpf, adv_params->iq_lpf_order, iq_cutoff, params->sample_rate);
     float post_lpf_cutoff = adv_params->post_lpf_cutoff_mul * params->baud_rate;
-    bf_lpf_init(&demod->post_filter, adv_params->post_lpf_order, post_lpf_cutoff, params->sample_rate);
+    bf_lpf_init(
+        &demod->post_filter, adv_params->post_lpf_order, post_lpf_cutoff, params->sample_rate);
 }
 
 float demod_quad_process(demod_quad_t *demod, float sample)

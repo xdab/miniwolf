@@ -1,7 +1,7 @@
 #include "test.h"
-#include "test_ring.h"
-#include "test_modem.h"
 #include "test_mavg.h"
+#include "test_modem.h"
+#include "test_ring.h"
 
 static const float sample_rates[] = {16000.0f, 22050.0f, 32000.0f, 44100.0f, 48000.0f};
 static const uint32_t demod_flags[] = {DEMOD_GOERTZEL_OPTIM, DEMOD_QUADRATURE};

@@ -1,15 +1,15 @@
 #include "calibrate.h"
 #include "agc.h"
 #include "audio.h"
+#include "common.h"
 #include "fft.h"
 #include "filter.h"
 #include "mavg.h"
-#include "ring.h"
 #include "poller.h"
-#include "common.h"
+#include "ring.h"
+#include <errno.h>
 #include <math.h>
 #include <unistd.h>
-#include <errno.h>
 
 #define INPUT_CALLBACK_SIZE 8192
 #define RING_BUFFER_SIZE 16384
@@ -171,9 +171,7 @@ void calibrate_run(void)
     static float audio_input_buffer[INPUT_CALLBACK_SIZE];
     static float fft_buffer[INPUT_CALLBACK_SIZE];
     static float_buffer_t audio_buf = {
-        .data = audio_input_buffer,
-        .capacity = INPUT_CALLBACK_SIZE,
-        .size = 0};
+        .data = audio_input_buffer, .capacity = INPUT_CALLBACK_SIZE, .size = 0};
 
     for (;;)
     {

@@ -1,8 +1,8 @@
 #ifndef TEST_MAVG_H
 #define TEST_MAVG_H
 
-#include "test.h"
 #include "mavg.h"
+#include "test.h"
 #include <math.h>
 
 void test_mavg_init()

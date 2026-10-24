@@ -1,8 +1,8 @@
 #ifndef SQUELCH_H
 #define SQUELCH_H
 
-#include "filter.h"
 #include "agc.h"
+#include "filter.h"
 
 typedef struct
 {

@@ -1,15 +1,15 @@
 #include "loop.h"
+#include "audio.h"
+#include "ax25.h"
+#include "common.h"
+#include "tnc2.h"
+#include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
-#include "audio.h"
-#include "ax25.h"
-#include "tnc2.h"
-#include "common.h"
 
 #define INPUT_CALLBACK_SIZE 4800
 #define STDIN_BUFFER_SIZE 2048
@@ -57,9 +57,7 @@ void modulate_and_transmit(const buffer_t *frame_buf)
 {
     static float sample_data[96000];
     float_buffer_t sample_buf = {
-        .data = sample_data,
-        .capacity = sizeof(sample_data) / sizeof(float),
-        .size = 0};
+        .data = sample_data, .capacity = sizeof(sample_data) / sizeof(float), .size = 0};
     modem_modulate(&g_miniwolf.modem, frame_buf, &sample_buf);
     aud_output(&sample_buf);
 
@@ -70,10 +68,7 @@ void modulate_and_transmit(const buffer_t *frame_buf)
             return;
 
         char tnc2_data[512] = {0};
-        buffer_t tnc2_buf = {
-            .data = tnc2_data,
-            .capacity = sizeof(tnc2_data),
-            .size = 0};
+        buffer_t tnc2_buf = {.data = tnc2_data, .capacity = sizeof(tnc2_data), .size = 0};
         if (tnc2_packet_to_string(&packet, &tnc2_buf) <= 0)
             return;
 
@@ -91,7 +86,14 @@ void send_tnc2_extra(const char *header, const char *string)
     if (clock_gettime(CLOCK_BOOTTIME, &now))
         return;
 
-    size_t telem_str_len = snprintf(telem_str, sizeof(telem_str) - 1, "# %ld.%06ld %s %s\n", now.tv_sec, now.tv_nsec / 1000, header, string);
+    size_t telem_str_len = snprintf(
+        telem_str,
+        sizeof(telem_str) - 1,
+        "# %ld.%06ld %s %s\n",
+        now.tv_sec,
+        now.tv_nsec / 1000,
+        header,
+        string);
 
     if (!g_miniwolf.kiss_mode)
     {
@@ -99,7 +101,8 @@ void send_tnc2_extra(const char *header, const char *string)
         fflush(stdout);
     }
 
-    buffer_t telem_send_buf = {.data = telem_str, .capacity = sizeof(telem_str), .size = telem_str_len};
+    buffer_t telem_send_buf = {
+        .data = telem_str, .capacity = sizeof(telem_str), .size = telem_str_len};
 
     if (g_miniwolf.tcp_tnc2_enabled)
         tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, &telem_send_buf);
@@ -112,9 +115,7 @@ void loop_run(miniwolf_t *mw)
 {
     static float audio_input_buffer[INPUT_CALLBACK_SIZE];
     static float_buffer_t audio_buf = {
-        .data = audio_input_buffer,
-        .capacity = INPUT_CALLBACK_SIZE,
-        .size = 0};
+        .data = audio_input_buffer, .capacity = INPUT_CALLBACK_SIZE, .size = 0};
 
     int timeout_ms = POLL_TIMEOUT_LONG;
 
@@ -194,7 +195,10 @@ void loop_run(miniwolf_t *mw)
 
         // Check exit-idle condition
         time_t current_time = time(NULL);
-        EXITIF(current_time - mw->last_packet_time > mw->max_idle_time, EXIT_FAILURE, "Lack of activity");
+        EXITIF(
+            current_time - mw->last_packet_time > mw->max_idle_time,
+            EXIT_FAILURE,
+            "Lack of activity");
     }
 }
 
@@ -230,10 +234,7 @@ int audio_input_callback(float_buffer_t *buf)
     }
 
     char frame_buffer[512];
-    buffer_t frame_buf = {
-        .data = frame_buffer,
-        .capacity = sizeof(frame_buffer),
-        .size = 0};
+    buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
 
     int frame_len = modem_demodulate(&g_miniwolf.modem, buf, &frame_buf);
     if (frame_len <= 0)
@@ -262,7 +263,9 @@ int audio_input_callback(float_buffer_t *buf)
             fflush(stdout);
         }
 
-        buffer_t kiss_send_buf = {.data = (unsigned char *)kiss_buffer, .capacity = sizeof(kiss_buffer), .size = kiss_len};
+        buffer_t kiss_send_buf = {.data = (unsigned char *)kiss_buffer,
+                                  .capacity = sizeof(kiss_buffer),
+                                  .size = kiss_len};
 
         if (g_miniwolf.tcp_kiss_enabled)
             tcp_server_broadcast(&g_miniwolf.tcp_kiss_server, &kiss_send_buf);
@@ -282,9 +285,7 @@ int audio_input_callback(float_buffer_t *buf)
 
         char tnc2_data[512];
         buffer_t tnc2_buf = {
-            .data = (unsigned char *)tnc2_data,
-            .capacity = sizeof(tnc2_data),
-            .size = 0};
+            .data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = 0};
         int tnc2_len = tnc2_packet_to_string(&packet, &tnc2_buf);
         if (tnc2_len <= 0)
             return 0;
@@ -302,7 +303,8 @@ int audio_input_callback(float_buffer_t *buf)
             fflush(stdout);
         }
 
-        buffer_t tnc2_send_buf = {.data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
+        buffer_t tnc2_send_buf = {
+            .data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = tnc2_len};
 
         if (g_miniwolf.tcp_tnc2_enabled)
             tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, &tnc2_send_buf);
@@ -329,10 +331,7 @@ void tnc2_input_callback(const buffer_t *line_buf)
     }
 
     char frame_data[AX25_MAX_PACKET_LEN];
-    buffer_t frame_buf = {
-        .data = frame_data,
-        .capacity = sizeof(frame_data),
-        .size = 0};
+    buffer_t frame_buf = {.data = frame_data, .capacity = sizeof(frame_data), .size = 0};
     if (ax25_packet_pack(&packet, &frame_buf))
     {
         LOGV("error packing ax25 packet");
@@ -356,9 +355,7 @@ void kiss_input_callback(kiss_message_t *kiss_msg)
     }
 
     buffer_t frame_buf = {
-        .data = kiss_msg->data,
-        .capacity = sizeof(kiss_msg->data),
-        .size = kiss_msg->data_length};
+        .data = kiss_msg->data, .capacity = sizeof(kiss_msg->data), .size = kiss_msg->data_length};
 
     modulate_and_transmit(&frame_buf);
 }
@@ -385,10 +382,7 @@ void process_stdin_input(miniwolf_t *mw)
 void process_tcp_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[TCP_READ_BUF_SIZE];
-    buffer_t buf = {
-        .data = read_buffer,
-        .capacity = TCP_READ_BUF_SIZE,
-        .size = 0};
+    buffer_t buf = {.data = read_buffer, .capacity = TCP_READ_BUF_SIZE, .size = 0};
 
     if (mw->tcp_kiss_enabled)
     {
@@ -410,10 +404,7 @@ void process_tcp_input(miniwolf_t *mw)
 void process_udp_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[TCP_READ_BUF_SIZE];
-    buffer_t buf = {
-        .data = read_buffer,
-        .capacity = TCP_READ_BUF_SIZE,
-        .size = 0};
+    buffer_t buf = {.data = read_buffer, .capacity = TCP_READ_BUF_SIZE, .size = 0};
 
     if (mw->udp_kiss_listen_enabled)
     {
@@ -435,10 +426,7 @@ void process_udp_input(miniwolf_t *mw)
 void process_uds_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[UDS_READ_BUF_SIZE];
-    buffer_t buf = {
-        .data = read_buffer,
-        .capacity = UDS_READ_BUF_SIZE,
-        .size = 0};
+    buffer_t buf = {.data = read_buffer, .capacity = UDS_READ_BUF_SIZE, .size = 0};
 
     if (mw->uds_kiss_enabled)
     {
