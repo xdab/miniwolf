@@ -2,9 +2,7 @@
 #include "buffer.h"
 #include "common.h"
 #include "ring.h"
-#include <alsa/control.h>
-#include <alsa/error.h>
-#include <alsa/pcm.h>
+#include <alsa/asoundlib.h>
 #include <stdlib.h>
 #include <sys/poll.h>
 #include <unistd.h>

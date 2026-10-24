@@ -24,5 +24,11 @@ CheckOptions:
   # from there), but include-cleaner can't walk up to the public header and
   # demands the non-self-contained kernel/bits files. Never suggest those;
   # <errno.h> / <time.h> are the correct providers as included.
+  #
+  # ALSA is the same story: the snd_* symbols live in alsa/{pcm,control,...}.h,
+  # which are deliberately non-self-contained (each carries a #warning against
+  # direct inclusion) and are versioned by the distro — which header defines
+  # what differs between them. <alsa/asoundlib.h> is the supported umbrella;
+  # never suggest its internals or flag it as unused.
   - key: misc-include-cleaner.IgnoreHeaders
-    value: 'asm-generic/.*|bits/.*'
+    value: 'asm-generic/.*|bits/.*|alsa/.*'
