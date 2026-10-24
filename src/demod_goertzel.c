@@ -1,6 +1,9 @@
+#include "agc.h"
 #include "common.h"
 #include "demod.h"
-#include <math.h>
+#include "filter.h"
+#include "goertzel.h"
+#include "ring.h"
 
 demod_grz_params_t grz_params_optim = {.window_size_mul = 1.05f,
                                        .agc_attack_ms = 0.02f,

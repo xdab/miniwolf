@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#define BITCLK_NONE -1
+#define BITCLK_NONE (-1)
 
 typedef struct bitclk_pll
 {
@@ -17,6 +17,6 @@ typedef struct bitclk_pll
 
 } bitclk_t;
 
-void bitclk_init(bitclk_t *detector, float sample_rate, float bit_rate);
+void bitclk_init(bitclk_t *bitclk, float sample_rate, float bit_rate);
 
-int bitclk_detect(bitclk_t *detector, float soft_bit);
+int bitclk_detect(bitclk_t *bitclk, float soft_bit);

@@ -1,5 +1,7 @@
 #include "ax25.h"
+#include "buffer.h"
 #include "common.h"
+#include "demod.h"
 #include "filter.h"
 #include "modem.h"
 #include "squelch.h"
@@ -46,7 +48,11 @@ static void byteswap64(uint64_t *v)
          (((*v >> 48) & 0xFF) << 8) | ((*v >> 56) & 0xFF));
 }
 
-static float convert_sample(const uint8_t *raw, char type, int bits, int little_endian)
+static float convert_sample(
+    const uint8_t *raw,
+    char type, // NOLINT(bugprone-easily-swappable-parameters)
+    int bits,
+    int little_endian)
 {
     union
     {
@@ -82,21 +88,21 @@ static float convert_sample(const uint8_t *raw, char type, int bits, int little_
         if (bits == 8)
         {
             memcpy(&val.s8, raw, 1);
-            return val.s8 / 128.0f;
+            return (float)val.s8 / 128.0f;
         }
         else if (bits == 16)
         {
             memcpy(&val.s16, raw, 2);
             if (!little_endian)
                 byteswap16((uint16_t *)&val.s16);
-            return val.s16 / 32768.0f;
+            return (float)val.s16 / 32768.0f;
         }
         else if (bits == 32)
         {
             memcpy(&val.s32, raw, 4);
             if (!little_endian)
                 byteswap32((uint32_t *)&val.s32);
-            return val.s32 / 2147483648.0f;
+            return (float)val.s32 / 2147483648.0f;
         }
     }
     else if (type == 'U')
@@ -104,21 +110,21 @@ static float convert_sample(const uint8_t *raw, char type, int bits, int little_
         if (bits == 8)
         {
             memcpy(&val.u8, raw, 1);
-            return (val.u8 / 128.0f) - 1.0f;
+            return ((float)val.u8 / 128.0f) - 1.0f;
         }
         else if (bits == 16)
         {
             memcpy(&val.u16, raw, 2);
             if (!little_endian)
                 byteswap16(&val.u16);
-            return (val.u16 / 65536.0f) * 2.0f - 1.0f;
+            return ((float)val.u16 / 65536.0f) * 2.0f - 1.0f;
         }
         else if (bits == 32)
         {
             memcpy(&val.u32, raw, 4);
             if (!little_endian)
                 byteswap32(&val.u32);
-            return (val.u32 / 4294967296.0f) * 2.0f - 1.0f;
+            return ((float)val.u32 / 4294967296.0f) * 2.0f - 1.0f;
         }
     }
 
@@ -147,6 +153,24 @@ static struct argp_option bench_options[] = {
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
     {0, 0, 0, 0, 0, 0}};
 
+static int parse_int(const char *str)
+{
+    char *end;
+    long value = strtol(str, &end, 10);
+    if (end == str || *end != '\0')
+        EXIT("invalid integer value: %s", str);
+    return (int)value;
+}
+
+static float parse_float(const char *str)
+{
+    char *end;
+    float value = strtof(str, &end);
+    if (end == str || *end != '\0')
+        EXIT("invalid numeric value: %s", str);
+    return value;
+}
+
 static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
 {
     bench_args_t *args = state->input;
@@ -156,13 +180,13 @@ static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
         args->input_file = arg;
         break;
     case 'r':
-        args->rate = atoi(arg);
+        args->rate = parse_int(arg);
         break;
     case 'F':
         if (strlen(arg) >= 2)
         {
             args->type = arg[0];
-            args->bits = atoi(&arg[1]);
+            args->bits = parse_int(&arg[1]);
         }
         break;
     case 'e':
@@ -172,11 +196,11 @@ static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
             args->little_endian = 1;
         break;
     case '2':
-        args->gain_2200 = atof(arg);
+        args->gain_2200 = parse_float(arg);
         break;
     case 's':
         args->use_squelch = 1;
-        args->squelch_strength = atof(arg);
+        args->squelch_strength = parse_float(arg);
         break;
     case 'S':
         args->save_squelched = 1;
@@ -219,8 +243,8 @@ int main(int argc, char *argv[])
     int exit_code = EXIT_SUCCESS;
     bench_args_t args = {0};
     bench_args_parse(argc, argv, &args);
-    _log_level = args.log_level;
-    _func_pad = -1;
+    g_log_level = args.log_level;
+    g_log_func_pad = -1;
 
     if (!args.input_file)
     {
@@ -256,7 +280,7 @@ int main(int argc, char *argv[])
     FILE *fp = fopen(args.input_file, "rb");
     if (!fp)
     {
-        fprintf(stderr, "Error: Cannot open file '%s'.\n", args.input_file);
+        (void)fprintf(stderr, "Error: Cannot open file '%s'.\n", args.input_file);
         goto ERROR;
     }
 
@@ -264,11 +288,11 @@ int main(int argc, char *argv[])
     char sq_filename[512];
     if (args.save_squelched)
     {
-        snprintf(sq_filename, sizeof(sq_filename), "squelched_%s", args.input_file);
+        (void)snprintf(sq_filename, sizeof(sq_filename), "squelched_%s", args.input_file);
         sq_fp = fopen(sq_filename, "wb");
         if (!sq_fp)
         {
-            fprintf(stderr, "Error: Cannot open file '%s'.\n", sq_filename);
+            (void)fprintf(stderr, "Error: Cannot open file '%s'.\n", sq_filename);
             goto ERROR;
         }
     }
@@ -324,7 +348,7 @@ int main(int argc, char *argv[])
 
                 // Save squelched samples if requested
                 if (sq_fp && squelch_open)
-                    fwrite(&samples[i], sizeof(float), 1, sq_fp);
+                    (void)fwrite(&samples[i], sizeof(float), 1, sq_fp);
             }
         }
 
@@ -332,7 +356,8 @@ int main(int argc, char *argv[])
         double time_sec = (double)total_samples / sample_rate;
 
         // Demodulate with timing
-        float_buffer_t sample_buf = {.data = samples, .capacity = CHUNK_SIZE, .size = read_count};
+        float_buffer_t sample_buf = {
+            .data = samples, .capacity = CHUNK_SIZE, .size = (int)read_count};
         buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
         clock_t start, end;
         time_t time_sim = time_zero + (time_t)time_sec;
@@ -383,8 +408,8 @@ int main(int argc, char *argv[])
 
     // Cleanup
     if (sq_fp)
-        fclose(sq_fp);
-    fclose(fp);
+        (void)fclose(sq_fp);
+    (void)fclose(fp);
     md_multi_rx_free(&demod);
     bf_biquad_free(&g_hbf_filter);
 

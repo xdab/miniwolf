@@ -107,6 +107,24 @@ static struct argp_option options[] = {
 
     {0, 0, 0, 0, 0, 0}};
 
+static int parse_int(const char *str)
+{
+    char *end;
+    long value = strtol(str, &end, 10);
+    if (end == str || *end != '\0')
+        EXIT("invalid integer value: %s", str);
+    return (int)value;
+}
+
+static float parse_float(const char *str)
+{
+    char *end;
+    float value = strtof(str, &end);
+    if (end == str || *end != '\0')
+        EXIT("invalid numeric value: %s", str);
+    return value;
+}
+
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
     options_t *opts = state->input;
@@ -144,28 +162,28 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         opts->dev_output = true;
         break;
     case OPT_SHORT_TCP_KISS_PORT:
-        opts->tcp_kiss_port = atoi(arg);
+        opts->tcp_kiss_port = parse_int(arg);
         break;
     case OPT_SHORT_TCP_TNC2_PORT:
-        opts->tcp_tnc2_port = atoi(arg);
+        opts->tcp_tnc2_port = parse_int(arg);
         break;
     case OPT_SHORT_UDP_KISS_ADDR:
         strncpy(opts->udp_kiss_addr, arg, OPT_STR_SIZE - 1);
         break;
     case OPT_SHORT_UDP_KISS_PORT:
-        opts->udp_kiss_port = atoi(arg);
+        opts->udp_kiss_port = parse_int(arg);
         break;
     case OPT_SHORT_UDP_TNC2_ADDR:
         strncpy(opts->udp_tnc2_addr, arg, OPT_STR_SIZE - 1);
         break;
     case OPT_SHORT_UDP_TNC2_PORT:
-        opts->udp_tnc2_port = atoi(arg);
+        opts->udp_tnc2_port = parse_int(arg);
         break;
     case OPT_SHORT_UDP_KISS_LISTEN_PORT:
-        opts->udp_kiss_listen_port = atoi(arg);
+        opts->udp_kiss_listen_port = parse_int(arg);
         break;
     case OPT_SHORT_UDP_TNC2_LISTEN_PORT:
-        opts->udp_tnc2_listen_port = atoi(arg);
+        opts->udp_tnc2_listen_port = parse_int(arg);
         break;
     case OPT_SHORT_UDS_KISS_SOCKET:
         strncpy(opts->uds_kiss_socket_path, arg, OPT_STR_SIZE - 1);
@@ -174,22 +192,22 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         strncpy(opts->uds_tnc2_socket_path, arg, OPT_STR_SIZE - 1);
         break;
     case OPT_SHORT_RATE:
-        opts->rate = atoi(arg);
+        opts->rate = parse_int(arg);
         break;
     case OPT_SHORT_SQUELCH:
-        opts->squelch = atof(arg);
+        opts->squelch = parse_float(arg);
         break;
     case OPT_SHORT_GAIN_2200:
-        opts->gain_2200 = atof(arg);
+        opts->gain_2200 = parse_float(arg);
         break;
     case OPT_SHORT_TX_DELAY:
-        opts->tx_delay = atof(arg);
+        opts->tx_delay = parse_float(arg);
         break;
     case OPT_SHORT_TX_TAIL:
-        opts->tx_tail = atof(arg);
+        opts->tx_tail = parse_float(arg);
         break;
     case OPT_SHORT_EXIT_IDLE_S:
-        opts->exit_idle_s = atoi(arg);
+        opts->exit_idle_s = parse_int(arg);
         break;
     case OPT_SHORT_TNC2_EXTRAS:
         opts->tnc2_extras = true;
@@ -202,7 +220,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
-struct argp argp = {options, parse_opt, "", "Minimal soundcard modem/TNC"};
+static struct argp mw_argp = {options, parse_opt, "", "Minimal soundcard modem/TNC"};
 
 void opts_parse_args(options_t *opts, int argc, char *argv[])
 {
@@ -210,5 +228,5 @@ void opts_parse_args(options_t *opts, int argc, char *argv[])
     nonzero(argc, "argc");
     nonnull(argv, "argv");
 
-    argp_parse(&argp, argc, argv, 0, 0, opts);
+    argp_parse(&mw_argp, argc, argv, 0, 0, opts);
 }

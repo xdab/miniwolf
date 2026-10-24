@@ -1,10 +1,15 @@
 #include "mod.h"
+#include "buffer.h"
 #include "common.h"
-#include <math.h>
+#include "synth.h"
 #include <stddef.h>
 
 void mod_init(
-    modulator_t *mod, float mark_freq, float space_freq, float baud_rate, float sample_rate)
+    modulator_t *mod,
+    float mark_freq, // NOLINT(bugprone-easily-swappable-parameters)
+    float space_freq,
+    float baud_rate,
+    float sample_rate)
 {
     nonnull(mod, "mod");
     nonzero(mark_freq, "mark_freq");

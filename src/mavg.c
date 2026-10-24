@@ -39,7 +39,7 @@ float mavg_update(mavg_t *ma, float value)
 
     ma->index = (ma->index + 1) % ma->capacity;
 
-    return ma->sum / ma->count;
+    return ma->sum / (float)ma->count;
 }
 
 float mavg_get(mavg_t *ma)
@@ -49,7 +49,7 @@ float mavg_get(mavg_t *ma)
     if (ma->count == 0)
         return 0.0f;
 
-    return ma->sum / ma->count;
+    return ma->sum / (float)ma->count;
 }
 
 void mavg_free(mavg_t *ma)
@@ -70,7 +70,7 @@ void ema_init(ema_t *ema, int time_constant_samples)
     nonnull(ema, "ema");
     nonzero(time_constant_samples, "time_constant_samples");
 
-    ema->alpha = 1.0f - expf(-1.0f / time_constant_samples);
+    ema->alpha = 1.0f - expf(-1.0f / (float)time_constant_samples);
     ema->current_value = NAN;
 }
 

@@ -32,7 +32,10 @@ test_modem_init_multi(struct md_multi_rx *mrx, float sample_rate, demod_type_t t
 }
 
 static inline void test_modem_create_aprs_packet(
-    ax25_packet_t *packet, const char *source, const char *dest, const char *info)
+    ax25_packet_t *packet,
+    const char *source,
+    const char *dest, // NOLINT(bugprone-easily-swappable-parameters)
+    const char *info)
 {
     ax25_packet_init(packet);
     ax25_addr_init_with(&packet->source, source, 7, 0);
@@ -43,22 +46,32 @@ static inline void test_modem_create_aprs_packet(
     packet->info_len = strlen(info);
 }
 
-static inline void test_modem_verify_packet(
-    buffer_t *decoded_buf, const uint8_t *expected_data, int expected_len, const char *test_name)
+static inline void
+test_modem_verify_packet(buffer_t *decoded_buf, const uint8_t *expected_data, int expected_len)
 {
     assert_true(decoded_buf->size > 0, "demodulation successful");
     assert_equal_int(decoded_buf->size, expected_len, "decoded length matches original");
     assert_memory(decoded_buf->data, expected_data, expected_len, "decoded data matches original");
 }
 
-static inline void test_modem_generate_random_ascii(uint8_t *data, int len, unsigned seed)
+static inline void test_modem_generate_random_ascii(
+    uint8_t *data,
+    int len, // NOLINT(bugprone-easily-swappable-parameters)
+    unsigned seed)
 {
+    // Fixed seed, reproducible test vectors
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
     srand(seed);
+    // Printable ASCII: 32-126
     for (int i = 0; i < len; i++)
-        data[i] = (rand() % 95) + 32; // Printable ASCII: 32-126
+        // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp,misc-predictable-rand)
+        data[i] = (uint8_t)((rand() % 95) + 32);
 }
 
-static inline void test_modem_generate_pattern(uint8_t *data, int len, int pattern_type)
+static inline void test_modem_generate_pattern(
+    uint8_t *data,
+    int len, // NOLINT(bugprone-easily-swappable-parameters)
+    int pattern_type)
 {
     switch (pattern_type)
     {
@@ -99,10 +112,12 @@ static inline float awgn(float sigma)
     }
     else
     {
+        // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp,misc-predictable-rand)
         float u1 = (float)rand() / RAND_MAX;
+        // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp,misc-predictable-rand)
         float u2 = (float)rand() / RAND_MAX;
         float mag = sigma * sqrtf(-2.0f * logf(u1 + 1e-10f)); // Avoid log(0)
-        float phase = 2.0f * M_PI * u2;
+        float phase = 2.0f * (float)M_PI * u2;
         z2 = mag * sinf(phase);
         use_z2 = 1;
         return mag * cosf(phase);
@@ -122,7 +137,7 @@ void test_modem_aprs_like(float sample_rate, uint32_t demod_flags)
     test_modem_create_aprs_packet(&packet, "XX0TST", "APN001", "!5221.20N/02043.85E# TEST");
 
     uint8_t packed_data[max_frame];
-    buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
     ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
     assert_equal_int(pack_result, AX25_SUCCESS, "pack success");
     assert_true(packed_buf.size > 0, "packed size > 0");
@@ -133,14 +148,17 @@ void test_modem_aprs_like(float sample_rate, uint32_t demod_flags)
     assert_true(sample_count > 0, "modulation successful");
 
     uint8_t decoded[max_frame];
-    buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
     int decoded_len = md_rx_process(&rx, &sample_buf, &decoded_buf, NULL);
-    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size, "aprs_like");
+    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size);
 
     test_modem_free_pair(&tx, &rx);
 }
 
-void test_modem_arbitrary_data(float sample_rate, int payload_length, uint32_t demod_flags)
+void test_modem_arbitrary_data(
+    float sample_rate, // NOLINT(bugprone-easily-swappable-parameters)
+    int payload_length,
+    uint32_t demod_flags)
 {
     const int max_samples = test_modem_max_samples(sample_rate, 3.0f); // Larger for bigger payloads
     const int max_frame = 512; // Enough for 256 bytes + overhead
@@ -154,19 +172,19 @@ void test_modem_arbitrary_data(float sample_rate, int payload_length, uint32_t d
     test_modem_generate_random_ascii(test_data, payload_length, 42);
     int data_len = payload_length;
 
-    buffer_t test_buf = {.data = test_data, .capacity = sizeof(test_data), .size = data_len};
+    buffer_t test_buf = {.data = test_data, .capacity = (int)sizeof(test_data), .size = data_len};
 
     float samples[max_samples];
     float_buffer_t sample_buf = {
-        .data = samples, .capacity = sizeof(samples) / sizeof(float), .size = 0};
+        .data = samples, .capacity = (int)(sizeof(samples) / sizeof(float)), .size = 0};
     int sample_count = md_tx_process(&tx, &test_buf, &sample_buf, NULL);
     assert_true(sample_count > 0, "modulation successful");
 
     uint8_t decoded[max_frame];
-    buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
     int decoded_len = md_rx_process(&rx, &sample_buf, &decoded_buf, NULL);
     assert_true(decoded_len > 0, "demodulation successful");
-    test_modem_verify_packet(&decoded_buf, test_data, data_len, "arbitrary_data");
+    test_modem_verify_packet(&decoded_buf, test_data, data_len);
 
     test_modem_free_pair(&tx, &rx);
 }
@@ -184,17 +202,18 @@ void test_modem_with_noise_around_packet(float sample_rate, uint32_t demod_flags
     test_modem_create_aprs_packet(&packet, "XX0TST", "APN001", "!5221.20N/02043.85E# TEST");
 
     uint8_t packed_data[max_frame];
-    buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
     ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
     assert_equal_int(pack_result, AX25_SUCCESS, "pack success");
 
     float samples[max_samples];
     float_buffer_t sample_buf = {
-        .data = samples, .capacity = sizeof(samples) / sizeof(float), .size = 0};
+        .data = samples, .capacity = (int)(sizeof(samples) / sizeof(float)), .size = 0};
     int sample_count = md_tx_process(&tx, &packed_buf, &sample_buf, NULL);
     assert_true(sample_count > 0, "modulation successful");
 
     int noise_samples = test_modem_max_samples(sample_rate, 0.1f);
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
     srand(42);
     float noisy_samples[2 * noise_samples + sample_count];
 
@@ -211,13 +230,13 @@ void test_modem_with_noise_around_packet(float sample_rate, uint32_t demod_flags
     int total_samples = 2 * noise_samples + sample_count;
 
     float_buffer_t noisy_sample_buf = {.data = noisy_samples,
-                                       .capacity = sizeof(noisy_samples) / sizeof(float),
+                                       .capacity = (int)(sizeof(noisy_samples) / sizeof(float)),
                                        .size = total_samples};
     uint8_t decoded[max_frame];
-    buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
     int decoded_len = md_rx_process(&rx, &noisy_sample_buf, &decoded_buf, NULL);
     assert_true(decoded_len > 0, "demodulation successful");
-    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size, "noise_around_packet");
+    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size);
 
     test_modem_free_pair(&tx, &rx);
 }
@@ -239,16 +258,17 @@ void test_modem_with_noise_over_packet(float sample_rate, uint32_t demod_flags)
     test_modem_create_aprs_packet(&packet, "XX0TST", "APN001", "!5221.20N/02043.85E# TEST");
 
     uint8_t packed_data[max_frame];
-    buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
     ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
     assert_equal_int(pack_result, AX25_SUCCESS, "pack success");
 
     float samples[max_samples];
     float_buffer_t sample_buf = {
-        .data = samples, .capacity = sizeof(samples) / sizeof(float), .size = 0};
+        .data = samples, .capacity = (int)(sizeof(samples) / sizeof(float)), .size = 0};
     int sample_count = md_tx_process(&tx, &packed_buf, &sample_buf, NULL);
     assert_true(sample_count > 0, "modulation successful");
 
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
     srand(42);
     for (int i = 0; i < sample_count; i++)
     {
@@ -258,10 +278,10 @@ void test_modem_with_noise_over_packet(float sample_rate, uint32_t demod_flags)
     }
 
     uint8_t decoded[max_frame];
-    buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
     int decoded_len = md_rx_process(&rx, &sample_buf, &decoded_buf, NULL);
     assert_true(decoded_len > 0, "demodulation successful");
-    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size, "noise_over_packet");
+    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size);
 
     test_modem_free_pair(&tx, &rx);
 }
@@ -286,7 +306,7 @@ void test_modem_two_packets_back_to_back(float sample_rate, uint32_t demod_flags
     packet1.info_len = strlen(info1);
 
     uint8_t packed1_data[max_frame];
-    buffer_t packed1_buf = {.data = packed1_data, .capacity = sizeof(packed1_data), .size = 0};
+    buffer_t packed1_buf = {.data = packed1_data, .capacity = (int)sizeof(packed1_data), .size = 0};
     ax25_error_e pack1_result = ax25_packet_pack(&packet1, &packed1_buf);
     assert_equal_int(pack1_result, AX25_SUCCESS, "pack 1 success");
 
@@ -301,14 +321,16 @@ void test_modem_two_packets_back_to_back(float sample_rate, uint32_t demod_flags
     packet2.info_len = strlen(info2);
 
     uint8_t packed2_data[max_frame];
-    buffer_t packed2_buf = {.data = packed2_data, .capacity = sizeof(packed2_data), .size = 0};
+    buffer_t packed2_buf = {.data = packed2_data, .capacity = (int)sizeof(packed2_data), .size = 0};
     ax25_error_e pack2_result = ax25_packet_pack(&packet2, &packed2_buf);
     assert_equal_int(pack2_result, AX25_SUCCESS, "pack 2 success");
 
     // Modulate packets with silence in between
     float combined_samples[max_samples];
-    float_buffer_t combined_sample_buf = {
-        .data = combined_samples, .capacity = sizeof(combined_samples) / sizeof(float), .size = 0};
+    float_buffer_t combined_sample_buf = {.data = combined_samples,
+                                          .capacity =
+                                              (int)(sizeof(combined_samples) / sizeof(float)),
+                                          .size = 0};
     int sample_count1 = md_tx_process(&tx, &packed1_buf, &combined_sample_buf, NULL);
     assert_true(sample_count1 > 0, "packet1 modulation successful");
 
@@ -318,7 +340,7 @@ void test_modem_two_packets_back_to_back(float sample_rate, uint32_t demod_flags
 
     // Create a temporary buffer for the second packet starting after the first packet and silence
     float_buffer_t temp_sample_buf = {.data = combined_samples + sample_count1 + silence_samples,
-                                      .capacity = sizeof(combined_samples) / sizeof(float) -
+                                      .capacity = (int)(sizeof(combined_samples) / sizeof(float)) -
                                                   sample_count1 - silence_samples,
                                       .size = 0};
     int sample_count2 = md_tx_process(&tx, &packed2_buf, &temp_sample_buf, NULL);
@@ -344,7 +366,7 @@ void test_modem_two_packets_back_to_back(float sample_rate, uint32_t demod_flags
                                            .capacity = current_chunk_samples,
                                            .size = current_chunk_samples};
         uint8_t decoded[max_frame];
-        buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+        buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
         int decoded_len = md_rx_process(&rx, &chunk_sample_buf, &decoded_buf, NULL);
 
         if (decoded_len > 0)
@@ -378,7 +400,10 @@ void test_modem_two_packets_back_to_back(float sample_rate, uint32_t demod_flags
     test_modem_free_pair(&tx, &rx);
 }
 
-void test_modem_with_digipeaters(float sample_rate, int num_digipeaters, uint32_t demod_flags)
+void test_modem_with_digipeaters(
+    float sample_rate, // NOLINT(bugprone-easily-swappable-parameters)
+    int num_digipeaters,
+    uint32_t demod_flags)
 {
     const int max_samples = test_modem_max_samples(sample_rate, 2.0f);
     const int max_frame = 256;
@@ -397,7 +422,7 @@ void test_modem_with_digipeaters(float sample_rate, int num_digipeaters, uint32_
     for (int i = 0; i < num_digipeaters; i++)
     {
         char callsign[7] = "DIGI0";
-        callsign[4] += i;
+        callsign[4] = (char)(callsign[4] + i);
         ax25_addr_init_with(&packet.path[i], callsign, i, 0);
     }
 
@@ -406,21 +431,21 @@ void test_modem_with_digipeaters(float sample_rate, int num_digipeaters, uint32_
     packet.info_len = strlen(info);
 
     uint8_t packed_data[max_frame];
-    buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
     ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
     assert_equal_int(pack_result, AX25_SUCCESS, "pack success");
 
     float samples[max_samples];
     float_buffer_t sample_buf = {
-        .data = samples, .capacity = sizeof(samples) / sizeof(float), .size = 0};
+        .data = samples, .capacity = (int)(sizeof(samples) / sizeof(float)), .size = 0};
     int sample_count = md_tx_process(&tx, &packed_buf, &sample_buf, NULL);
     assert_true(sample_count > 0, "modulation successful");
 
     uint8_t decoded[max_frame];
-    buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
     int decoded_len = md_rx_process(&rx, &sample_buf, &decoded_buf, NULL);
     assert_true(decoded_len > 0, "demodulation successful");
-    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size, "digipeaters");
+    test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size);
 
     test_modem_free_pair(&tx, &rx);
 }
@@ -443,20 +468,23 @@ void test_modem_snr_performance(uint32_t demod_flags)
     test_modem_create_aprs_packet(&packet, "XX0TST", "APN001", "!5221.20N/02043.85E# TEST qwerty");
 
     uint8_t packed_data[max_frame];
-    buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
     ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
     assert_equal_int(pack_result, AX25_SUCCESS, "pack success");
 
     float clean_samples[max_samples];
     float_buffer_t clean_sample_buf = {
-        .data = clean_samples, .capacity = sizeof(clean_samples) / sizeof(float), .size = 0};
+        .data = clean_samples, .capacity = (int)(sizeof(clean_samples) / sizeof(float)), .size = 0};
     int sample_count = md_tx_process(&tx, &packed_buf, &clean_sample_buf, NULL);
 
     md_tx_free(&tx);
 
+    // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
     srand(42);
-    for (float snr_db = snr_start; snr_db <= snr_end; snr_db += snr_step)
+    const int snr_steps = (int)((snr_end - snr_start) / snr_step) + 1;
+    for (int step = 0; step < snr_steps; step++)
     {
+        const float snr_db = snr_start + (float)step * snr_step;
         const float amplitude_signal = amplitude_noise * powf(10.0f, snr_db / 20.0f);
 
         int successes = 0;
@@ -475,10 +503,11 @@ void test_modem_snr_performance(uint32_t demod_flags)
             }
 
             float_buffer_t noisy_sample_buf = {.data = noisy_samples,
-                                               .capacity = sizeof(noisy_samples) / sizeof(float),
+                                               .capacity =
+                                                   (int)(sizeof(noisy_samples) / sizeof(float)),
                                                .size = sample_count};
             uint8_t decoded[max_frame];
-            buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+            buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
             int decoded_len = md_rx_process(&rx, &noisy_sample_buf, &decoded_buf, NULL);
 
             if (decoded_len > 0 && decoded_buf.size == packed_buf.size &&
@@ -488,7 +517,7 @@ void test_modem_snr_performance(uint32_t demod_flags)
             md_rx_free(&rx);
         }
 
-        float success_rate = 100.0f * successes / num_simulations;
+        float success_rate = 100.0f * (float)successes / (float)num_simulations;
         printf("SNR %+.1f dB; Decode rate %.0f%%\n", snr_db, success_rate);
     }
 }
@@ -509,7 +538,7 @@ void test_modem_multi_rx_basic()
     test_modem_create_aprs_packet(&packet, "XX0TST", "APN001", "!5221.20N/02043.85E# TEST");
 
     uint8_t packed_data[max_frame];
-    buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
     ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
     assert_equal_int(pack_result, AX25_SUCCESS, "pack success");
 
@@ -519,7 +548,7 @@ void test_modem_multi_rx_basic()
     assert_true(sample_count > 0, "modulation successful");
 
     uint8_t decoded[max_frame];
-    buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
     int decoded_len = md_multi_rx_process(&mrx, &sample_buf, &decoded_buf);
 
     assert_true(decoded_len > 0, "multi-rx demodulation successful");
@@ -600,8 +629,9 @@ void test_modem_highlevel_init_free()
 
     // Test basic modulation/demodulation
     const uint8_t test_data[] = "Hello World!";
-    buffer_t input_buf = {
-        .data = (uint8_t *)test_data, .capacity = sizeof(test_data), .size = sizeof(test_data)};
+    buffer_t input_buf = {.data = (uint8_t *)test_data,
+                          .capacity = (int)sizeof(test_data),
+                          .size = sizeof(test_data)};
 
     float samples[22050]; // 1 second buffer
     float_buffer_t sample_buf = {.data = samples, .capacity = 22050, .size = 0};
@@ -646,7 +676,7 @@ void test_modem_empty_payload(float sample_rate, uint32_t demod_flags)
 
     if (decoded_len > 0)
     {
-        test_modem_verify_packet(&decoded_buf, minimal_data, 1, "minimal_payload");
+        test_modem_verify_packet(&decoded_buf, minimal_data, 1);
     }
 
     test_modem_free_pair(&tx, &rx);
@@ -675,7 +705,7 @@ void test_modem_max_size_payload(float sample_rate, uint32_t demod_flags)
 
     if (decoded_len > 0)
     {
-        test_modem_verify_packet(&decoded_buf, large_data, 255, "max_size_payload");
+        test_modem_verify_packet(&decoded_buf, large_data, 255);
     }
 
     test_modem_free_pair(&tx, &rx);
@@ -709,7 +739,8 @@ void test_modem_various_patterns(float sample_rate, uint32_t demod_flags)
 
         // Pack the packet
         uint8_t packed_data[max_frame];
-        buffer_t packed_buf = {.data = packed_data, .capacity = sizeof(packed_data), .size = 0};
+        buffer_t packed_buf = {
+            .data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
         ax25_error_e pack_result = ax25_packet_pack(&packet, &packed_buf);
         assert_equal_int(pack_result, AX25_SUCCESS, "packet pack success");
 
@@ -721,12 +752,12 @@ void test_modem_various_patterns(float sample_rate, uint32_t demod_flags)
 
         // Demodulate
         uint8_t decoded[max_frame];
-        buffer_t decoded_buf = {.data = decoded, .capacity = sizeof(decoded), .size = 0};
+        buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
         int decoded_len = md_rx_process(&rx, &sample_buf, &decoded_buf, NULL);
         assert_true(decoded_len > 0, "pattern demodulation successful");
 
         // Verify the demodulated packet matches the original packed data
-        test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size, pattern_names[i]);
+        test_modem_verify_packet(&decoded_buf, packed_data, packed_buf.size);
     }
 
     test_modem_free_pair(&tx, &rx);

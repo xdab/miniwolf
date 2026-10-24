@@ -75,7 +75,7 @@ void md_multi_rx_free(struct md_multi_rx *mrx);
 
 //
 
-void md_rx_init(struct md_rx *rx, float sample_rate, uint32_t demod_flags);
+void md_rx_init(struct md_rx *rx, float sample_rate, demod_type_t type);
 
 int md_rx_process(
     struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, uint16_t *out_crc);

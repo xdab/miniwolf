@@ -1,18 +1,23 @@
 #include "miniwolf.h"
+#include "agc.h"
 #include "audio.h"
+#include "common.h"
+#include "demod.h"
+#include "filter.h"
+#include "kiss.h"
+#include "line.h"
+#include "loop.h"
+#include "modem.h"
 #include "options.h"
+#include "poller.h"
+#include "squelch.h"
+#include "tcp.h"
+#include "udp.h"
+#include "uds.h"
 #include <fcntl.h>
-#include <unistd.h>
+#include <time.h>
 
 miniwolf_t g_miniwolf;
-
-extern void tnc2_input_callback(const buffer_t *line_buf);
-
-// Callbacks defined in loop.c
-extern void tcp_client_connect_cb(int fd, void *user_data);
-extern void tcp_client_disconnect_cb(int fd, void *user_data);
-extern void uds_client_connect_cb(int fd, void *user_data);
-extern void uds_client_disconnect_cb(int fd, void *user_data);
 
 void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 {
@@ -136,7 +141,7 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
                                    .tx_tail = opts->tx_tail};
     modem_init(&mw->modem, &modem_params);
 
-    agc_init(&mw->input_agc, 10.0, 60e3f, sample_rate);
+    agc_init(&mw->input_agc, 10.0f, 60e3f, sample_rate);
 
     sql_params_t sql_params = {
         .sample_rate = sample_rate, .init_threshold = 0.045f, .strength = 0.51f};

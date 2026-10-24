@@ -15,7 +15,7 @@ static int current_module_passed = 0;
 
 void begin_suite()
 {
-    _log_level = LOG_LEVEL_STANDARD;
+    g_log_level = LOG_LEVEL_STANDARD;
     total_tests = 0;
     passed_tests = 0;
     failed_tests = 0;

@@ -1,7 +1,7 @@
 #include "common.h"
 #include "demod.h"
+#include "filter.h"
 #include <math.h>
-#include <stdio.h>
 
 demod_quad_params_t quad_params_default = {.iq_lpf_order = 2,
                                            .iq_lpf_cutoff_mul = 0.5444f,
