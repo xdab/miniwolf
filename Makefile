@@ -1,4 +1,4 @@
-.PHONY: all update build release run cal log test prof bench bench1 bench2 install clean
+.PHONY: all update build release run cal log test prof bench bench1 bench2 fmt fmt-check install clean
 
 all: run
 
@@ -36,6 +36,18 @@ bench1: release
 
 bench2: release
 	./build/mw_bench -F S16 -r 22050 -f tnctest02_22050_S16.raw -2 5.0
+
+C_SOURCES := $(wildcard src/*.c include/*.h test/*.c test/*.h)
+
+fmt:
+	@command -v clang-format >/dev/null 2>&1 || { \
+		echo "ERROR: clang-format not installed (Arch: sudo pacman -S clang)"; exit 1; }
+	clang-format -i $(C_SOURCES)
+
+fmt-check:
+	@command -v clang-format >/dev/null 2>&1 || { \
+		echo "ERROR: clang-format not installed (Arch: sudo pacman -S clang)"; exit 1; }
+	clang-format --dry-run --Werror $(C_SOURCES)
 
 install: release
 	sudo make -C build install
