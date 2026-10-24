@@ -1,8 +1,8 @@
 #include "modem.h"
-#include "common.h"
 #include "buffer.h"
-#include <string.h>
+#include "common.h"
 #include <math.h>
+#include <string.h>
 
 const float mark_freq = 1200.0f;
 const float space_freq = 2200.0f;
@@ -28,12 +28,14 @@ void md_multi_rx_init(struct md_multi_rx *mrx, float sample_rate, demod_type_t t
     mrx->last_time = 0L;
 }
 
-int md_multi_rx_process(struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
+int md_multi_rx_process(
+    struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
 {
     return md_multi_rx_process_at(mrx, sample_buf, out_frame_buf, time(NULL));
 }
 
-int md_multi_rx_process_at(struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, time_t time)
+int md_multi_rx_process_at(
+    struct md_multi_rx *mrx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, time_t time)
 {
     nonnull(mrx, "mrx");
     assert_buffer_valid(sample_buf);
@@ -84,13 +86,20 @@ void md_rx_init(struct md_rx *rx, float sample_rate, demod_type_t type)
     nonnull(rx, "rx");
     nonzero(type, "type");
 
-    demod_init(&rx->demod, type, &(demod_params_t){.mark_freq = mark_freq, .space_freq = space_freq, .baud_rate = baud_rate, .sample_rate = sample_rate});
+    demod_init(
+        &rx->demod,
+        type,
+        &(demod_params_t){.mark_freq = mark_freq,
+                          .space_freq = space_freq,
+                          .baud_rate = baud_rate,
+                          .sample_rate = sample_rate});
 
     hldc_deframer_init(&rx->deframer);
     bitclk_init(&rx->bit_detector, sample_rate, baud_rate);
 }
 
-int md_rx_process(struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, uint16_t *out_crc)
+int md_rx_process(
+    struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *out_frame_buf, uint16_t *out_crc)
 {
     nonnull(rx, "rx");
     assert_buffer_valid(sample_buf);
@@ -111,7 +120,8 @@ int md_rx_process(struct md_rx *rx, const float_buffer_t *sample_buf, buffer_t *
 
         if (bit != BITCLK_NONE)
         {
-            hldc_error_e result = hldc_deframer_process(&rx->deframer, bit, out_frame_buf, &ret_crc);
+            hldc_error_e result =
+                hldc_deframer_process(&rx->deframer, bit, out_frame_buf, &ret_crc);
             if (result < 0)
                 LOGV("error %d while processing sample", result);
 
@@ -149,17 +159,17 @@ void md_tx_init(struct md_tx *tx, float sample_rate, float tx_delay, float tx_ta
     hldc_framer_init(&tx->framer, head_flags, tail_flags);
 }
 
-int md_tx_process(struct md_tx *tx, const buffer_t *frame_buf, float_buffer_t *out_sample_buf, uint16_t *out_crc)
+int md_tx_process(
+    struct md_tx *tx, const buffer_t *frame_buf, float_buffer_t *out_sample_buf, uint16_t *out_crc)
 {
     nonnull(tx, "tx");
     assert_buffer_valid(frame_buf);
     assert_buffer_valid(out_sample_buf);
 
     uint8_t bits_data[8192];
-    buffer_t bits_buf = {
-        .data = bits_data,
-        .capacity = sizeof(bits_data),
-        .size = 0}; // TODO consider specialized bit array type
+    buffer_t bits_buf = {.data = bits_data,
+                         .capacity = sizeof(bits_data),
+                         .size = 0}; // TODO consider specialized bit array type
     if (hldc_framer_process(&tx->framer, frame_buf, &bits_buf, out_crc))
         return -1;
 
@@ -169,25 +179,22 @@ int md_tx_process(struct md_tx *tx, const buffer_t *frame_buf, float_buffer_t *o
         int bit = bits_buf.data[i];
 
         float bit_sample_data[512];
-        float_buffer_t bit_sample_buf = {
-            .data = bit_sample_data,
-            .capacity = sizeof(bit_sample_data) / sizeof(float),
-            .size = 0};
+        float_buffer_t bit_sample_buf = {.data = bit_sample_data,
+                                         .capacity = sizeof(bit_sample_data) / sizeof(float),
+                                         .size = 0};
         int sc = mod_process(&tx->fsk_mod, bit, &bit_sample_buf);
 
         if (out_sample_buf->size + sc > out_sample_buf->capacity)
             return -1;
-        memcpy(out_sample_buf->data + out_sample_buf->size, bit_sample_buf.data, sc * sizeof(float));
+        memcpy(
+            out_sample_buf->data + out_sample_buf->size, bit_sample_buf.data, sc * sizeof(float));
         out_sample_buf->size += sc;
     }
 
     return out_sample_buf->size;
 }
 
-void md_tx_free(struct md_tx *tx)
-{
-    nonnull(tx, "tx");
-}
+void md_tx_free(struct md_tx *tx) { nonnull(tx, "tx"); }
 
 void modem_init(modem_t *modem, modem_params_t *params)
 {

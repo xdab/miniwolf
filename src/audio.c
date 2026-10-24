@@ -1,10 +1,10 @@
 #include "audio.h"
-#include "ring.h"
 #include "common.h"
+#include "ring.h"
 #include <alsa/asoundlib.h>
+#include <poll.h>
 #include <stdio.h>
 #include <string.h>
-#include <poll.h>
 
 #define ALSA_PERIOD_SIZE 4096
 #define RING_BUFFER_SIZE 131072
@@ -173,7 +173,8 @@ static int aud_pcm_open(snd_pcm_t **pcm, const char *device_name, snd_pcm_stream
     {
         LOG("failed to open %s device '%s': %s",
             stream == SND_PCM_STREAM_CAPTURE ? "capture" : "playback",
-            device_name, snd_strerror(err));
+            device_name,
+            snd_strerror(err));
         return -1;
     }
     return 0;
@@ -225,8 +226,7 @@ int aud_start(void)
 {
     if (g_pcm_capture)
     {
-        if (snd_pcm_prepare(g_pcm_capture) < 0 ||
-            snd_pcm_start(g_pcm_capture) < 0)
+        if (snd_pcm_prepare(g_pcm_capture) < 0 || snd_pcm_start(g_pcm_capture) < 0)
         {
             LOG("failed to start capture stream");
             return -1;

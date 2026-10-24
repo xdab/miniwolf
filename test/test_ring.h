@@ -1,11 +1,11 @@
 #ifndef TEST_RING_H
 #define TEST_RING_H
 
-#include "test.h"
 #include "ring.h"
+#include "test.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 void test_ring_init(void)
 {
@@ -105,7 +105,8 @@ void test_ring_shift1_delay(void)
     float out3 = ring_simple_shift1(&ring, 30.0f); // should return 0.0
     assert_equal_float(out3, 0.0f, "shift 3 out 0");
 
-    float out4 = ring_simple_shift1(&ring, 40.0f); // should return 0.0 (buffer not yet full until after this)
+    float out4 = ring_simple_shift1(
+        &ring, 40.0f); // should return 0.0 (buffer not yet full until after this)
     assert_equal_float(out4, 0.0f, "shift 4 out 0");
 
     // Buffer is now full after 4 samples. Next shift should return oldest (10.0) and make room for new sample

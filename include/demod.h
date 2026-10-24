@@ -1,12 +1,12 @@
 #ifndef DEMOD_H
 #define DEMOD_H
 
-#include <stdint.h>
-#include "ring.h"
-#include "goertzel.h"
 #include "agc.h"
 #include "filter.h"
+#include "goertzel.h"
+#include "ring.h"
 #include "synth.h"
+#include <stdint.h>
 
 typedef struct demod_goertzel
 {

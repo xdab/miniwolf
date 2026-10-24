@@ -44,7 +44,8 @@ typedef struct bf_bpf
     float *w4;
 } bf_bpf_t;
 
-void bf_bpf_init(bf_bpf_t *filter, int order, float low_cutoff_freq, float high_cutoff_freq, float sample_rate);
+void bf_bpf_init(
+    bf_bpf_t *filter, int order, float low_cutoff_freq, float high_cutoff_freq, float sample_rate);
 
 float bf_bpf_filter(bf_bpf_t *filter, float sample);
 
@@ -66,6 +67,7 @@ typedef struct bf_biquad
 
 float bf_biquad_filter(bf_biquad_t *filter, float sample);
 
-void bf_hbf_init(bf_biquad_t *filter, int order, float cutoff_freq, float sample_rate, float gain_db);
+void bf_hbf_init(
+    bf_biquad_t *filter, int order, float cutoff_freq, float sample_rate, float gain_db);
 
 void bf_biquad_free(bf_biquad_t *filter);

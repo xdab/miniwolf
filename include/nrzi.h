@@ -1,15 +1,8 @@
 #pragma once
 
-static inline void nrzi_encoder_init(int *nrzi_bit)
-{
-    *nrzi_bit = 0;
-}
+static inline void nrzi_encoder_init(int *nrzi_bit) { *nrzi_bit = 0; }
 
-static inline void nrzi_decoder_init(int *last_bit)
-{
-    *last_bit = 0;
-}
-
+static inline void nrzi_decoder_init(int *last_bit) { *last_bit = 0; }
 
 static inline int nrzi_encode(int b, int *nrzi_bit)
 {

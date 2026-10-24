@@ -1,22 +1,20 @@
-#include "demod.h"
 #include "common.h"
+#include "demod.h"
 #include <math.h>
 
-demod_grz_params_t grz_params_optim = {
-    .window_size_mul = 1.05f,
-    .agc_attack_ms = 0.02f,
-    .agc_release_ms = 120.00f,
-    .sym_clip = 0.60f,
-    .post_lpf_order = 6,
-    .post_lpf_cutoff_mul = 0.8542f};
+demod_grz_params_t grz_params_optim = {.window_size_mul = 1.05f,
+                                       .agc_attack_ms = 0.02f,
+                                       .agc_release_ms = 120.00f,
+                                       .sym_clip = 0.60f,
+                                       .post_lpf_order = 6,
+                                       .post_lpf_cutoff_mul = 0.8542f};
 
-demod_grz_params_t grz_params_pesim = {
-    .window_size_mul = 1.05f,
-    .agc_attack_ms = 0.02f,
-    .agc_release_ms = 27.3333f,
-    .sym_clip = 0.8939f,
-    .post_lpf_order = 4,
-    .post_lpf_cutoff_mul = 1.2000f};
+demod_grz_params_t grz_params_pesim = {.window_size_mul = 1.05f,
+                                       .agc_attack_ms = 0.02f,
+                                       .agc_release_ms = 27.3333f,
+                                       .sym_clip = 0.8939f,
+                                       .post_lpf_order = 4,
+                                       .post_lpf_cutoff_mul = 1.2000f};
 
 void demod_grz_init(demod_grz_t *demod, demod_params_t *params, demod_grz_params_t *adv)
 {
@@ -24,13 +22,18 @@ void demod_grz_init(demod_grz_t *demod, demod_params_t *params, demod_grz_params
     nonnull(params, "params");
     nonnull(adv, "adv");
 
-    int sample_window_size = (int)(0.5f + adv->window_size_mul * params->sample_rate / params->baud_rate);
+    int sample_window_size =
+        (int)(0.5f + adv->window_size_mul * params->sample_rate / params->baud_rate);
     ring_simple_init(&demod->ring, sample_window_size);
     grz_init(&demod->mark_grz, sample_window_size, params->mark_freq, params->sample_rate);
     grz_init(&demod->space_grz, sample_window_size, params->space_freq, params->sample_rate);
     agc_init(&demod->mark_agc, adv->agc_attack_ms, adv->agc_release_ms, params->sample_rate);
     agc_init(&demod->space_agc, adv->agc_attack_ms, adv->agc_release_ms, params->sample_rate);
-    bf_lpf_init(&demod->post_filter, adv->post_lpf_order, adv->post_lpf_cutoff_mul * params->baud_rate, params->sample_rate);
+    bf_lpf_init(
+        &demod->post_filter,
+        adv->post_lpf_order,
+        adv->post_lpf_cutoff_mul * params->baud_rate,
+        params->sample_rate);
     demod->sym_clip = adv->sym_clip;
 }
 

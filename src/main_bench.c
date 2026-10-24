@@ -1,17 +1,17 @@
+#include "ax25.h"
+#include "common.h"
+#include "filter.h"
+#include "modem.h"
+#include "squelch.h"
+#include "tnc2.h"
+#include <argp.h>
+#include <inttypes.h>
+#include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <math.h>
 #include <time.h>
-#include <argp.h>
-#include "modem.h"
-#include "ax25.h"
-#include "tnc2.h"
-#include "squelch.h"
-#include "filter.h"
-#include "common.h"
 
 #define CHUNK_SIZE 2048
 
@@ -29,23 +29,21 @@ typedef struct bench_args
     int save_squelched;
 } bench_args_t;
 
-static void byteswap16(uint16_t *v)
-{
-    *v = (((*v & 0xFF) << 8) | ((*v >> 8) & 0xFF));
-}
+static void byteswap16(uint16_t *v) { *v = (((*v & 0xFF) << 8) | ((*v >> 8) & 0xFF)); }
 
 static void byteswap32(uint32_t *v)
 {
-    *v = (((*v & 0xFF) << 24) | (((*v >> 8) & 0xFF) << 16) |
-          (((*v >> 16) & 0xFF) << 8) | ((*v >> 24) & 0xFF));
+    *v =
+        (((*v & 0xFF) << 24) | (((*v >> 8) & 0xFF) << 16) | (((*v >> 16) & 0xFF) << 8) |
+         ((*v >> 24) & 0xFF));
 }
 
 static void byteswap64(uint64_t *v)
 {
-    *v = (((*v & 0xFF) << 56) | (((*v >> 8) & 0xFF) << 48) |
-          (((*v >> 16) & 0xFF) << 40) | (((*v >> 24) & 0xFF) << 32) |
-          (((*v >> 32) & 0xFF) << 24) | (((*v >> 40) & 0xFF) << 16) |
-          (((*v >> 48) & 0xFF) << 8) | ((*v >> 56) & 0xFF));
+    *v =
+        (((*v & 0xFF) << 56) | (((*v >> 8) & 0xFF) << 48) | (((*v >> 16) & 0xFF) << 40) |
+         (((*v >> 24) & 0xFF) << 32) | (((*v >> 32) & 0xFF) << 24) | (((*v >> 40) & 0xFF) << 16) |
+         (((*v >> 48) & 0xFF) << 8) | ((*v >> 56) & 0xFF));
 }
 
 static float convert_sample(const uint8_t *raw, char type, int bits, int little_endian)
@@ -130,11 +128,21 @@ static float convert_sample(const uint8_t *raw, char type, int bits, int little_
 static struct argp_option bench_options[] = {
     {"file", 'f', "FILE", 0, "Input raw audio file (required)", 1},
     {"rate", 'r', "RATE", 0, "Sample rate in Hz (default: 48000)", 1},
-    {"format", 'F', "FORMAT", 0, "Audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32)", 2},
+    {"format",
+     'F',
+     "FORMAT",
+     0,
+     "Audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32)",
+     2},
     {"endian", 'e', "ENDIAN", 0, "Byte order: LE (little-endian, default) or BE (big-endian)", 2},
     {"eq2200", '2', "GAIN", 0, "Extra gain to apply at 2200Hz in dB (default: 0.0)", 2},
     {"squelch", 's', "STRENGTH", 0, "Enable squelch with given strength (0.0-1.0)", 2},
-    {"save-squelched", 'S', 0, 0, "Save squelched audio to squelched_<input>.raw (requires --squelch)", 3},
+    {"save-squelched",
+     'S',
+     0,
+     0,
+     "Save squelched audio to squelched_<input>.raw (requires --squelch)",
+     3},
     {"verbose", 'v', 0, 0, "Enable verbose logs", 3},
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
     {0, 0, 0, 0, 0, 0}};
@@ -188,10 +196,7 @@ static error_t bench_parse_opt(int key, char *arg, struct argp_state *state)
 }
 
 static struct argp bench_argp = {
-    bench_options,
-    bench_parse_opt,
-    "",
-    "Offline Bell202 demodulator for raw audio files"};
+    bench_options, bench_parse_opt, "", "Offline Bell202 demodulator for raw audio files"};
 
 static void bench_args_parse(int argc, char *argv[], bench_args_t *args)
 {
@@ -280,9 +285,7 @@ int main(int argc, char *argv[])
     // Initialize squelch (only if enabled)
     sql_t squelch;
     sql_params_t sql_params = {
-        .sample_rate = sample_rate,
-        .init_threshold = 0.045f,
-        .strength = args.squelch_strength};
+        .sample_rate = sample_rate, .init_threshold = 0.045f, .strength = args.squelch_strength};
     if (args.use_squelch)
         sql_init(&squelch, &sql_params, &sql_params_default);
 
@@ -307,10 +310,7 @@ int main(int argc, char *argv[])
         for (size_t i = 0; i < read_count; i++)
         {
             samples[i] = convert_sample(
-                &raw_buffer[i * bytes_per_sample],
-                args.type,
-                args.bits,
-                args.little_endian);
+                &raw_buffer[i * bytes_per_sample], args.type, args.bits, args.little_endian);
 
             // Apply high boost channel equalization
             samples[i] = bf_biquad_filter(&g_hbf_filter, samples[i]);
@@ -357,9 +357,7 @@ int main(int argc, char *argv[])
         // Convert to TNC2 format
         char tnc2_data[512];
         buffer_t tnc2_buf = {
-            .data = (unsigned char *)tnc2_data,
-            .capacity = sizeof(tnc2_data),
-            .size = 0};
+            .data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = 0};
         int tnc2_len = tnc2_packet_to_string(&packet, &tnc2_buf);
         if (tnc2_len <= 0)
         {
@@ -373,8 +371,11 @@ int main(int argc, char *argv[])
 
         LOG("%d @ %02lu:%02lu:%02lu.%03lu %s", packet_count, hours, mins, secs, ms, tnc2_data);
         if (args.use_squelch)
-            LOGV("sql threshold %.4f, high ema %.4f, low ema %.4f",
-                 squelch.threshold, squelch.high_ema, squelch.low_ema);
+            LOGV(
+                "sql threshold %.4f, high ema %.4f, low ema %.4f",
+                squelch.threshold,
+                squelch.high_ema,
+                squelch.low_ema);
     }
 
     LOG("Packets: %d", packet_count);

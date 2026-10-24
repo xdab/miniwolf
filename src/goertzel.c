@@ -1,6 +1,6 @@
 #include "goertzel.h"
-#include <math.h>
 #include "common.h"
+#include <math.h>
 
 void grz_init(goertzel_t *grz, int window_size, float frequency, float sample_rate)
 {

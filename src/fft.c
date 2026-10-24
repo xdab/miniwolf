@@ -1,8 +1,8 @@
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 #include "fft.h"
 #include "common.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 void fft_init(fft_t *fft, int size)
 {

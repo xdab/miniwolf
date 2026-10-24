@@ -1,16 +1,16 @@
 #pragma once
 
-#include "options.h"
 #include "agc.h"
-#include "squelch.h"
-#include "modem.h"
-#include "line.h"
-#include "kiss.h"
 #include "filter.h"
+#include "kiss.h"
+#include "line.h"
+#include "modem.h"
+#include "options.h"
+#include "poller.h"
+#include "squelch.h"
 #include "tcp.h"
 #include "udp.h"
 #include "uds.h"
-#include "poller.h"
 #include <time.h>
 
 typedef struct miniwolf_state

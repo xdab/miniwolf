@@ -1,6 +1,6 @@
-#include "options.h"
 #include "common.h"
 #include "conf.h"
+#include "options.h"
 #include <string.h>
 
 void opts_parse_conf_file(options_t *opts, const char *filename)
@@ -25,8 +25,10 @@ void opts_parse_conf_file(options_t *opts, const char *filename)
     opts->tcp_tnc2_port = conf_get_int_or_default(&conf, OPT_TCP_TNC2_PORT, opts->tcp_tnc2_port);
     opts->udp_kiss_port = conf_get_int_or_default(&conf, OPT_UDP_KISS_PORT, opts->udp_kiss_port);
     opts->udp_tnc2_port = conf_get_int_or_default(&conf, OPT_UDP_TNC2_PORT, opts->udp_tnc2_port);
-    opts->udp_kiss_listen_port = conf_get_int_or_default(&conf, OPT_UDP_KISS_LISTEN_PORT, opts->udp_kiss_listen_port);
-    opts->udp_tnc2_listen_port = conf_get_int_or_default(&conf, OPT_UDP_TNC2_LISTEN_PORT, opts->udp_tnc2_listen_port);
+    opts->udp_kiss_listen_port =
+        conf_get_int_or_default(&conf, OPT_UDP_KISS_LISTEN_PORT, opts->udp_kiss_listen_port);
+    opts->udp_tnc2_listen_port =
+        conf_get_int_or_default(&conf, OPT_UDP_TNC2_LISTEN_PORT, opts->udp_tnc2_listen_port);
 
     opts->squelch = conf_get_float_or_default(&conf, OPT_SQUELCH, opts->squelch);
     opts->gain_2200 = conf_get_float_or_default(&conf, OPT_GAIN_2200, opts->gain_2200);

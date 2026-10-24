@@ -1,13 +1,13 @@
+#include "audio.h"
+#include "calibrate.h"
+#include "common.h"
+#include "loop.h"
+#include "miniwolf.h"
+#include "options.h"
+#include <alsa/asoundlib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <alsa/asoundlib.h>
-#include "common.h"
-#include "options.h"
-#include "audio.h"
-#include "loop.h"
-#include "miniwolf.h"
-#include "calibrate.h"
 
 static void list_devices(void)
 {

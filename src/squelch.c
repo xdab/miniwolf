@@ -2,13 +2,12 @@
 #include "common.h"
 #include <math.h>
 
-sql_adv_params_t sql_params_default = {
-    .lpf_order = 4,
-    .lpf_cutoff_freq = 500.0f,
-    .agc_ms = 40.0f,
-    .tc_ms = 20.0e3f,
-    .low_ema_est_mul = 0.25f,
-    .high_ema_est_mul = 1.55f};
+sql_adv_params_t sql_params_default = {.lpf_order = 4,
+                                       .lpf_cutoff_freq = 500.0f,
+                                       .agc_ms = 40.0f,
+                                       .tc_ms = 20.0e3f,
+                                       .low_ema_est_mul = 0.25f,
+                                       .high_ema_est_mul = 1.55f};
 
 static float coefficient(float time_ms, float sample_rate)
 {

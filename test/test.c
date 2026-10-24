@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <math.h>
 #include "test.h"
 #include "common.h"
+#include <math.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 static int total_tests = 0;
 static int passed_tests = 0;
@@ -32,12 +32,20 @@ void begin_module(const char *name)
 
 void end_module()
 {
-    printf("Module %s completed: %d/%d passed\n", current_module_name, current_module_passed, current_module_total);
+    printf(
+        "Module %s completed: %d/%d passed\n",
+        current_module_name,
+        current_module_passed,
+        current_module_total);
 }
 
 int end_suite()
 {
-    printf("\nTests completed: %d total, %d passed, %d failed\n", total_tests, passed_tests, failed_tests);
+    printf(
+        "\nTests completed: %d total, %d passed, %d failed\n",
+        total_tests,
+        passed_tests,
+        failed_tests);
 
     if (failed_tests > 0)
         printf("FAILED\n");

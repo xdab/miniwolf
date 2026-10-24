@@ -1,8 +1,8 @@
+#include "mavg.h"
+#include "common.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mavg.h"
-#include "common.h"
 
 void mavg_init(mavg_t *ma, int window_size)
 {

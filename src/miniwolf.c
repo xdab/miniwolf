@@ -1,8 +1,8 @@
 #include "miniwolf.h"
-#include "options.h"
 #include "audio.h"
-#include <unistd.h>
+#include "options.h"
 #include <fcntl.h>
+#include <unistd.h>
 
 miniwolf_t g_miniwolf;
 
@@ -60,14 +60,16 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDP senders
     mw->udp_kiss_enabled = 0;
-    if (opts->udp_kiss_addr[0] && opts->udp_kiss_port > 0 && !udp_sender_init(&mw->udp_kiss_sender, opts->udp_kiss_addr, opts->udp_kiss_port))
+    if (opts->udp_kiss_addr[0] && opts->udp_kiss_port > 0 &&
+        !udp_sender_init(&mw->udp_kiss_sender, opts->udp_kiss_addr, opts->udp_kiss_port))
     {
         mw->udp_kiss_enabled = 1;
         LOG("udp kiss sender enabled to %s:%d", opts->udp_kiss_addr, opts->udp_kiss_port);
     }
 
     mw->udp_tnc2_enabled = 0;
-    if (opts->udp_tnc2_addr[0] && opts->udp_tnc2_port > 0 && !udp_sender_init(&mw->udp_tnc2_sender, opts->udp_tnc2_addr, opts->udp_tnc2_port))
+    if (opts->udp_tnc2_addr[0] && opts->udp_tnc2_port > 0 &&
+        !udp_sender_init(&mw->udp_tnc2_sender, opts->udp_tnc2_addr, opts->udp_tnc2_port))
     {
         mw->udp_tnc2_enabled = 1;
         LOG("udp tnc2 sender enabled to %s:%d", opts->udp_tnc2_addr, opts->udp_tnc2_port);
@@ -75,7 +77,8 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDP servers
     mw->udp_kiss_listen_enabled = 0;
-    if (opts->udp_kiss_listen_port > 0 && !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port, 0))
+    if (opts->udp_kiss_listen_port > 0 &&
+        !udp_server_init(&mw->udp_kiss_server, opts->udp_kiss_listen_port, 0))
     {
         mw->udp_kiss_listen_enabled = 1;
         socket_poller_add(&mw->poller, mw->udp_kiss_server.fd, POLLER_EV_IN);
@@ -83,7 +86,8 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     }
 
     mw->udp_tnc2_listen_enabled = 0;
-    if (opts->udp_tnc2_listen_port > 0 && !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port, 0))
+    if (opts->udp_tnc2_listen_port > 0 &&
+        !udp_server_init(&mw->udp_tnc2_server, opts->udp_tnc2_listen_port, 0))
     {
         mw->udp_tnc2_listen_enabled = 1;
         socket_poller_add(&mw->poller, mw->udp_tnc2_server.fd, POLLER_EV_IN);
@@ -92,7 +96,8 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDS KISS server (timeout 0 - non-blocking, selector handles waiting)
     mw->uds_kiss_enabled = 0;
-    if (opts->uds_kiss_socket_path[0] && !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path, 0))
+    if (opts->uds_kiss_socket_path[0] &&
+        !uds_server_init(&mw->uds_kiss_server, opts->uds_kiss_socket_path, 0))
     {
         mw->uds_kiss_enabled = 1;
         mw->uds_kiss_server.on_client_connect = uds_client_connect_cb;
@@ -104,7 +109,8 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
 
     // UDS TNC2 server
     mw->uds_tnc2_enabled = 0;
-    if (opts->uds_tnc2_socket_path[0] && !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path, 0))
+    if (opts->uds_tnc2_socket_path[0] &&
+        !uds_server_init(&mw->uds_tnc2_server, opts->uds_tnc2_socket_path, 0))
     {
         mw->uds_tnc2_enabled = 1;
         mw->uds_tnc2_server.on_client_connect = uds_client_connect_cb;
@@ -124,19 +130,16 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
         bf_hbf_init(&mw->hbf_filter, 4, 2200.0f, sample_rate, opts->gain_2200);
     }
 
-    modem_params_t modem_params = {
-        .sample_rate = sample_rate,
-        .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE,
-        .tx_delay = opts->tx_delay,
-        .tx_tail = opts->tx_tail};
+    modem_params_t modem_params = {.sample_rate = sample_rate,
+                                   .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE,
+                                   .tx_delay = opts->tx_delay,
+                                   .tx_tail = opts->tx_tail};
     modem_init(&mw->modem, &modem_params);
 
     agc_init(&mw->input_agc, 10.0, 60e3f, sample_rate);
 
     sql_params_t sql_params = {
-        .sample_rate = sample_rate,
-        .init_threshold = 0.045f,
-        .strength = 0.51f};
+        .sample_rate = sample_rate, .init_threshold = 0.045f, .strength = 0.51f};
     sql_init(&mw->squelch, &sql_params, &sql_params_default);
 
     kiss_decoder_init(&mw->kiss_decoder);
