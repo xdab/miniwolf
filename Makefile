@@ -2,6 +2,19 @@
 
 all: run
 
+help:
+	@echo "update        pull repo and submodules"
+	@echo "release       optimized build into build/"
+	@echo "build         debug build (with -pg -O0 -DDEBUG)"
+	@echo "run           debug build, then run against sample.conf"
+	@echo "cal           run the spectrum analyzer (-C)"
+	@echo "test          debug build, then run build/mw_test"
+	@echo "bench         release build, then bench.raw demodulation"
+	@echo "fmt / fmt-check  reformat / verify formatting (clang-format)"
+	@echo "tidy          static analysis gate (clang-tidy, needs build/)"
+	@echo "install       release build, then install binary and systemd units"
+	@echo "clean         remove build/"
+
 update:
 	git pull
 	git submodule update --init --recursive
