@@ -1,4 +1,5 @@
-![Build](https://github.com/xdab/miniwolf/actions/workflows/c-cpp.yml/badge.svg)
+[![CI](https://github.com/xdab/miniwolf/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/xdab/miniwolf/actions/workflows/c-cpp.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 # miniwolf
 
