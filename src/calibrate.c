@@ -1,6 +1,7 @@
 #include "calibrate.h"
 #include "agc.h"
 #include "audio.h"
+#include "buffer.h"
 #include "common.h"
 #include "fft.h"
 #include "filter.h"
@@ -9,6 +10,8 @@
 #include "ring.h"
 #include <errno.h>
 #include <math.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #define INPUT_CALLBACK_SIZE 8192
@@ -17,14 +20,14 @@
 
 #define FREQ_MIN 100.0f
 #define FREQ_MAX 4100.0f
-#define DB_MIN -36.0f
-#define DB_MAX -12.0f
+#define DB_MIN (-36.0f)
+#define DB_MAX (-12.0f)
 
 static fft_t g_fft;
 static bf_biquad_t g_hbf_filter;
 static agc_t g_agc;
 static ema_t g_balance_ema;
-static int g_sample_rate = 0;
+static float g_sample_rate = 0;
 static int g_bin_start = 0;
 static int g_bin_count = 0;
 
@@ -56,8 +59,8 @@ static void print_waterfall(void)
 
     for (int out = 0; out < output_width; out++)
     {
-        float bin_start = (float)out * g_bin_count / output_width;
-        float bin_end = (float)(out + 1) * g_bin_count / output_width;
+        float bin_start = (float)out * (float)g_bin_count / (float)output_width;
+        float bin_end = (float)(out + 1) * (float)g_bin_count / (float)output_width;
 
         float sum = 0.0f;
         int count = 0;
@@ -68,7 +71,7 @@ static void print_waterfall(void)
             count++;
         }
 
-        float avg_db = (count > 0) ? sum / count : -INFINITY;
+        float avg_db = (count > 0) ? sum / (float)count : -INFINITY;
         putchar(magnitude_to_char(avg_db));
     }
 }
@@ -110,9 +113,11 @@ static int accumulate_audio_callback(float_buffer_t *buf)
     return 0;
 }
 
-int calibrate_init(int sample_rate, float gain_2200)
+int calibrate_init(
+    int sample_rate, // NOLINT(bugprone-easily-swappable-parameters)
+    float gain_2200)
 {
-    g_sample_rate = sample_rate;
+    g_sample_rate = (float)sample_rate;
 
     float bin_width = (float)g_sample_rate / INPUT_CALLBACK_SIZE;
     g_bin_start = (int)(FREQ_MIN / bin_width + 0.5f);

@@ -11,7 +11,7 @@ void test_ring_init(void)
 {
     ring_buffer_t *ring = NULL;
     assert_equal_int(ring_init(&ring, 4), RING_SUCCESS, "ring_init success");
-    assert_equal_int(ring_available(ring), 0, "available 0 after init");
+    assert_equal_int((int)ring_available(ring), 0, "available 0 after init");
     ring_destroy(ring);
 }
 
@@ -22,15 +22,15 @@ void test_ring_write_read(void)
 
     float in[] = {1.0f, 2.0f, 3.0f};
     size_t w = ring_write(ring, in, 3);
-    assert_equal_int(w, 3, "write 3");
-    assert_equal_int(ring_available(ring), 3, "avail 3");
+    assert_equal_int((int)w, 3, "write 3");
+    assert_equal_int((int)ring_available(ring), 3, "avail 3");
 
     float out[3];
     size_t r = ring_read(ring, out, 3);
-    assert_equal_int(r, 3, "read 3");
+    assert_equal_int((int)r, 3, "read 3");
     assert_memory(in, out, sizeof(float) * 3, "write read match");
 
-    assert_equal_int(ring_available(ring), 0, "avail 0");
+    assert_equal_int((int)ring_available(ring), 0, "avail 0");
 
     ring_destroy(ring);
 }
@@ -42,8 +42,8 @@ void test_ring_full(void)
 
     float in[5] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
     size_t w1 = ring_write(ring, in, 5);
-    assert_equal_int(w1, 4, "write full 4");
-    assert_equal_int(ring_available(ring), 4, "avail full 4");
+    assert_equal_int((int)w1, 4, "write full 4");
+    assert_equal_int((int)ring_available(ring), 4, "avail full 4");
 
     ring_destroy(ring);
 }
@@ -55,7 +55,7 @@ void test_ring_read_empty(void)
 
     float out[2];
     size_t r = ring_read(ring, out, 2);
-    assert_equal_int(r, 0, "read empty 0");
+    assert_equal_int((int)r, 0, "read empty 0");
 
     ring_destroy(ring);
 }
@@ -70,11 +70,11 @@ void test_ring_wrap(void)
 
     float in2[] = {5.0f, 6.0f};
     size_t w2 = ring_write(ring, in2, 2); // drop 0 when full
-    assert_equal_int(w2, 0, "write full drop");
+    assert_equal_int((int)w2, 0, "write full drop");
 
     float out[6];
     size_t rlen = ring_read(ring, out, 6);
-    assert_equal_int(rlen, 4, "read full 4");
+    assert_equal_int((int)rlen, 4, "read full 4");
     float expected[] = {1.0f, 2.0f, 3.0f, 4.0f};
     assert_memory(expected, out, sizeof(float) * 4, "wrap read");
 

@@ -116,6 +116,8 @@ With no `--kiss` flag, stdin/stdout and all servers use TNC2 format (one packet 
 | `-v`  | `--verbose`       | Verbose logging                                |
 | `-V`  | `--debug`         | Debug logging                                  |
 
+Numeric option values are validated: an unparsable number aborts with an error message instead of silently becoming 0.
+
 ## Configuration file
 
 Configuration can optionally be read from a file with `-c FILE`.

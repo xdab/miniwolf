@@ -1,4 +1,5 @@
 #include "options.h"
+#include "common.h"
 #include <limits.h>
 
 void opts_init(options_t *opts)

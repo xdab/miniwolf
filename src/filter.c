@@ -3,7 +3,11 @@
 #include <math.h>
 #include <stdlib.h>
 
-void bf_lpf_init(bf_spf_t *filter, int order, float cutoff_freq, float sample_rate)
+void bf_lpf_init(
+    bf_spf_t *filter,
+    int order, // NOLINT(bugprone-easily-swappable-parameters)
+    float cutoff_freq,
+    float sample_rate)
 {
     nonnull(filter, "filter");
     nonzero(order, "order");
@@ -23,7 +27,7 @@ void bf_lpf_init(bf_spf_t *filter, int order, float cutoff_freq, float sample_ra
 
     for (int i = 0; i < filter->n; i++)
     {
-        float r = sinf(M_PI * (2.0f * i + 1.0f) / (4.0f * filter->n));
+        float r = sinf(M_PI * (2.0f * (float)i + 1.0f) / (4.0f * (float)filter->n));
         s = a2 + 2.0f * r * a + 1.0f;
         filter->A[i] = a2 / s;
         filter->d1[i] = 2.0f * (1.0f - a2) / s;
@@ -61,7 +65,11 @@ void bf_lpf_free(bf_spf_t *filter)
     free(filter->w2);
 }
 
-void bf_hpf_init(bf_spf_t *filter, int order, float cutoff_freq, float sample_rate)
+void bf_hpf_init(
+    bf_spf_t *filter,
+    int order, // NOLINT(bugprone-easily-swappable-parameters)
+    float cutoff_freq,
+    float sample_rate)
 {
     nonnull(filter, "filter");
     nonzero(order, "order");
@@ -81,7 +89,7 @@ void bf_hpf_init(bf_spf_t *filter, int order, float cutoff_freq, float sample_ra
 
     for (int i = 0; i < filter->n; i++)
     {
-        float r = sinf(M_PI * (2.0f * i + 1.0f) / (4.0f * filter->n));
+        float r = sinf(M_PI * (2.0f * (float)i + 1.0f) / (4.0f * (float)filter->n));
         s = a2 + 2.0f * r * a + 1.0f;
         filter->A[i] = 1.0f / s;
         filter->d1[i] = 2.0f * (1.0f - a2) / s;
@@ -120,7 +128,11 @@ void bf_hpf_free(bf_spf_t *filter)
 }
 
 void bf_bpf_init(
-    bf_bpf_t *filter, int order, float low_cutoff_freq, float high_cutoff_freq, float sample_rate)
+    bf_bpf_t *filter,
+    int order, // NOLINT(bugprone-easily-swappable-parameters)
+    float low_cutoff_freq,
+    float high_cutoff_freq,
+    float sample_rate)
 {
     nonnull(filter, "filter");
     nonzero(order, "order");
@@ -147,7 +159,7 @@ void bf_bpf_init(
 
     for (int i = 0; i < filter->n; i++)
     {
-        float r = sinf(M_PI * (2.0f * i + 1.0f) / (4.0f * filter->n));
+        float r = sinf(M_PI * (2.0f * (float)i + 1.0f) / (4.0f * (float)filter->n));
         s = b2 + 2.0f * r * b + 1.0f;
         filter->A[i] = b2 / s;
         filter->d1[i] = 4.0f * a * (1.0f + b * r) / s;
@@ -197,7 +209,11 @@ void bf_bpf_free(bf_bpf_t *filter)
 }
 
 void bf_hbf_init(
-    bf_biquad_t *filter, int order, float cutoff_freq, float sample_rate, float gain_db_max)
+    bf_biquad_t *filter,
+    int order, // NOLINT(bugprone-easily-swappable-parameters)
+    float cutoff_freq,
+    float sample_rate,
+    float gain_db_max)
 {
     nonnull(filter, "filter");
     nonzero(order, "order");
@@ -213,7 +229,7 @@ void bf_hbf_init(
 
     float s = sample_rate;
     float f = cutoff_freq;
-    float w0 = 2.0f * M_PI * f / s;
+    float w0 = 2.0f * (float)M_PI * (float)f / (float)s;
     float cosw0 = cosf(w0);
     float sinw0 = sinf(w0);
     float A = powf(10.0f, gain_db_max / 40.0f); // shelf amplitude (max gain)

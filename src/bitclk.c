@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define PHASE_MAX 1.0f
-#define PHASE_MIN -1.0f
+#define PHASE_MIN (-1.0f)
 #define PHASE_WRAP 2.0f
 
 #define MAX_INERTIA 0.82f
@@ -82,7 +82,7 @@ int bitclk_detect(bitclk_t *bitclk, float soft_bit)
 
             // Adaptive PLL inertia
             float inertia =
-                MIN_INERTIA + (MAX_INERTIA - MIN_INERTIA) * (bitclk->signal_quality / 32.0f);
+                MIN_INERTIA + (MAX_INERTIA - MIN_INERTIA) * ((float)bitclk->signal_quality / 32.0f);
             float ideal_pll = (1.0f - fraction) * bitclk->pll_clock_tick;
             bitclk->pll_clock = bitclk->pll_clock * inertia + ideal_pll * (1.0f - inertia);
         }

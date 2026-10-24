@@ -2,14 +2,18 @@
 #include "common.h"
 #include <math.h>
 
-void grz_init(goertzel_t *grz, int window_size, float frequency, float sample_rate)
+void grz_init(
+    goertzel_t *grz,
+    int window_size, // NOLINT(bugprone-easily-swappable-parameters)
+    float frequency,
+    float sample_rate)
 {
     nonnull(grz, "grz");
     nonzero(window_size, "window_size");
 
     grz->wsize = (float)window_size;
     int fft_bin = (int)(0.5f + ((grz->wsize * frequency) / sample_rate));
-    float omega = (2.0f * M_PI * fft_bin) / grz->wsize;
+    float omega = (2.0f * (float)M_PI * (float)fft_bin) / grz->wsize;
     grz->coeff = 2.0f * cosf(omega);
     grz->q0 = grz->q1 = grz->q2 = 0.0f;
 }

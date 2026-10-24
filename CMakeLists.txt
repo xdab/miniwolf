@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(miniwolf C)
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Option to enable debug builds
 option(MINIWOLF_DEBUG "Enable debugging symbols and disable optimizations" OFF)

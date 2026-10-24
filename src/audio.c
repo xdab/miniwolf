@@ -1,10 +1,11 @@
 #include "audio.h"
+#include "buffer.h"
 #include "common.h"
 #include "ring.h"
 #include <alsa/asoundlib.h>
-#include <poll.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
+#include <sys/poll.h>
+#include <unistd.h>
 
 #define ALSA_PERIOD_SIZE 4096
 #define RING_BUFFER_SIZE 131072
@@ -13,7 +14,10 @@ static snd_pcm_t *g_pcm_capture = NULL;
 static snd_pcm_t *g_pcm_playback = NULL;
 static ring_buffer_t *g_output_ring = NULL;
 
-static int aud_hw_params_apply(snd_pcm_t *pcm, int rate, int period_frames)
+static int aud_hw_params_apply(
+    snd_pcm_t *pcm,
+    int rate, // NOLINT(bugprone-easily-swappable-parameters)
+    int period_frames)
 {
     snd_pcm_hw_params_t *hw_params = NULL;
     int err = snd_pcm_hw_params_malloc(&hw_params);
@@ -37,7 +41,7 @@ static int aud_hw_params_apply(snd_pcm_t *pcm, int rate, int period_frames)
     if (err < 0)
         goto fail;
 
-    snd_pcm_uframes_t buffer_frames = period_frames * 4;
+    snd_pcm_uframes_t buffer_frames = (snd_pcm_uframes_t)period_frames * 4;
     err = snd_pcm_hw_params_set_buffer_size_near(pcm, hw_params, &buffer_frames);
     if (err < 0)
         goto fail;
@@ -105,7 +109,7 @@ static snd_pcm_sframes_t aud_pcm_read(snd_pcm_t *pcm, void *buf, snd_pcm_uframes
     if (n < 0)
     {
         LOGD("read error: %s, attempting recovery", snd_strerror(n));
-        n = aud_stream_recover(pcm, n);
+        n = aud_stream_recover(pcm, (int)n);
         if (n < 0)
         {
             LOGD("read recovery failed");
@@ -126,7 +130,7 @@ static snd_pcm_sframes_t aud_pcm_write(snd_pcm_t *pcm, const void *buf, snd_pcm_
     snd_pcm_sframes_t n = snd_pcm_writei(pcm, buf, frames);
     if (n < 0)
     {
-        n = aud_stream_recover(pcm, n);
+        n = aud_stream_recover(pcm, (int)n);
         if (n < 0)
             return -1;
         n = snd_pcm_writei(pcm, buf, frames);
@@ -260,7 +264,7 @@ bool aud_process_capture_period(input_callback_t *callback, float_buffer_t *buf)
     if (avail < 0)
     {
         LOGD("avail error: %s", snd_strerror(avail));
-        avail = aud_stream_recover(g_pcm_capture, avail);
+        avail = aud_stream_recover(g_pcm_capture, (int)avail);
         if (avail < 0)
         {
             LOG("avail error: %s", snd_strerror(avail));
@@ -287,7 +291,7 @@ bool aud_process_capture_period(input_callback_t *callback, float_buffer_t *buf)
     if (frames_read == 0)
         return false;
 
-    buf->size = frames_read;
+    buf->size = (int)frames_read;
     callback(buf);
     return true;
 }

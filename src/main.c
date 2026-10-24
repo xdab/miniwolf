@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     opts_parse_conf_file(&opts, opts.config_file);
     opts_defaults(&opts);
 
-    _log_level = opts.log_level;
+    g_log_level = opts.log_level;
 
     if (aud_initialize())
         EXIT("Failed to initialize audio subsystem");

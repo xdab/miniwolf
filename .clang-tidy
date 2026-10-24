@@ -1,0 +1,28 @@
+# clang-tidy check set, run by `make tidy` (the commit gate) - see AGENTS.md.
+# Findings are triaged one by one: fix the code, or a // NOLINT(check) at the
+# site. No check-wide disables here without an attached reason.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-signed-bitwise,
+  cert-*,
+  misc-*,
+  readability-function-size,
+  readability-inconsistent-declaration-parameter-name,
+  readability-suspicious-call-argument
+# bugprone-signed-bitwise is off: the codebase composes demod-flag enums
+# (demod.h), shifts the bit-clock transition history, bit-reverses FFT
+# indices, and byte-swaps/packs raw samples in mw_bench — all on `int`,
+# because C integer promotion makes `uint8_t << 4` signed regardless of the
+# operand types. The check targets C++ signed shift/mask overflow; in C these
+# operations are well-defined at the magnitudes used, and qualifying every
+# site unsigned would be churn without safety. If a bitwise bug is ever
+# suspected, re-enable the check and triage afresh.
+CheckOptions:
+  # glibc's errno.h and time.h are thin wrappers over asm-generic/errno* and
+  # bits/time internals (EPIPE, EAGAIN, EINTR, ESTRPIPE, CLOCK_BOOTTIME come
+  # from there), but include-cleaner can't walk up to the public header and
+  # demands the non-self-contained kernel/bits files. Never suggest those;
+  # <errno.h> / <time.h> are the correct providers as included.
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: 'asm-generic/.*|bits/.*'

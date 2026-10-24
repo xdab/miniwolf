@@ -1,5 +1,7 @@
 #include "squelch.h"
+#include "agc.h"
 #include "common.h"
+#include "filter.h"
 #include <math.h>
 
 sql_adv_params_t sql_params_default = {.lpf_order = 4,

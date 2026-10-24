@@ -1,14 +1,23 @@
 #include "modem.h"
+#include "bitclk.h"
 #include "buffer.h"
 #include "common.h"
+#include "demod.h"
+#include "hldc.h"
+#include "mod.h"
 #include <math.h>
+#include <stdint.h>
 #include <string.h>
+#include <time.h>
 
-const float mark_freq = 1200.0f;
-const float space_freq = 2200.0f;
-const float baud_rate = 1200.0f;
+static const float mark_freq = 1200.0f;
+static const float space_freq = 2200.0f;
+static const float baud_rate = 1200.0f;
 
-void md_multi_rx_init(struct md_multi_rx *mrx, float sample_rate, demod_type_t types)
+void md_multi_rx_init(
+    struct md_multi_rx *mrx,
+    float sample_rate, // NOLINT(bugprone-easily-swappable-parameters)
+    demod_type_t types)
 {
     nonnull(mrx, "mrx");
     nonzero(sample_rate, "sample_rate");
@@ -143,7 +152,11 @@ void md_rx_free(struct md_rx *rx)
     demod_free(&rx->demod);
 }
 
-void md_tx_init(struct md_tx *tx, float sample_rate, float tx_delay, float tx_tail)
+void md_tx_init(
+    struct md_tx *tx,
+    float sample_rate, // NOLINT(bugprone-easily-swappable-parameters)
+    float tx_delay,
+    float tx_tail)
 {
     nonnull(tx, "tx");
     nonzero(sample_rate, "sample_rate");

@@ -20,13 +20,17 @@ void fft_init(fft_t *fft, int size)
 
     for (int i = 0; i < size; i++)
     {
-        float angle = -2.0f * M_PI * i / size;
+        float angle = (float)(-2.0 * M_PI) * (float)i / (float)size;
         fft->twiddle_real[i] = cosf(angle);
         fft->twiddle_imag[i] = sinf(angle);
     }
 }
 
-static void bit_reverse_copy(const float *input, float *real, float *imag, int size)
+static void bit_reverse_copy(
+    const float *input,
+    float *real, // NOLINT(bugprone-easily-swappable-parameters)
+    float *imag,
+    int size)
 {
     int bits = 0;
     for (int temp = size - 1; temp > 0; temp >>= 1)
@@ -54,7 +58,7 @@ void fft_process(fft_t *fft, const float *input)
     for (int length = 2; length <= fft->size; length <<= 1)
     {
         int half_length = length / 2;
-        float angle_step = -2.0f * M_PI / length;
+        float angle_step = (float)(-2.0 * M_PI) / (float)length;
 
         for (int i = 0; i < fft->size; i += length)
         {
@@ -81,7 +85,10 @@ void fft_process(fft_t *fft, const float *input)
     }
 }
 
-float fft_get_magnitude_db(fft_t *fft, int bin, float reference)
+float fft_get_magnitude_db(
+    fft_t *fft,
+    int bin, // NOLINT(bugprone-easily-swappable-parameters)
+    float reference)
 {
     nonnull(fft, "fft");
 

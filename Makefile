@@ -1,4 +1,4 @@
-.PHONY: all update build release run cal log test prof bench bench1 bench2 fmt fmt-check install clean
+.PHONY: all update build release run cal log test prof bench bench1 bench2 fmt fmt-check tidy compdb install clean
 
 all: run
 
@@ -48,6 +48,16 @@ fmt-check:
 	@command -v clang-format >/dev/null 2>&1 || { \
 		echo "ERROR: clang-format not installed (Arch: sudo pacman -S clang)"; exit 1; }
 	clang-format --dry-run --Werror $(C_SOURCES)
+
+C_SOURCES_ONLY := $(wildcard src/*.c test/*.c)
+
+tidy:
+	@command -v clang-tidy >/dev/null 2>&1 || { \
+		echo "ERROR: clang-tidy not installed (Arch: sudo pacman -S clang)"; exit 1; }
+	clang-tidy -p build $(C_SOURCES_ONLY) --warnings-as-errors=*
+
+compdb:
+	cmake -S . -B build -G "Unix Makefiles"
 
 install: release
 	sudo make -C build install

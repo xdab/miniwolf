@@ -1,12 +1,16 @@
+#include "demod.h"
+#include "modem.h"
 #include "test.h"
 #include "test_mavg.h"
 #include "test_modem.h"
 #include "test_ring.h"
+#include <stdint.h>
+#include <stdio.h>
 
 static const float sample_rates[] = {16000.0f, 22050.0f, 32000.0f, 44100.0f, 48000.0f};
 static const uint32_t demod_flags[] = {DEMOD_GOERTZEL_OPTIM, DEMOD_QUADRATURE};
 
-const char *demod_name(uint32_t flags)
+static const char *demod_name(uint32_t flags)
 {
     if (flags == DEMOD_GOERTZEL_OPTIM)
         return "Goertzel (Optimistic)";

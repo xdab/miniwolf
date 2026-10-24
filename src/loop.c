@@ -1,14 +1,26 @@
 #include "loop.h"
+#include "agc.h"
 #include "audio.h"
 #include "ax25.h"
+#include "buffer.h"
 #include "common.h"
+#include "filter.h"
+#include "kiss.h"
+#include "line.h"
+#include "miniwolf.h"
+#include "modem.h"
+#include "poller.h"
+#include "squelch.h"
+#include "tcp.h"
 #include "tnc2.h"
+#include "udp.h"
+#include "uds.h"
 #include <errno.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #define INPUT_CALLBACK_SIZE 4800
@@ -16,17 +28,13 @@
 #define POLL_TIMEOUT_LONG 250
 #define POLL_TIMEOUT_SHORT 10
 
-int audio_input_callback(float_buffer_t *buf);
-void modulate_and_transmit(const buffer_t *frame_buf);
-void send_tnc2_extra(const char *header, const char *string);
+static void modulate_and_transmit(const buffer_t *frame_buf);
+static void send_tnc2_extra(const char *header, const char *string);
 
-void tnc2_input_callback(const buffer_t *line_buf);
-void kiss_input_callback(kiss_message_t *kiss_msg);
-
-void process_stdin_input(miniwolf_t *mw);
-void process_tcp_input(miniwolf_t *mw);
-void process_udp_input(miniwolf_t *mw);
-void process_uds_input(miniwolf_t *mw);
+static void process_stdin_input(miniwolf_t *mw);
+static void process_tcp_input(miniwolf_t *mw);
+static void process_udp_input(miniwolf_t *mw);
+static void process_uds_input(miniwolf_t *mw);
 
 // Callbacks for TCP/UDS client socket registration with poller
 void tcp_client_connect_cb(int fd, void *user_data)
@@ -53,7 +61,7 @@ void uds_client_disconnect_cb(int fd, void *user_data)
     socket_poller_remove(&mw->poller, fd);
 }
 
-void modulate_and_transmit(const buffer_t *frame_buf)
+static void modulate_and_transmit(const buffer_t *frame_buf)
 {
     static float sample_data[96000];
     float_buffer_t sample_buf = {
@@ -76,7 +84,7 @@ void modulate_and_transmit(const buffer_t *frame_buf)
     }
 }
 
-void send_tnc2_extra(const char *header, const char *string)
+static void send_tnc2_extra(const char *header, const char *string)
 {
     if (g_miniwolf.kiss_mode && !g_miniwolf.tcp_tnc2_enabled)
         return;
@@ -97,12 +105,12 @@ void send_tnc2_extra(const char *header, const char *string)
 
     if (!g_miniwolf.kiss_mode)
     {
-        fwrite(telem_str, 1, telem_str_len, stdout);
-        fflush(stdout);
+        (void)fwrite(telem_str, 1, telem_str_len, stdout);
+        (void)fflush(stdout);
     }
 
     buffer_t telem_send_buf = {
-        .data = telem_str, .capacity = sizeof(telem_str), .size = telem_str_len};
+        .data = telem_str, .capacity = sizeof(telem_str), .size = (int)telem_str_len};
 
     if (g_miniwolf.tcp_tnc2_enabled)
         tcp_server_broadcast(&g_miniwolf.tcp_tnc2_server, &telem_send_buf);
@@ -259,8 +267,8 @@ int audio_input_callback(float_buffer_t *buf)
 
         if (g_miniwolf.kiss_mode)
         {
-            fwrite(kiss_buffer, 1, kiss_len, stdout);
-            fflush(stdout);
+            (void)fwrite(kiss_buffer, 1, kiss_len, stdout);
+            (void)fflush(stdout);
         }
 
         buffer_t kiss_send_buf = {.data = (unsigned char *)kiss_buffer,
@@ -299,8 +307,8 @@ int audio_input_callback(float_buffer_t *buf)
 
         if (!g_miniwolf.kiss_mode)
         {
-            fwrite(tnc2_data, 1, tnc2_len, stdout);
-            fflush(stdout);
+            (void)fwrite(tnc2_data, 1, tnc2_len, stdout);
+            (void)fflush(stdout);
         }
 
         buffer_t tnc2_send_buf = {
@@ -360,10 +368,10 @@ void kiss_input_callback(kiss_message_t *kiss_msg)
     modulate_and_transmit(&frame_buf);
 }
 
-void process_stdin_input(miniwolf_t *mw)
+static void process_stdin_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[STDIN_BUFFER_SIZE];
-    int n = read(0, read_buffer, sizeof(read_buffer));
+    ssize_t n = read(0, read_buffer, sizeof(read_buffer));
 
     if (mw->kiss_mode)
     {
@@ -375,11 +383,11 @@ void process_stdin_input(miniwolf_t *mw)
     else
     {
         for (int i = 0; i < n; ++i)
-            line_reader_process(&mw->stdin_line_reader, read_buffer[i]);
+            line_reader_process(&mw->stdin_line_reader, (char)read_buffer[i]);
     }
 }
 
-void process_tcp_input(miniwolf_t *mw)
+static void process_tcp_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[TCP_READ_BUF_SIZE];
     buffer_t buf = {.data = read_buffer, .capacity = TCP_READ_BUF_SIZE, .size = 0};
@@ -397,11 +405,11 @@ void process_tcp_input(miniwolf_t *mw)
     {
         int n = tcp_server_listen(&mw->tcp_tnc2_server, &buf);
         for (int i = 0; i < n; ++i)
-            line_reader_process(&mw->tcp_line_reader, read_buffer[i]);
+            line_reader_process(&mw->tcp_line_reader, (char)read_buffer[i]);
     }
 }
 
-void process_udp_input(miniwolf_t *mw)
+static void process_udp_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[TCP_READ_BUF_SIZE];
     buffer_t buf = {.data = read_buffer, .capacity = TCP_READ_BUF_SIZE, .size = 0};
@@ -419,11 +427,11 @@ void process_udp_input(miniwolf_t *mw)
     {
         int n = udp_server_listen(&mw->udp_tnc2_server, &buf);
         for (int i = 0; i < n; ++i)
-            line_reader_process(&mw->udp_line_reader, read_buffer[i]);
+            line_reader_process(&mw->udp_line_reader, (char)read_buffer[i]);
     }
 }
 
-void process_uds_input(miniwolf_t *mw)
+static void process_uds_input(miniwolf_t *mw)
 {
     static unsigned char read_buffer[UDS_READ_BUF_SIZE];
     buffer_t buf = {.data = read_buffer, .capacity = UDS_READ_BUF_SIZE, .size = 0};
@@ -441,6 +449,6 @@ void process_uds_input(miniwolf_t *mw)
     {
         int n = uds_server_listen(&mw->uds_tnc2_server, &buf);
         for (int i = 0; i < n; ++i)
-            line_reader_process(&mw->uds_line_reader, read_buffer[i]);
+            line_reader_process(&mw->uds_line_reader, (char)read_buffer[i]);
     }
 }
