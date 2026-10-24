@@ -4,9 +4,7 @@
 #include "loop.h"
 #include "miniwolf.h"
 #include "options.h"
-#include <alsa/control.h>
-#include <alsa/error.h>
-#include <alsa/pcm.h>
+#include <alsa/asoundlib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
