@@ -203,6 +203,14 @@ def main() -> int:
     p.add_argument("--tail-flags", type=int, default=4, help="flag bytes after the frame (default: 4)")
     p.add_argument("--pre-silence", type=float, default=0.2, help="seconds of silence before TX (default: 0.2)")
     p.add_argument("--post-silence", type=float, default=0.2, help="seconds of silence after TX (default: 0.2)")
+    p.add_argument("--frames", type=int, default=1,
+                   help="number of frames to emit, separated by --gap of "
+                        "channel silence (default: 1); text gains a ' #k' "
+                        "suffix per frame so decodes match truth lines 1:1")
+    p.add_argument("--gap", type=float, default=1.0,
+                   help="seconds of channel silence between --frames frames "
+                        "(default: 1.0); the impairment arms keep the noise "
+                        "and fading alive in the gap")
     p.add_argument("--phase-reset", action="store_true",
                    help="reset phase at each symbol (hard jumps) instead of continuous phase")
     p.add_argument("--snr", type=float, default=None,
@@ -230,15 +238,30 @@ def main() -> int:
                         "(default: 0)")
     args = p.parse_args()
 
-    frame = ax25_frame(args.dest, args.source,
-                       [d for spec in args.digi for d in spec.split(",")], args.text)
-    bits = hdlc_bits(frame, args.head_flags, args.tail_flags)
-    audio = modulate(bits, args.rate, args.baud, args.mark, args.space,
-                     args.amplitude, args.phase_reset)
-
+    digis = [d for spec in args.digi for d in spec.split(",")]
     pre = np.zeros(int(args.pre_silence * args.rate), dtype=np.float32)
     post = np.zeros(int(args.post_silence * args.rate), dtype=np.float32)
-    audio = np.concatenate([pre, audio, post])
+    gap = np.zeros(int(args.gap * args.rate), dtype=np.float32)
+
+    # N frames separated by channel silence; text gets a " #k" suffix (frame
+    # 1 keeps the plain text) so each decode matches one truth line 1:1.
+    # The channel arms below run over the WHOLE file, so the gaps carry the
+    # same noise/fading the frames do — a station idling between transmissions.
+    pieces = []
+    texts = []
+    for k in range(args.frames):
+        text = args.text if args.frames == 1 else f"{args.text} #{k + 1}"
+        texts.append(text)
+        if k:
+            pieces.append(gap)
+        frame = ax25_frame(args.dest, args.source, digis, text)
+        bits = hdlc_bits(frame, args.head_flags, args.tail_flags)
+        pieces.append(modulate(bits, args.rate, args.baud, args.mark,
+                               args.space, args.amplitude, args.phase_reset))
+    audio = np.concatenate([pre] + pieces + [post])
+
+    for text in texts:
+        print(tnc2(args.dest, args.source, args.digi, text))
 
     rng = np.random.default_rng(args.seed)
     if args.mobile is not None:
@@ -261,8 +284,7 @@ def main() -> int:
         f.write(audio.tobytes())
 
     dur = len(audio) / args.rate
-    print(f"frame: {len(frame)} bytes, {len(bits)} bits, "
-          f"{dur:.3f} s, {args.out}", file=sys.stderr)
+    print(f"{args.frames} frame(s), {dur:.3f} s, {args.out}", file=sys.stderr)
     print(tnc2(args.dest, args.source, args.digi, args.text))
     return 0
 
