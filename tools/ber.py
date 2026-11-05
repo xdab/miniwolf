@@ -203,8 +203,8 @@ def main() -> None:
                         "reinterpreted as RF C/N in dB")
     p.add_argument("--k", type=float, default=0.0,
                    help="Rician K factor for --mobile, 0 = Rayleigh (default: 0)")
-    p.add_argument("--mobile-fc", type=float, default=145.0e6, dest="mobile_fc",
-                   help="RF carrier Hz for --mobile (default: 145 MHz, 2 m band)")
+    p.add_argument("--mobile-fc", type=float, default=144.8e6, dest="mobile_fc",
+                   help="RF carrier Hz for --mobile (default: 144.8 MHz, NA APRS)")
     p.add_argument("--mobile-deviation", type=float, default=3000.0,
                    dest="mobile_deviation", help="FM deviation Hz for --mobile (default: 3000)")
     p.add_argument("--mobile-paths", type=int, default=50, dest="mobile_paths",

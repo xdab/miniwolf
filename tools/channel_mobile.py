@@ -17,7 +17,7 @@ audio-SNR/RF-C/N accounting in TODOS.md is the bookkeeping layer for that.
 
 Standalone use:
     python3 tools/frame.py --text hi -o clean.f32
-    python3 tools/channel_mobile.py -i clean.f32 -o mobile.f32 --speed 100
+    python3 tools/channel_mobile.py -i clean.f32 -o mobile.f32 --speed 90
     build/mw_bench -f mobile.f32 -r 48000
 """
 
@@ -70,12 +70,12 @@ def fm_demodulate(iq: np.ndarray, rate: float, deviation: float,
 
 
 def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
-                   fc: float = 145.0e6, speed_kph: float = 100.0, k: float = 0.0,
+                   fc: float = 144.8e6, speed_kph: float = 90.0, k: float = 0.0,
                    cnr_db: float | None = 30.0, deviation: float = 3000.0,
                    paths: int = 50, limiter: float = 3.0) -> np.ndarray:
     """The whole mobile link: FM modulate -> multipath fade -> thermal noise
     at the RF C/N -> limiter discriminator. fd from physical speed at the
-    carrier (100 km/h at 145 MHz is ~13.4 Hz Doppler spread); noise power is
+    carrier (90 km/h at 144.8 MHz is ~12.1 Hz Doppler spread); noise power is
     set against the clean carrier power so C/N means what a radio spec means.
     cnr_db=None skips the RF noise (pure fading) — for stacking further
     impairments on top, e.g. audio AWGN after the discriminator."""
@@ -98,8 +98,8 @@ def main() -> int:
     p.add_argument("-i", "--in", dest="infile", required=True, help="input raw f32le audio file")
     p.add_argument("-o", "--out", default="mobile.f32", help="output raw f32le file (default: mobile.f32)")
     p.add_argument("-r", "--rate", type=float, default=48000.0, help="sample rate Hz (default: 48000)")
-    p.add_argument("--fc", type=float, default=145.0e6, help="RF carrier Hz (default: 145 MHz, 2 m band)")
-    p.add_argument("--speed", type=float, default=100.0, help="vehicle speed km/h (default: 100)")
+    p.add_argument("--fc", type=float, default=144.8e6, help="RF carrier Hz (default: 144.8 MHz, NA APRS)")
+    p.add_argument("--speed", type=float, default=90.0, help="vehicle speed km/h (default: 90)")
     p.add_argument("--k", type=float, default=0.0, help="Rician K factor, 0 = Rayleigh (default: 0)")
     p.add_argument("--cnr", type=float, default=30.0, help="RF C/N in dB (default: 30)")
     p.add_argument("--deviation", type=float, default=3000.0, help="FM deviation Hz (default: 3000)")
