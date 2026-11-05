@@ -86,13 +86,18 @@ def run_trial(args, truth: str, text: str, snr: float, seed: int, tmp: str):
     if getattr(args, "delay", None) is not None:
         audio = impairments.frac_delay(audio, args.delay)
     if getattr(args, "mobile", None) is not None:
-        # the mobile arm replaces AWGN entirely: its noise reference is RF
-        # C/N at the FM demodulator input, not audio SNR (see
-        # tools/channel_mobile.py) — snr is reinterpreted as C/N
+        # the mobile arm's noise reference is RF C/N at the FM demodulator
+        # input, not audio SNR (see tools/channel_mobile.py). By default the
+        # ladder IS the C/N; --mobile-cnr pins it instead, and the ladder
+        # reverts to audio SNR, stacked as AWGN after the discriminator
+        pin = getattr(args, "mobile_cnr", None)
         audio = channel_mobile.mobile_channel(
             audio, args.rate, rng, fc=args.mobile_fc, speed_kph=args.mobile,
-            k=args.k, cnr_db=snr, deviation=args.mobile_deviation,
-            paths=args.mobile_paths, limiter=args.mobile_limiter)
+            k=args.k, cnr_db=pin if pin is not None else snr,
+            deviation=args.mobile_deviation, paths=args.mobile_paths,
+            limiter=args.mobile_limiter)
+        if pin is not None:
+            audio = impairments.add_awgn(audio, snr, rng)
     else:
         audio = impairments.add_awgn(audio, snr, rng)
     noisy = os.path.join(tmp, "noisy.f32")
@@ -207,6 +212,10 @@ def main() -> None:
     p.add_argument("--mobile-limiter", type=float, default=3.0,
                    dest="mobile_limiter",
                    help="discriminator clamp in deviation units for --mobile (default: 3)")
+    p.add_argument("--mobile-cnr", type=float, default=None, dest="mobile_cnr",
+                   help="pin the mobile link's RF C/N in dB and stack AWGN "
+                        "at the ladder SNR on top. Without it, the ladder "
+                        "itself is the RF C/N (no AWGN stage)")
     p.add_argument("--verdicts", default=None, metavar="PATH",
                    help="write one line per trial (inputs + verdict), so a "
                         "two-binary A/B attribution is a plain `diff` of two "
@@ -232,7 +241,8 @@ def main() -> None:
                                             ("delay", args.delay), ("burst", args.burst),
                                             ("mobile", args.mobile), ("K", args.k),
                                             ("fc", args.mobile_fc if args.mobile is not None else None),
-                                            ("dev", args.mobile_deviation if args.mobile is not None else None))
+                                            ("dev", args.mobile_deviation if args.mobile is not None else None),
+                                            ("cnr", args.mobile_cnr))
                     if v is not None) or "clean"
     args.arms = arms
     print(f"PER over AWGN  audio {args.rate:g} Hz  text {args.text_len} chars  "

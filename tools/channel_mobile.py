@@ -71,21 +71,25 @@ def fm_demodulate(iq: np.ndarray, rate: float, deviation: float,
 
 def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
                    fc: float = 145.0e6, speed_kph: float = 100.0, k: float = 0.0,
-                   cnr_db: float = 30.0, deviation: float = 3000.0,
+                   cnr_db: float | None = 30.0, deviation: float = 3000.0,
                    paths: int = 50, limiter: float = 3.0) -> np.ndarray:
     """The whole mobile link: FM modulate -> multipath fade -> thermal noise
     at the RF C/N -> limiter discriminator. fd from physical speed at the
     carrier (100 km/h at 145 MHz is ~13.4 Hz Doppler spread); noise power is
-    set against the clean carrier power so C/N means what a radio spec means."""
+    set against the clean carrier power so C/N means what a radio spec means.
+    cnr_db=None skips the RF noise (pure fading) — for stacking further
+    impairments on top, e.g. audio AWGN after the discriminator."""
     c = 3.0e8
     fd = (speed_kph / 3.6) / (c / fc)
     tx = fm_modulate(audio, rate, deviation)
     faded = tx * clarke_channel(tx.size, rate, fd, rng, k, paths)
-    cnr = 10.0 ** (cnr_db / 10.0)
-    sigma = np.sqrt(np.mean(np.abs(tx) ** 2) / cnr / 2.0)
-    noise = sigma * (rng.standard_normal(tx.size)
-                     + 1j * rng.standard_normal(tx.size))
-    return fm_demodulate(faded + noise, rate, deviation, limiter)
+    rx = faded
+    if cnr_db is not None:
+        cnr = 10.0 ** (cnr_db / 10.0)
+        sigma = np.sqrt(np.mean(np.abs(tx) ** 2) / cnr / 2.0)
+        rx = faded + sigma * (rng.standard_normal(tx.size)
+                              + 1j * rng.standard_normal(tx.size))
+    return fm_demodulate(rx, rate, deviation, limiter)
 
 
 def main() -> int:

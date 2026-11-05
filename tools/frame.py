@@ -20,7 +20,8 @@ whole transmission, matching src/synth.c); --phase-reset switches frequency
 per symbol by resetting phase to 0, which introduces hard phase jumps and is
 there to A/B how the demods tolerate a non-continuous transmitter.
 
---snr adds a channel impairment: AWGN at a calibrated audio SNR (dB), driven
+The channel arms stack (--mobile first, then --burst/--cfo/--ppm/--delay,
+AWGN last via --snr), all driven: AWGN at a calibrated audio SNR (dB), driven
 by --seed via a caller-owned np.random.Generator so paired A/B runs (same
 seed, only the receiver differs) see identical randomness. Further arms live
 in tools/impairments.py: --cfo (frequency offset), --ppm/--delay (bit-clock
@@ -215,6 +216,14 @@ def main() -> int:
     p.add_argument("--burst", type=float, default=None, metavar="S",
                    help="one squelch burst of this many seconds, zeroing audio "
                         "at a --seed-drawn position inside the frame")
+    p.add_argument("--mobile", type=float, default=None, metavar="KPH",
+                   help="VHF mobile fading channel (tools/channel_mobile.py): "
+                        "vehicle speed; stacks with the other arms")
+    p.add_argument("--mobile-cnr", type=float, default=None, dest="mobile_cnr",
+                   metavar="DB", help="RF C/N of the mobile link (default: "
+                   "none, pure fading, no RF noise)")
+    p.add_argument("--mobile-k", type=float, default=0.0, dest="mobile_k",
+                   metavar="K", help="Rician K factor for --mobile, 0 = Rayleigh")
     p.add_argument("--seed", type=int, default=0,
                    help="RNG seed for --snr noise and --burst position; identical "
                         "seeds draw identical channels across runs (paired A/B) "
@@ -232,6 +241,11 @@ def main() -> int:
     audio = np.concatenate([pre, audio, post])
 
     rng = np.random.default_rng(args.seed)
+    if args.mobile is not None:
+        import channel_mobile
+        audio = channel_mobile.mobile_channel(
+            audio, args.rate, rng, speed_kph=args.mobile, k=args.mobile_k,
+            cnr_db=args.mobile_cnr)
     if args.burst is not None:
         audio = impairments.squelch_burst(audio, args.rate, rng, args.burst)
     if args.cfo is not None:
