@@ -46,10 +46,17 @@ tests the receiver at ~9.8 dB in-frame (audit-measured). All absolute
 C/N labels on measured baselines and theory overlays are shifted
 accordingly; paired-seed A/B comparisons remain valid (deterministic
 offset). Fix the scaling, reference noise to the keyed carrier, re-run
-the reference sweeps, re-record data/README.md. Open after the fix: the
-duty arm decoded the same as the base arm despite ~2.8 dB different
-effective C/N — reconcile (hiss-gap acquisition cost, AGC envelope
-during silence, or a second bookkeeping error).
+the reference sweeps, re-record data/README.md. Measured since: the
+arms differ by 2.4 dB true in-frame C/N (10.2 vs 7.8 dB at claimed
+4 dB, limiter input) yet decode identically, and cutting the leading
+hiss from failing trials (bit-identical in-frame noise) rescues 0/15 —
+the loss is in-frame, not acquisition, and PER is invariant to the
+measured in-frame noise-power difference. So noise POWER is not the
+controlling quantity the receiver experiences; next instruments: the
+carrier-frame phase-error estimator (expert-prescribed: u = z*conj(c)/
+|c|^2, home region, count |dpsi| > pi excursions and the sub-2-pi
+|dpsi| > pi/2 tail) and the sigma fix, after which all synthetic C/N
+labels get re-recorded.
 
 ## Narrow the IF before the discriminator (near-Carson channel filter)
 
