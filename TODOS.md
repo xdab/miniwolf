@@ -39,15 +39,28 @@ vectorization entries can prove their numbers. Blocked on nothing.
 Origin: three demodulators (quadrature, Goertzel, split-filter) are kept in
 `src/demod_quad.c`, `src/demod_goertzel.c`, and `src/demod.c`, each
 hand-tuned on one tape; two others ("subpar") were already removed by
-vibes. Problem: nothing today says whether all three still earn their
-place, or which wins at what SNR. Intended shape: once the regression
-harness and BER sweep exist, score all three on the same captures and
-sweeps; keep the winners with measured justification, delete the rest.
-The instrument exists: `tools/loss_decomp.py` attributes per-demod frame
-completion per C/N from `ber.py --verdicts` runs (first data: quadrature
-out-completes both Goertzel variants at the 4 dB knee). Still waits on the
-synthetic regression gate above —
-running the comparison now would just repeat the hand-tuned-tape ritual.
+vibes. Measured (static channel, `--demods` solo arms, 300 trials/point,
+data/README.md): quadrature is the best solo demodulator at every C/N; the
+two Goertzel tunings (optim/pesim) are near-identical to each other and
+~0.5 dB behind; in the default race goertzel-optim takes the output by
+first-wins order while pesim wins almost nothing despite completing as
+many frames as optim. Remaining: cull pesim (worst solo, structurally
+voiceless in the race) and any further culling behind the synthetic
+regression gate above; re-verify on the WA8LMF tracks and real captures
+before deleting anything.
+
+## Race winner order and selection
+
+The default race delivers frames first-wins in demod-bit order, so
+goertzel-optim (bit 0) shadows the others regardless of merit
+(data/README.md: 300/300 wins from 6 dB). Ideas, each a paired-seed A/B
+against the recorded race baseline: (a) reorder the race — quadrature
+first (`--demods quad,optim` with optim rescue) vs optim-first; (b)
+select the winning frame per frame by demod confidence instead of
+completion order (needs the soft-bit path); (c) deliver ALL demods'
+frames and let dedup collapse them, so order stops mattering. The race
+currently beats every solo arm by ~0.5 dB, so any change must be
+PER-neutral-or-better, not just cleaner.
 
 ## Matched-filter correlator demodulator
 
@@ -69,7 +82,11 @@ them; per-bit confidence (eye amplitude, transition density, or
 `bitclk.signal_quality`) is computed and discarded. Intended shape: an
 optional confidence output per bit, consumed first by a retry-on-CRC-fail
 path and later, if it pays, by Viterbi-style sequence scoring over
-candidate bit offsets. Criticality: uncertain until the harness measures
+candidate bit offsets. Measured basis for the retry half: every loss at
+the static-channel knee is in the `deframe` band (bits flow, no CRC-valid
+frame completes — tools/loss_decomp.py), so ±1 bit-slip retries have raw
+material to recover; the number to measure is how many of those frames a
+retry would actually turn valid. Criticality: uncertain until the harness measures
 how many CRC-fail frames a ±1 bit-slip retry would have recovered — that
 number decides whether this is a real feature or a drawer item.
 
@@ -91,7 +108,12 @@ The bit-clock PLL (`src/bitclk.c`) has inertia ramps, a 32-bit transition
 history, and DCD hysteresis (lock at 26, unlock at 12 good transitions) —
 but nothing measured: lock acquisition time vs. level and noise, behavior
 inside the hysteresis band, recovery after squelch bursts, and how much of
-the AFSK packet-ear start it misses. Intended shape: characterization from
+the AFSK packet-ear start it misses. First datum from the loss-attribution
+counters: DCD never locks at 22050 Hz (0 locked samples even behind 128
+preamble flags; it locks at 48000 Hz) and never locks at any C/N on the
+static reference channel below ~7 dB — bits are emitted regardless, so
+decoding is unaffected, but the flag is dead exactly where the WA8LMF
+tracks live. Intended shape: characterization from
 the regression gate (per-case verdicts should record whether DCD ever
 locked), and only then decisions about look-ahead/rewind recovery for
 frames lost to late lock — the receiver already buffers, so rewinding to
