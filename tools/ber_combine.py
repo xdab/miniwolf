@@ -19,7 +19,7 @@ ROW = re.compile(
 # trials/point seed=1"
 HEAD = re.compile(
     r"PER over AWGN\s+audio\s+([\d.]+)\s+Hz\s+text\s+(\d+)\s+chars\s+"
-    r"(\d+) trials/point\s+seed=(\d+)")
+    r"(\d+) trials/point\s+seed=(\d+)(?:\s+arms=(.*?))?\s*$")
 COLORS = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown"]
 
 
@@ -40,13 +40,15 @@ def parse(path):
         raise SystemExit(f"{path}: no ber.py header line (is this a sweep log?)")
     if not rows:
         raise SystemExit(f"{path}: no data rows")
-    rate, text_len, trials, seed = head
+    rate, text_len, trials, seed, arms = head
+    arms = (arms or "clean").strip()
     a = np.array(rows)
     return {
         "rate": float(rate),
         "text_len": int(text_len),
         "trials": int(trials),
         "seed": int(seed),
+        "arms": arms,
         "snr": a[:, 0],
         "per": a[:, 1],
         "wrong": a[:, 3],
@@ -100,7 +102,8 @@ def main():
     lows, ends = [], []
     for i, (d, path) in enumerate(zip(sweeps, args.logs)):
         tag = os.path.splitext(os.path.basename(path))[0]
-        lows.append(curve(ax, d, colors[i], f"{tag}: {d['text_len']}c seed={d['seed']}", lw))
+        lows.append(curve(ax, d, colors[i],
+                          f"{tag}: {d['arms']}" if d["arms"] != "clean" else tag, lw))
         ends.append(d["snr"][d["per"] > 0])
 
     d0 = sweeps[0]
@@ -108,7 +111,8 @@ def main():
     ax.set_ylabel("packet error rate")
     ax.set_title(
         f"miniwolf_bench end-to-end PER over AWGN — {d0['rate']:g} Hz, "
-        f"{d0['text_len']} chars, {d0['trials']} trials/point\n"
+        f"{d0['text_len']} chars, {d0['trials']} trials/point, seed="
+        f"{d0['seed']}\n"
         "open markers = SNR points with false decodes; "
         "curves stop at the last point with an observed error", fontsize=10)
     # axes fit the plotted points, not the swept range: past the last

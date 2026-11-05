@@ -31,6 +31,7 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TOOLS)
 sys.path.insert(0, TOOLS)
 import frame as frame_mod
+import impairments
 
 # main_bench.c decode line: "i |  main | 1 @ 00:00:01.234 N0CALL>APZMWL:text"
 DECODE = re.compile(r"@ \d{2}:\d{2}:\d{2}\.\d{3} (.*)$", re.MULTILINE)
@@ -63,8 +64,18 @@ def run_trial(args, truth: str, text: str, snr: float, seed: int, tmp: str):
                                args.space, args.amplitude, args.phase_reset)
     pre = np.zeros(int(args.pre_silence * args.rate), dtype=np.float32)
     post = np.zeros(int(args.post_silence * args.rate), dtype=np.float32)
-    audio = frame_mod.add_awgn(np.concatenate([pre, audio, post]),
-                               snr, np.random.default_rng(seed))
+    audio = np.concatenate([pre, audio, post])
+    # same arm order as frame.py's main(): channel first, noise last
+    rng = np.random.default_rng(seed)
+    if getattr(args, "burst", None) is not None:
+        audio = impairments.squelch_burst(audio, args.rate, rng, args.burst)
+    if getattr(args, "cfo", None) is not None:
+        audio = impairments.cfo_offset(audio, args.rate, args.cfo)
+    if getattr(args, "ppm", None) is not None:
+        audio = impairments.ppm_drift(audio, args.ppm)
+    if getattr(args, "delay", None) is not None:
+        audio = impairments.frac_delay(audio, args.delay)
+    audio = impairments.add_awgn(audio, snr, rng)
     noisy = os.path.join(tmp, "noisy.f32")
     audio.tofile(noisy)
     cp = subprocess.run(
@@ -144,6 +155,16 @@ def main() -> None:
     p.add_argument("--phase-reset", action="store_true")
     p.add_argument("--dest", default="APZMWL")
     p.add_argument("--source", default="N0CALL")
+    # impairment arms (kept in sync with tools/frame.py / tools/impairments.py)
+    p.add_argument("--cfo", type=float, default=None, metavar="HZ",
+                   help="fixed frequency offset in Hz for every trial")
+    p.add_argument("--ppm", type=float, default=None, metavar="PPM",
+                   help="fixed sample-rate error in ppm for every trial")
+    p.add_argument("--delay", type=float, default=None, metavar="SAMPLES",
+                   help="fixed fractional sample delay for every trial")
+    p.add_argument("--burst", type=float, default=None, metavar="S",
+                   help="one squelch burst of this many seconds per trial, "
+                        "at a seed-drawn position")
     p.add_argument("--verdicts", default=None, metavar="PATH",
                    help="write one line per trial (inputs + verdict), so a "
                         "two-binary A/B attribution is a plain `diff` of two "
@@ -165,8 +186,12 @@ def main() -> None:
 
     snrs = np.arange(args.snr_min, args.snr_max + 1e-9, args.snr_step)
     rng = np.random.default_rng(args.seed)
+    arms = " ".join(f"{k}={v}" for k, v in (("cfo", args.cfo), ("ppm", args.ppm),
+                                            ("delay", args.delay), ("burst", args.burst))
+                    if v is not None) or "clean"
+    args.arms = arms
     print(f"PER over AWGN  audio {args.rate:g} Hz  text {args.text_len} chars  "
-          f"{args.trials} trials/point  seed={args.seed}", flush=True)
+          f"{args.trials} trials/point  seed={args.seed}  arms={arms}", flush=True)
     print(" SNR [dB]        PER      ok  wrong  none  extra", flush=True)
     # Draw the whole matrix up front, in serial-loop order: the --verdicts
     # draw sequence is part of the A/B contract and must not move.
@@ -242,7 +267,8 @@ def plot_per(args, snrs, pers) -> None:
     fig.suptitle("miniwolf_bench end-to-end PER over AWGN", fontsize=13)
     ax.set_title(
         f"{args.rate:g} Hz, text {args.text_len} chars, {args.trials} "
-        f"trials/point, seed={args.seed}", fontsize=9)
+        f"trials/point, seed={args.seed}, {getattr(args, 'arms', 'clean')}",
+        fontsize=9)
     ax.grid(True, which="both", alpha=0.3)
     ax.legend()
     fig.savefig(args.out, dpi=150)
