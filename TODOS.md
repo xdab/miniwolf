@@ -41,26 +41,6 @@ any regression. Perf twin wraps the same cases in `mw_bench`'s existing
 timing output and records decode-time-per-track so the zero-copy and
 vectorization entries can prove their numbers. Blocked on nothing.
 
-## VHF mobile/fading channel model
-
-Extension to the frame.py impairments entry, but called out separately
-because it is THE dominant impairment in real APRS: mobiles, handhelds and
-balloons moving through multipath. rxx_lora has no analogue (LoRa links are
-slow enough that flat fading barely matters within a frame). The classic
-VHF mobile effects on received audio: Rayleigh/Rician flat fading with
-Doppler spread (deep fades lasting tens of ms — comparable to a whole AX.25
-frame at 1200 baud), flutter/picket-fading from moving-vehicle multipath,
-phase-destructive reflection sums that momentarily rotate or null the audio,
-and the parking/stop-and-go quasi-static fades that kill a frame mid-packet.
-Intended shape: a `tools/channel_mobile.py`-style arm that applies a
-time-varying complex gain (Rician with configurable Doppler rate and K
-factor, at minimum Rayleigh mobile-speed ~100 km/h @ 144 MHz ≈ 13 Hz
-Doppler) plus a delayed echo path, to the already-modulated audio; PER
-curves with and without it will show whether the demods survive fades that
-real TNCs demonstrably do (WA8LMF track 5-7 style captures are exactly this
-channel, recorded for real). Hard on purpose — the point is a stress arm,
-not a faithful radio-silicon model. Blocked on the impairments entry.
-
 ## Capture-and-regression measurement harness
 
 The demod parameter commits ("optimized for 907 packets on track 1", "for

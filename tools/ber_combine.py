@@ -107,7 +107,7 @@ def main():
         ends.append(d["snr"][d["per"] > 0])
 
     d0 = sweeps[0]
-    ax.set_xlabel("audio SNR [dB]")
+    ax.set_xlabel("audio SNR / RF C/N [dB]")
     ax.set_ylabel("packet error rate")
     ax.set_title(
         f"miniwolf_bench end-to-end PER over AWGN — {d0['rate']:g} Hz, "

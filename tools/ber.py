@@ -32,6 +32,7 @@ ROOT = os.path.dirname(TOOLS)
 sys.path.insert(0, TOOLS)
 import frame as frame_mod
 import impairments
+import channel_mobile
 
 # main_bench.c decode line: "i |  main | 1 @ 00:00:01.234 N0CALL>APZMWL:text"
 DECODE = re.compile(r"@ \d{2}:\d{2}:\d{2}\.\d{3} (.*)$", re.MULTILINE)
@@ -75,7 +76,14 @@ def run_trial(args, truth: str, text: str, snr: float, seed: int, tmp: str):
         audio = impairments.ppm_drift(audio, args.ppm)
     if getattr(args, "delay", None) is not None:
         audio = impairments.frac_delay(audio, args.delay)
-    audio = impairments.add_awgn(audio, snr, rng)
+    if getattr(args, "mobile", None) is not None:
+        # the mobile arm replaces AWGN entirely: its noise reference is RF
+        # C/N at the FM demodulator input, not audio SNR (see
+        # tools/channel_mobile.py) — snr is reinterpreted as C/N
+        audio = channel_mobile.mobile_channel(
+            audio, args.rate, rng, speed_kph=args.mobile, k=args.k, cnr_db=snr)
+    else:
+        audio = impairments.add_awgn(audio, snr, rng)
     noisy = os.path.join(tmp, "noisy.f32")
     audio.tofile(noisy)
     cp = subprocess.run(
@@ -97,12 +105,15 @@ def run_trial_task(job):
 
 
 def selftest(args) -> bool:
-    """One fixed trial at a comfortable SNR: the frame must decode."""
+    """One fixed trial at a comfortable level: the frame must decode. The
+    mobile arm gets 40 dB C/N (Rayleigh at speed dies far above the AWGN
+    arm's comfortable 20 dB — that is the channel, not the pipeline)."""
+    snr = 40 if args.mobile is not None else 20
     with tempfile.TemporaryDirectory() as tmp:
         ok, outcome, n = run_trial(args, frame_mod.tnc2(
             args.dest, args.source, [], "Hello miniwolf"),
-            "Hello miniwolf", 20, 1, tmp)
-        print(f"selftest: {'PASS' if ok else 'FAIL'}  (snr=20: outcome={outcome}, "
+            "Hello miniwolf", snr, 1, tmp)
+        print(f"selftest: {'PASS' if ok else 'FAIL'}  (snr={snr}: outcome={outcome}, "
               f"{n} decode(s))")
         return ok
 
@@ -165,6 +176,12 @@ def main() -> None:
     p.add_argument("--burst", type=float, default=None, metavar="S",
                    help="one squelch burst of this many seconds per trial, "
                         "at a seed-drawn position")
+    p.add_argument("--mobile", type=float, default=None, metavar="KPH",
+                   help="VHF mobile fading channel (tools/channel_mobile.py) "
+                        "instead of AWGN: vehicle speed; the SNR ladder is "
+                        "reinterpreted as RF C/N in dB")
+    p.add_argument("--k", type=float, default=0.0,
+                   help="Rician K factor for --mobile, 0 = Rayleigh (default: 0)")
     p.add_argument("--verdicts", default=None, metavar="PATH",
                    help="write one line per trial (inputs + verdict), so a "
                         "two-binary A/B attribution is a plain `diff` of two "
@@ -187,7 +204,8 @@ def main() -> None:
     snrs = np.arange(args.snr_min, args.snr_max + 1e-9, args.snr_step)
     rng = np.random.default_rng(args.seed)
     arms = " ".join(f"{k}={v}" for k, v in (("cfo", args.cfo), ("ppm", args.ppm),
-                                            ("delay", args.delay), ("burst", args.burst))
+                                            ("delay", args.delay), ("burst", args.burst),
+                                            ("mobile", args.mobile), ("K", args.k))
                     if v is not None) or "clean"
     args.arms = arms
     print(f"PER over AWGN  audio {args.rate:g} Hz  text {args.text_len} chars  "
@@ -262,7 +280,8 @@ def plot_per(args, snrs, pers) -> None:
     )
     ax.set_xlim(float(snrs[0]), float(snrs[-1]))
     ax.set_ylim(1 / (10 * args.trials), 1.1)
-    ax.set_xlabel("audio SNR [dB]")
+    ax.set_xlabel("RF C/N [dB]" if getattr(args, "mobile", None) is not None
+                  else "audio SNR [dB]")
     ax.set_ylabel("packet error rate")
     fig.suptitle("miniwolf_bench end-to-end PER over AWGN", fontsize=13)
     ax.set_title(
