@@ -23,6 +23,71 @@ in the middle; the capture `-R` path from the harness entry falls out as a
 recording sink over the same interface. Acceptance test: `tools/frame.py`
 output decodes through the unified chain.
 
+## Channel impairments in frame.py
+
+Origin: rxx_lora's `tools/common.py` (`add_awgn` with a caller-owned
+`np.random.Generator`) and the channel arms its `ber.py` sweeps. `tools/frame.py`
+today emits only bit-perfect clean audio, which exercises the demods in a
+regime real radio never provides. Intended shape: an optional degradation
+stage between modulation and file write, one flag per impairment, all driven
+by a `--seed`-seeded generator (paired A/B: same seed, same randomness, only
+the receiver differs — the pairing is the point):
+
+- AWGN at a calibrated SNR (dB, full-band) — the minimum arm
+- frequency offset (CFO, Hz) — cheap receiver torture, relevant to the
+  "DC offset and frequency-error tolerance" entry below
+- sample-rate/timing offset (PPM) and fractional sample delay — bit clock
+  error, directly exercises `src/bitclk.c` PLL
+- amplitude/level scaling and (optionally) a squelch-burst / fade arm —
+  exercises DCD hysteresis recovery
+- volume arm extension mirrors rxx_lora's BER sweep ladder
+- **VHF mobile channel** (its own entry below — the impairment that matters
+  most in practice)
+
+Keep the generator itself deterministic and clean: impairments live in a
+separate function (sibling module when it grows), so `--seed` reproducibility
+stays exact. Not the intended shape: impairments hardcoded into `modulate()`.
+Blocked on nothing — cheap to add; will be consumed by the BER sweep tooling
+and the regression harness entries above.
+
+## tools/regression.py commit gate (synthetic-first) and its perf twin
+
+Distinct from the capture harness below (that one needs real recordings and
+ground truth; this one can exist today). Origin: rxx_lora's
+`tools/regression.py` — the script that runs on every landing and fails the
+commit — and `tools/regression_perf.py`, its speed twin (same verdicts plus
+real-time multiplier per line; verdicts gate the exit code, never the speed).
+Intended shape for miniwolf: build the case matrix out of what already works —
+`tools/frame.py` variants (clean, each impairment arm once it exists, digi
+paths, min/max frame sizes, `--phase-reset`) decoded through the bench entry
+point (`mw_bench -f ... -F S16 ...`) with `--digi`/text ground truth compared
+against the TNC2 stdout, plus the WA8LMF tracks in `data/` with their measured
+baseline counts (track01: 1010, track02: 934; 5–7 decode zero today — that is
+a known baseline, not a failure). PASS/FAIL matrix on stdout, non-zero exit on
+any regression. Perf twin wraps the same cases in `mw_bench`'s existing
+timing output and records decode-time-per-track so the zero-copy and
+vectorization entries can prove their numbers. Blocked on nothing.
+
+## VHF mobile/fading channel model
+
+Extension to the frame.py impairments entry, but called out separately
+because it is THE dominant impairment in real APRS: mobiles, handhelds and
+balloons moving through multipath. rxx_lora has no analogue (LoRa links are
+slow enough that flat fading barely matters within a frame). The classic
+VHF mobile effects on received audio: Rayleigh/Rician flat fading with
+Doppler spread (deep fades lasting tens of ms — comparable to a whole AX.25
+frame at 1200 baud), flutter/picket-fading from moving-vehicle multipath,
+phase-destructive reflection sums that momentarily rotate or null the audio,
+and the parking/stop-and-go quasi-static fades that kill a frame mid-packet.
+Intended shape: a `tools/channel_mobile.py`-style arm that applies a
+time-varying complex gain (Rician with configurable Doppler rate and K
+factor, at minimum Rayleigh mobile-speed ~100 km/h @ 144 MHz ≈ 13 Hz
+Doppler) plus a delayed echo path, to the already-modulated audio; PER
+curves with and without it will show whether the demods survive fades that
+real TNCs demonstrably do (WA8LMF track 5-7 style captures are exactly this
+channel, recorded for real). Hard on purpose — the point is a stress arm,
+not a faithful radio-silicon model. Blocked on the impairments entry.
+
 ## Capture-and-regression measurement harness
 
 The demod parameter commits ("optimized for 907 packets on track 1", "for
@@ -66,6 +131,25 @@ harness and BER sweep exist, score all three on the same captures and
 sweeps; keep the winners with measured justification, delete the rest.
 This entry deliberately waits on the two harness entries above —
 running the comparison now would just repeat the hand-tuned-tape ritual.
+
+## Dual SNR accounting: audio SNR and FM-equivalent RF C/N
+
+Extension to the BER sweep above. rxx_lora sweeps a single well-defined
+SNR; an AFSK-over-FM receiver has two meaningful noise references and
+conflating them makes published numbers incomparable. Axis 1 — **audio
+SNR**: noise power measured directly on the demodulated Bell202 audio miniwolf
+consumes (the natural number for demod A/B, and what the AWGN arm applies).
+Axis 2 — **FM-equivalent RF C/N**: the carrier-to-noise ratio an amateur
+transceiver's FM demodulator needs *at RF* to produce that audio SNR at its
+speaker output — computed through the FM improvement factor and the FM
+threshold/capture effect (~12 dB C/N knee, below which audio SNR collapses
+regardless of demod audio SNR). This is the number comparable against
+real-world statements like "the packet was decodable at 12 dB SINAD" or
+handheld specs. Intended shape: the BER table prints both columns — the
+measured audio SNR actually applied, and the derived RF C/N via the standard
+FM relation — so a PER-vs-SNR plot can be annotated in whichever reference
+the reader thinks in. Blocked on the BER sweep existing; the math is a
+closed-form overlay like rxx_lora's `--theory` BER line.
 
 ## Matched-filter correlator demodulator
 
@@ -139,6 +223,24 @@ applied only where a profile says the time actually goes, and kept only if
 bit-exact or PER-neutral against the regression gate. Criticality: low
 until profiling says otherwise — listed so it is not rediscovered
 independently later.
+
+## Port rxx_lora's method.md and bootstrap an AGENTS.md
+
+rxx_lora carries `docs/method.md` — the receiver-methods document (DSP
+chain rationale, why each stage exists, what was tried and rejected) — and
+an `AGENTS.md` that orients AI agents/contributors: repo architecture in
+one screen, where constraints and gates live, pointer discipline
+("anything mechanical is discoverable; don't duplicate it here"). miniwolf
+has neither: the demod/filter/bitclk design rationale exists nowhere but
+git history and one tape-recording commit message each. Intended shape: a
+`docs/method.md` (or equivalent) adapted to miniwolf's chain — split-filter
+vs quad vs Goertzel demod history, bitclk PLL structure, squelch/AGC
+roles, the WA8LMF tuning history and its baseline counts — and a root
+`AGENTS.md` pointing at TODOS.md, `data/README.md` and the method doc,
+mirroring rxx_lora's rule that subdirectory READMEs stay current. Keep the
+rxx_lora docstring discipline while porting: no history war stories in
+code comments, measured numbers live in the docs that exist to hold them.
+Pairs naturally with the audio doc sweep below.
 
 ## Audio doc trim and factual sweep
 
