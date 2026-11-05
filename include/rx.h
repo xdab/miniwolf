@@ -4,6 +4,7 @@
 #include "filter.h"
 #include "modem.h"
 #include "squelch.h"
+#include <stdint.h>
 #include <time.h>
 
 // The one RX chain shared by every miniwolf front end:
@@ -15,6 +16,9 @@ typedef struct rx_chain
     sql_t squelch;
     struct md_multi_rx mrx;
     int use_squelch;
+    // Loss-attribution counters (see tools/loss_decomp.py)
+    uint64_t samples_in;
+    uint64_t squelch_drop;
 } rx_chain_t;
 
 typedef struct rx_params

@@ -35,6 +35,30 @@ void md_multi_rx_init(
     mrx->last_modem = -1;
     mrx->last_crc = 0;
     mrx->last_time = 0L;
+    mrx->dedup_suppressed = 0;
+}
+
+void md_stats_dump(const struct md_multi_rx *mrx, const char *tag)
+{
+    nonnull(mrx, "mrx");
+    nonnull(tag, "tag");
+
+    for (int i = 0; i < mrx->count; i++)
+    {
+        const md_demod_stats_t *s = &mrx->rxs[i].stats;
+        LOG("STATS tag=%s rx%d_samples=%llu rx%d_bits=%llu rx%d_dcd=%llu "
+            "rx%d_frames=%llu",
+            tag,
+            i,
+            (unsigned long long)s->samples,
+            i,
+            (unsigned long long)s->bits,
+            i,
+            (unsigned long long)s->dcd_on,
+            i,
+            (unsigned long long)s->frames_ok);
+    }
+    LOG("STATS tag=%s dedup_suppressed=%llu", tag, (unsigned long long)mrx->dedup_suppressed);
 }
 
 int md_multi_rx_process(
@@ -54,24 +78,38 @@ int md_multi_rx_process_at(
     uint16_t crc = 0;
     int modem = -2;
 
+    // Every deframer sees every bit; frames completing anywhere are counted,
+    // only the first winner this block is delivered outward
+    static uint8_t scratch[MD_RX_MAX][512];
+
     for (int i = 0; i < mrx->count; i++)
     {
         struct md_rx *rx = &mrx->rxs[i];
-        if (ret == 0)
+        buffer_t rx_frame = {.data = scratch[i], .capacity = sizeof(scratch[i]), .size = 0};
+        uint16_t rx_crc = 0;
+
+        int rx_ret = md_rx_process(rx, sample_buf, &rx_frame, &rx_crc);
+        if (rx_ret > 0)
+            rx->stats.frames_ok++;
+
+        if (ret == 0 && rx_ret > 0)
         {
-            ret = md_rx_process(rx, sample_buf, out_frame_buf, &crc);
-            if (ret > 0)
-                modem = i;
+            memcpy(out_frame_buf->data, rx_frame.data, rx_ret);
+            out_frame_buf->size = rx_ret;
+            ret = rx_ret;
+            crc = rx_crc;
+            modem = i;
         }
-        else
-            (void)md_rx_process(rx, sample_buf, NULL, NULL);
     }
 
     if (ret > 0)
     {
         // If just (within 1s) seen identical frame on another modem
         if (crc == mrx->last_crc && modem != mrx->last_modem && time - mrx->last_time <= 1)
+        {
             ret = 0; // Pretend there was no frame received
+            mrx->dedup_suppressed++;
+        }
 
         mrx->last_modem = modem;
         mrx->last_crc = crc;
@@ -105,6 +143,7 @@ void md_rx_init(struct md_rx *rx, float sample_rate, demod_type_t type)
 
     hldc_deframer_init(&rx->deframer);
     bitclk_init(&rx->bit_detector, sample_rate, baud_rate);
+    memset(&rx->stats, 0, sizeof(rx->stats));
 }
 
 int md_rx_process(
@@ -117,12 +156,19 @@ int md_rx_process(
     int ret = 0;
     uint16_t ret_crc = 0;
 
+    rx->stats.samples += (uint64_t)sample_buf->size;
+
     for (int i = 0; i < sample_buf->size; i++)
     {
         float sample = sample_buf->data[i];
         float symbol = demod_process(&rx->demod, sample);
 
         int bit = bitclk_detect(&rx->bit_detector, symbol);
+
+        if (bit != BITCLK_NONE)
+            rx->stats.bits++;
+        if (rx->bit_detector.data_detect)
+            rx->stats.dcd_on++;
 
         if (out_frame_buf == NULL)
             continue;

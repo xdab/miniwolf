@@ -43,6 +43,20 @@ import channel
 
 # main_file.c decode line: "i |  main | 1 @ 00:00:01.234 N0CALL>APZMWL:text"
 DECODE = re.compile(r"@ \d{2}:\d{2}:\d{2}\.\d{3} (.*)$", re.MULTILINE)
+# miniwolf_file --stats counters: "STATS tag=.. key=.. key=.." (one LOG line
+# per demod + chain + dedup); fields are appended verbatim to --verdicts
+STATS = re.compile(r"STATS (.*)$", re.MULTILINE)
+
+
+def parse_stats(stderr: str) -> dict:
+    """All STATS key=value fields from one run's stderr (empty if none)."""
+    fields = {}
+    for m in STATS.finditer(stderr):
+        for kv in m.group(1).split():
+            k, _, v = kv.partition("=")
+            if _:
+                fields[k] = v
+    return fields
 
 
 def max_jobs() -> int:
@@ -62,9 +76,10 @@ def random_text(rng: np.random.Generator, length: int) -> str:
 def run_trial(args, truth: str, text: str, cnr: float, seed: int, tmp: str):
     """Wire one trial: generate, impair, decode, score.
 
-    Returns (ok: bool, outcome: str, ndecodes: int). outcome is ok/wrong/
-    none: wrong = packets came out of the FCS check but none matches ground
-    truth (false decodes), none = silence.
+    Returns (ok: bool, outcome: str, ndecodes: int, stats: dict). outcome is
+    ok/wrong/none: wrong = packets came out of the FCS check but none matches
+    ground truth (false decodes), none = silence. stats carries the binary's
+    --stats loss-attribution counters ({} when the binary lacks them).
     """
     frame = frame_mod.ax25_frame(args.dest, args.source, [], text)
     bits = frame_mod.hdlc_bits(frame, args.head_flags, args.tail_flags)
@@ -86,12 +101,14 @@ def run_trial(args, truth: str, text: str, cnr: float, seed: int, tmp: str):
     noisy = os.path.join(tmp, "noisy.f32")
     audio.tofile(noisy)
     cp = subprocess.run(
-        [args.bin, "-f", noisy, "-r", str(args.rate), *args.bench_argv],
+        [args.bin, "-f", noisy, "-r", str(args.rate), "--stats", *args.bench_argv],
         capture_output=True, text=True, errors="replace")
     got = DECODE.findall(cp.stderr)
+    stats = parse_stats(cp.stderr)
+    stats.pop("tag", None)
     if truth in got:
-        return True, "ok", len(got)
-    return False, ("wrong" if got else "none"), len(got)
+        return True, "ok", len(got), stats
+    return False, ("wrong" if got else "none"), len(got), stats
 
 
 def run_trial_task(job):
@@ -107,7 +124,7 @@ def selftest(args) -> bool:
     """One fixed trial at a comfortable C/N: the frame must decode."""
     cnr = 25
     with tempfile.TemporaryDirectory() as tmp:
-        ok, outcome, n = run_trial(args, frame_mod.tnc2(
+        ok, outcome, n, _ = run_trial(args, frame_mod.tnc2(
             args.dest, args.source, [], "Hello miniwolf"),
             "Hello miniwolf", cnr, 1, tmp)
         print(f"selftest: {'PASS' if ok else 'FAIL'}  (cnr={cnr}: outcome={outcome}, "
@@ -242,16 +259,17 @@ def main() -> None:
     t0 = time.perf_counter()
     done = 0
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs) as ex:
-        for (cnr, ti, _, seed), (ok, outcome, ndecodes) in zip(
+        for (cnr, ti, _, seed), (ok, outcome, ndecodes, stats) in zip(
                 draws, ex.map(run_trial_task, jobs, chunksize=4)):
             acc = by_cnr[cnr]
             acc[outcome] += 1
             # decodes beyond the one expected packet: false decodes out of
             # noise or FCS-collision garbage
             acc["extra"] += max(0, ndecodes - 1)
+            stats_kv = "".join(f" {k}={v}" for k, v in sorted(stats.items()))
             verdicts.append(
                 f"cnr={cnr:g} t={ti} seed={seed} outcome={outcome} "
-                f"decodes={ndecodes}")
+                f"decodes={ndecodes}{stats_kv}")
             done += 1
             if done % tick and ti != args.trials - 1:
                 continue

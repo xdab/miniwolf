@@ -6,6 +6,7 @@
 #include "filter.h"
 #include "modem.h"
 #include "squelch.h"
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 
@@ -42,6 +43,7 @@ int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now, buffer_t
     assert_buffer_valid(out_frame_buf);
 
     int kept = 0;
+    rx->samples_in += (uint64_t)n;
     for (int i = 0; i < n; i++)
     {
         float s = bf_biquad_filter(&rx->hbf, samples[i]);
@@ -50,6 +52,7 @@ int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now, buffer_t
             continue;
         samples[kept++] = s;
     }
+    rx->squelch_drop += (uint64_t)(n - kept);
 
     if (kept == 0)
         return 0;

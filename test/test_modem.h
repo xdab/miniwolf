@@ -619,6 +619,66 @@ void test_modem_multi_rx_mixed_packets()
     md_multi_rx_free(&mrx);
 }
 
+void test_modem_multi_rx_stats()
+{
+    // 48 kHz: at 22050 Hz DCD never locks at all (0 locked samples even
+    // behind 128 preamble flags; decoding is unaffected) — a datum for the
+    // PLL characterization TODO
+    const float sample_rate = 48000.0f;
+    const int max_samples = test_modem_max_samples(sample_rate, 3.0f);
+    const int max_frame = 256;
+
+    struct md_multi_rx mrx;
+    test_modem_init_multi(&mrx, sample_rate, DEMOD_ALL);
+
+    struct md_tx tx;
+    // 500 ms preamble: 100 ms never raises DCD (needs 26/32 good transitions
+    // in the PLL history) — itself a datum for the PLL characterization TODO
+    md_tx_init(&tx, sample_rate, 500.0f, tx_tail);
+
+    ax25_packet_t packet;
+    test_modem_create_aprs_packet(&packet, "XX0TST", "APN001", "!5221.20N/02043.85E# STATS");
+
+    uint8_t packed_data[max_frame];
+    buffer_t packed_buf = {.data = packed_data, .capacity = (int)sizeof(packed_data), .size = 0};
+    assert_equal_int(ax25_packet_pack(&packet, &packed_buf), AX25_SUCCESS, "pack success");
+
+    float samples[max_samples];
+    float_buffer_t sample_buf = {.data = samples, .capacity = max_samples, .size = 0};
+    uint16_t frame_crc = 0;
+    int sample_count = md_tx_process(&tx, &packed_buf, &sample_buf, &frame_crc);
+    assert_true(sample_count > 0, "modulation successful");
+
+    uint8_t decoded[max_frame];
+    buffer_t decoded_buf = {.data = decoded, .capacity = (int)sizeof(decoded), .size = 0};
+    int decoded_len = md_multi_rx_process_at(&mrx, &sample_buf, &decoded_buf, 1000);
+
+    assert_true(decoded_len > 0, "demodulation successful");
+    // Delivery uncoupling: every demodulator completes the frame, not just
+    // the first winner
+    for (int i = 0; i < mrx.count; i++)
+    {
+        assert_equal_int((int)mrx.rxs[i].stats.frames_ok, 1, "each demod completed the frame");
+        assert_equal_int((int)mrx.rxs[i].stats.samples, sample_count, "samples counted");
+        assert_true(mrx.rxs[i].stats.bits > 0, "bits counted");
+        assert_true(mrx.rxs[i].stats.dcd_on > 0, "DCD-locked samples counted");
+    }
+    assert_equal_int((int)mrx.dedup_suppressed, 0, "nothing suppressed on first frame");
+
+    // A different modem reporting the same CRC within 1 s is suppressed
+    mrx.last_crc = frame_crc;
+    mrx.last_modem = 1; // the clean-frame winner is deterministically demod 0
+    mrx.last_time = 1000;
+    decoded_len = md_multi_rx_process_at(&mrx, &sample_buf, &decoded_buf, 1000);
+    assert_equal_int(decoded_len, 0, "duplicate frame suppressed");
+    assert_equal_int((int)mrx.dedup_suppressed, 1, "suppression counted");
+    for (int i = 0; i < mrx.count; i++)
+        assert_equal_int((int)mrx.rxs[i].stats.frames_ok, 2, "frames counted pre-dedup");
+
+    md_tx_free(&tx);
+    md_multi_rx_free(&mrx);
+}
+
 void test_modem_highlevel_init_free()
 {
     modem_t modem;

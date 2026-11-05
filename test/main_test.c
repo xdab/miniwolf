@@ -86,6 +86,7 @@ int main(void)
     // Multi-receiver and high-level API tests
     test_modem_multi_rx_basic();
     test_modem_multi_rx_mixed_packets();
+    test_modem_multi_rx_stats();
     test_modem_highlevel_init_free();
     end_module();
 

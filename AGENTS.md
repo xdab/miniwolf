@@ -35,7 +35,8 @@ end.
 `tools/` is the Python toolkit: `frame.py` (Bell202 generator + ground
 truth), `channel.py` (the transceiver channel: mobile fading, tone offset,
 CNR noise at the IF output), `ber.py` (PER-vs-C/N sweeps, paired seeds),
-`ber_combine.py` (overlay sweep logs). All stochastic tools take a `--seed`;
+`ber_combine.py` (overlay sweep logs), `loss_decomp.py` (stage + per-demod
+loss attribution over `ber.py --verdicts` files). All stochastic tools take a `--seed`;
 two runs sharing it draw identical channels (paired A/B).
 
 `data/` holds real capture material (WA8LMF TNC Test CD derivatives),

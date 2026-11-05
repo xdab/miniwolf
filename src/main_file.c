@@ -3,6 +3,7 @@
 #include "common.h"
 #include "demod.h"
 #include "device.h"
+#include "modem.h"
 #include "rx.h"
 #include "tnc2.h"
 #include <argp.h>
@@ -26,6 +27,7 @@ typedef struct file_args
     float gain_2200;
     int use_squelch;
     float squelch_strength;
+    int dump_stats;
 } file_args_t;
 
 static struct argp_option file_options[] = {
@@ -40,6 +42,7 @@ static struct argp_option file_options[] = {
     {"endian", 'e', "ENDIAN", 0, "Byte order: LE (little-endian, default) or BE (big-endian)", 2},
     {"eq2200", '2', "GAIN", 0, "Extra gain to apply at 2200Hz in dB (default: 0.0)", 2},
     {"squelch", 's', "STRENGTH", 0, "Enable squelch with given strength (0.0-1.0)", 2},
+    {"stats", 200, 0, 0, "Dump per-demodulator loss-attribution counters at exit", 2},
     {"verbose", 'v', 0, 0, "Enable verbose logs", 3},
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
     {0, 0, 0, 0, 0, 0}};
@@ -74,6 +77,9 @@ static error_t file_parse_opt(int key, char *arg, struct argp_state *state)
     case 's':
         args->use_squelch = 1;
         args->squelch_strength = (float)strtod(arg, NULL);
+        break;
+    case 200:
+        args->dump_stats = 1;
         break;
     case 'v':
         args->log_level = LOG_LEVEL_VERBOSE;
@@ -230,6 +236,13 @@ int main(int argc, char *argv[])
 
     LOG("Packets: %d", packet_count);
     LOG("Time in modem_demodulate: %.3f s", (float)total_time / CLOCKS_PER_SEC);
+    if (args.dump_stats)
+    {
+        LOG("STATS tag=chain samples_in=%llu squelch_drop=%llu",
+            (unsigned long long)rx.samples_in,
+            (unsigned long long)rx.squelch_drop);
+        md_stats_dump(&rx.mrx, "modem");
+    }
 
     rx_chain_free(&rx);
     device_free(dev);

@@ -43,7 +43,10 @@ vibes. Problem: nothing today says whether all three still earn their
 place, or which wins at what SNR. Intended shape: once the regression
 harness and BER sweep exist, score all three on the same captures and
 sweeps; keep the winners with measured justification, delete the rest.
-This entry deliberately waits on the synthetic regression gate above —
+The instrument exists: `tools/loss_decomp.py` attributes per-demod frame
+completion per C/N from `ber.py --verdicts` runs (first data: quadrature
+out-completes both Goertzel variants at the 4 dB knee). Still waits on the
+synthetic regression gate above —
 running the comparison now would just repeat the hand-tuned-tape ritual.
 
 ## Matched-filter correlator demodulator

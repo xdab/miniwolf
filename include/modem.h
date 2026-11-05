@@ -5,15 +5,26 @@
 #include "demod.h"
 #include "hldc.h"
 #include "mod.h"
+#include <stdint.h>
 #include <time.h>
 
 #define MD_RX_MAX 6
+
+// Per-demodulator loss-attribution counters (see tools/loss_decomp.py)
+typedef struct md_demod_stats
+{
+    uint64_t samples;   // samples fed to the demodulator
+    uint64_t bits;      // hard bits emitted by the bit clock
+    uint64_t dcd_on;    // samples with DCD locked
+    uint64_t frames_ok; // CRC-valid frames completed by the deframer
+} md_demod_stats_t;
 
 struct md_rx
 {
     demod_t demod;
     bitclk_t bit_detector;
     hldc_deframer_t deframer;
+    md_demod_stats_t stats;
 };
 
 struct md_multi_rx
@@ -25,6 +36,7 @@ struct md_multi_rx
     int last_modem;
     uint16_t last_crc;
     time_t last_time;
+    uint64_t dedup_suppressed;
 };
 
 struct md_tx
@@ -77,6 +89,9 @@ int md_multi_rx_process_at(
     time_t time);
 
 void md_multi_rx_free(struct md_multi_rx *mrx);
+
+// One LOG line: per-demod counters and dedup suppressions
+void md_stats_dump(const struct md_multi_rx *mrx, const char *tag);
 
 //
 

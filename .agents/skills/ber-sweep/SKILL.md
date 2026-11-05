@@ -97,3 +97,23 @@ convincing. Compare configurations with identical seed, trials, C/N grid,
 text length and channel arms; anything else is a confound, not a result.
 This is why probe and zoom logs land in `/tmp/ber` even unasked: the base arm
 of a future comparison already exists.
+
+## Loss attribution
+
+A PER number says how many trials died; `tools/loss_decomp.py` says where.
+`ber.py` always passes `--stats` to the binary and appends the per-demod
+counters (bits, DCD-locked samples, completed frames) and chain counters
+(squelch drops) to every `--verdicts` line; the decomposition stacks them per
+C/N into `squelch` / `dcd` / `deframe` / `dedup` / `wrong` / `ok` bands plus
+a per-demodulator frames table (which demod completes frames where — the
+data behind the demod-scoring question in TODOS.md):
+
+```sh
+python3 tools/loss_decomp.py /tmp/ber/base.v --out /tmp/ber/loss.png
+python3 tools/loss_decomp.py /tmp/ber/base.v /tmp/ber/knob.v \
+    --labels baseline knob --out /tmp/ber/ab_loss.png
+```
+
+Judge bands, not just the curve: a `deframe`-band loss has the opposite cure
+of a `squelch` one (method.md: "wrong choice" vs "right answer never
+offered"). Verdict files from an older binary decompose into `unknown`.
