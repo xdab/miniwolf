@@ -23,33 +23,6 @@ in the middle; the capture `-R` path from the harness entry falls out as a
 recording sink over the same interface. Acceptance test: `tools/frame.py`
 output decodes through the unified chain.
 
-## Channel impairments in frame.py
-
-Origin: rxx_lora's `tools/common.py` (`add_awgn` with a caller-owned
-`np.random.Generator`) and the channel arms its `ber.py` sweeps. `tools/frame.py`
-today emits only bit-perfect clean audio (the AWGN arm at a calibrated
-full-band audio SNR, `--snr`/`--seed`, is in — consumed by `tools/ber.py`).
-Intended shape: an optional degradation stage between modulation and file
-write, one flag per impairment, all driven by a `--seed`-seeded generator
-(paired A/B: same seed, same randomness, only the receiver differs — the
-pairing is the point):
-
-- frequency offset (CFO, Hz) — cheap receiver torture, relevant to the
-  "DC offset and frequency-error tolerance" entry below
-- sample-rate/timing offset (PPM) and fractional sample delay — bit clock
-  error, directly exercises `src/bitclk.c` PLL
-- amplitude/level scaling and (optionally) a squelch-burst / fade arm —
-  exercises DCD hysteresis recovery
-- volume arm extension mirrors rxx_lora's BER sweep ladder
-- **VHF mobile channel** (its own entry below — the impairment that matters
-  most in practice)
-
-Keep the generator itself deterministic and clean: impairments live in a
-separate function (sibling module when it grows), so `--seed` reproducibility
-stays exact. Not the intended shape: impairments hardcoded into `modulate()`.
-Blocked on nothing — cheap to add; will be consumed by the BER sweep tooling
-and the regression harness entries above.
-
 ## tools/regression.py commit gate (synthetic-first) and its perf twin
 
 Distinct from the capture harness below (that one needs real recordings and
