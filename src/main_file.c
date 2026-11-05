@@ -28,7 +28,39 @@ typedef struct file_args
     int use_squelch;
     float squelch_strength;
     int dump_stats;
+    unsigned int demod_types;
 } file_args_t;
+
+// Comma-separated demodulator names from optim/pesim/quad/all -> type mask
+static unsigned int demod_types_parse(const char *list)
+{
+    static const struct
+    {
+        const char *name;
+        unsigned int bit;
+    } names[] = {
+        {"optim", DEMOD_GOERTZEL_OPTIM},
+        {"pesim", DEMOD_GOERTZEL_PESIM},
+        {"quad", DEMOD_QUADRATURE},
+        {"all", DEMOD_ALL},
+    };
+
+    unsigned int types = 0;
+    char *dup = strdup(list);
+    EXITIF(!dup, EXIT_FAILURE, "demods list allocation failed");
+    for (char *tok = strtok(dup, ","); tok; tok = strtok(NULL, ","))
+    {
+        unsigned int bit = 0;
+        for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++)
+            if (strcmp(tok, names[i].name) == 0)
+                bit = names[i].bit;
+        EXITIF(bit == 0, EXIT_FAILURE, "unknown demodulator '%s' (optim, pesim, quad, all)", tok);
+        types |= bit;
+    }
+    free(dup);
+    EXITIF(types == 0, EXIT_FAILURE, "empty demodulator list");
+    return types;
+}
 
 static struct argp_option file_options[] = {
     {"file", 'f', "FILE", 0, "Input raw or WAV audio file (required)", 1},
@@ -43,6 +75,12 @@ static struct argp_option file_options[] = {
     {"eq2200", '2', "GAIN", 0, "Extra gain to apply at 2200Hz in dB (default: 0.0)", 2},
     {"squelch", 's', "STRENGTH", 0, "Enable squelch with given strength (0.0-1.0)", 2},
     {"stats", 200, 0, 0, "Dump per-demodulator loss-attribution counters at exit", 2},
+    {"demods",
+     201,
+     "LIST",
+     0,
+     "Demodulators to run, comma-separated from optim, pesim, quad, all (default: all)",
+     2},
     {"verbose", 'v', 0, 0, "Enable verbose logs", 3},
     {"debug", 'V', 0, 0, "Enable verbose and debugging logs", 3},
     {0, 0, 0, 0, 0, 0}};
@@ -81,6 +119,9 @@ static error_t file_parse_opt(int key, char *arg, struct argp_state *state)
     case 200:
         args->dump_stats = 1;
         break;
+    case 201:
+        args->demod_types = demod_types_parse(arg);
+        break;
     case 'v':
         args->log_level = LOG_LEVEL_VERBOSE;
         break;
@@ -109,6 +150,7 @@ static void file_args_parse(int argc, char *argv[], file_args_t *args)
     args->gain_2200 = 0.0f;
     args->use_squelch = 0;
     args->squelch_strength = 0.50f;
+    args->demod_types = DEMOD_ALL;
 
     argp_parse(&file_argp, argc, argv, 0, 0, args);
     // type/bits/little_endian stay 0/0/-1 when no -F/-e was given so a WAV
@@ -165,7 +207,7 @@ int main(int argc, char *argv[])
                              .gain_2200 = args.gain_2200,
                              .use_squelch = args.use_squelch,
                              .squelch_strength = args.squelch_strength,
-                             .types = DEMOD_QUADRATURE | DEMOD_ALL_GOERTZEL};
+                             .types = (demod_type_t)args.demod_types};
     rx_chain_t rx;
     rx_chain_init(&rx, &rx_params);
 

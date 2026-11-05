@@ -37,3 +37,12 @@ Current contents (place files as listed):
 
   This is the baseline every future sweep A/Bs against; regenerate with
   `python3 tools/ber.py --cnr-min 0 --cnr-max 10 --cnr-step 1 --trials 300`.
+
+  Demodulator ranking (same sweep, 300 trials/point, `--demods` solo arms):
+  quadrature is the best solo demodulator at every C/N (PER 55% vs 61%
+  optim / 62% pesim at 4 dB; 17% vs 23% at 5 dB); the two Goertzel tunings
+  are near-identical to each other and ~0.5 dB behind quadrature. In the
+  default race the output is dominated by goertzel-optim by first-wins
+  order (300/300 wins from 6 dB), quadrature contributing knee rescues
+  (21/300 wins at 4 dB), goertzel-pesim practically none (6) despite
+  completing as many frames as optim.

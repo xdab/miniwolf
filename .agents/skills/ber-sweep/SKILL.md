@@ -117,3 +117,18 @@ python3 tools/loss_decomp.py /tmp/ber/base.v /tmp/ber/knob.v \
 Judge bands, not just the curve: a `deframe`-band loss has the opposite cure
 of a `squelch` one (method.md: "wrong choice" vs "right answer never
 offered"). Verdict files from an older binary decompose into `unknown`.
+
+## Demodulator shootout
+
+`miniwolf_file --demods LIST` runs a subset of the demodulators (comma-
+separated from `optim`, `pesim`, `quad`, `all`; default `all`). Two
+complementary questions, two measurements:
+
+- **Solo curves** — one demodulator at a time, `--demods quad` etc.: its
+  true PER with no first-wins coupling. Sweep each arm and overlay with
+  `ber_combine.py`.
+- **Race wins** — the default `all` run: the verdict lines carry per-demod
+  `frames` (completed pre-dedup) and `wins` (delivered the output);
+  `loss_decomp.py` prints the frames/wins table. A demod whose `frames`
+  dwarf its `wins` is being shadowed by a faster sibling; a demod with
+  frames everywhere but no solo curve wins is completing junk.

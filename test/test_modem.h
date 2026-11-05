@@ -664,6 +664,9 @@ void test_modem_multi_rx_stats()
         assert_true(mrx.rxs[i].stats.dcd_on > 0, "DCD-locked samples counted");
     }
     assert_equal_int((int)mrx.dedup_suppressed, 0, "nothing suppressed on first frame");
+    assert_equal_int((int)mrx.rxs[0].stats.wins, 1, "winner credited");
+    for (int i = 1; i < mrx.count; i++)
+        assert_equal_int((int)mrx.rxs[i].stats.wins, 0, "non-winners not credited");
 
     // A different modem reporting the same CRC within 1 s is suppressed
     mrx.last_crc = frame_crc;
@@ -674,6 +677,7 @@ void test_modem_multi_rx_stats()
     assert_equal_int((int)mrx.dedup_suppressed, 1, "suppression counted");
     for (int i = 0; i < mrx.count; i++)
         assert_equal_int((int)mrx.rxs[i].stats.frames_ok, 2, "frames counted pre-dedup");
+    assert_equal_int((int)mrx.rxs[0].stats.wins, 2, "wins counted pre-dedup");
 
     md_tx_free(&tx);
     md_multi_rx_free(&mrx);

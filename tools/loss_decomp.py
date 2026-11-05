@@ -89,9 +89,10 @@ def bucket(trial: dict) -> str:
 
 
 def load_verdicts(path):
-    """One verdict file -> ({cnr: Counter(bucket)}, {cnr: {rx: frames}})."""
+    """One verdict file -> per-C/N bucket, per-demod frames and wins tables."""
     rows = collections.defaultdict(collections.Counter)
     per_demod = collections.defaultdict(collections.Counter)
+    per_wins = collections.defaultdict(collections.Counter)
     with open(path) as fh:
         for line in fh:
             trial = dict(ROW.findall(line))
@@ -102,8 +103,9 @@ def load_verdicts(path):
             i = 0
             while f"rx{i}_frames" in trial:
                 per_demod[cnr][i] += int(trial[f"rx{i}_frames"])
+                per_wins[cnr][i] += int(trial.get(f"rx{i}_wins", 0))
                 i += 1
-    return rows, per_demod
+    return rows, per_demod, per_wins
 
 
 def print_table(path, rows):
@@ -123,20 +125,21 @@ def print_table(path, rows):
         print(line)
 
 
-def print_demods(path, per_demod):
+def print_demods(path, per_demod, per_wins):
     """Which demodulator completes frames at which C/N (decode owners)."""
     snrs = sorted(per_demod)
     if not snrs:
         return
     max_rx = max(max(d) for d in per_demod.values()) + 1
-    print(f"\n{os.path.basename(path)} — frames per demodulator")
+    print(f"\n{os.path.basename(path)} — frames/wins per demodulator")
     head = f"  {'C/N':>6}"
     head += "".join(
         f" {DEMOD_NAMES[i] if i < len(DEMOD_NAMES) else f'rx{i}':>16}" for i in range(max_rx))
     print(head)
     for cnr in snrs:
         line = f"  {cnr:6g}"
-        line += "".join(f" {per_demod[cnr].get(i, 0):16d}" for i in range(max_rx))
+        line += "".join(
+            f" {per_demod[cnr].get(i, 0):>7d}/{per_wins[cnr].get(i, 0):<8d}" for i in range(max_rx))
         print(line)
 
 
@@ -151,7 +154,7 @@ def plot(files, labels, out):
     )
     axes = axes[0]
     for ax, path, label in zip(axes, files, labels):
-        rows, _ = load_verdicts(path)
+        rows, _, _ = load_verdicts(path)
         snrs = sorted(rows)
         x = np.array(snrs)
         bottom = np.zeros(len(snrs))
@@ -192,9 +195,9 @@ def main():
     if len(labels) != len(args.verdicts):
         p.error(f"--labels {len(labels)} != {len(args.verdicts)} verdict files")
     loaded = [load_verdicts(path) for path in args.verdicts]
-    for path, (rows, per_demod) in zip(args.verdicts, loaded):
+    for path, (rows, per_demod, per_wins) in zip(args.verdicts, loaded):
         print_table(path, rows)
-        print_demods(path, per_demod)
+        print_demods(path, per_demod, per_wins)
     plot(args.verdicts, labels, args.out)
 
 

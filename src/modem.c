@@ -47,7 +47,7 @@ void md_stats_dump(const struct md_multi_rx *mrx, const char *tag)
     {
         const md_demod_stats_t *s = &mrx->rxs[i].stats;
         LOG("STATS tag=%s rx%d_samples=%llu rx%d_bits=%llu rx%d_dcd=%llu "
-            "rx%d_frames=%llu",
+            "rx%d_frames=%llu rx%d_wins=%llu",
             tag,
             i,
             (unsigned long long)s->samples,
@@ -56,7 +56,9 @@ void md_stats_dump(const struct md_multi_rx *mrx, const char *tag)
             i,
             (unsigned long long)s->dcd_on,
             i,
-            (unsigned long long)s->frames_ok);
+            (unsigned long long)s->frames_ok,
+            i,
+            (unsigned long long)s->wins);
     }
     LOG("STATS tag=%s dedup_suppressed=%llu", tag, (unsigned long long)mrx->dedup_suppressed);
 }
@@ -101,6 +103,9 @@ int md_multi_rx_process_at(
             modem = i;
         }
     }
+
+    if (modem >= 0)
+        mrx->rxs[modem].stats.wins++;
 
     if (ret > 0)
     {

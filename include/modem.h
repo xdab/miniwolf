@@ -17,6 +17,7 @@ typedef struct md_demod_stats
     uint64_t bits;      // hard bits emitted by the bit clock
     uint64_t dcd_on;    // samples with DCD locked
     uint64_t frames_ok; // CRC-valid frames completed by the deframer
+    uint64_t wins;      // frames this demod delivered to the output
 } md_demod_stats_t;
 
 struct md_rx
