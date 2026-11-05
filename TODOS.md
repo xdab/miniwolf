@@ -34,6 +34,44 @@ any regression. Perf twin wraps the same cases in `miniwolf_file`'s existing
 timing output and records decode-time-per-track so the zero-copy and
 vectorization entries can prove their numbers. Blocked on nothing.
 
+## Channel noise calibration: fix sigma scaling and duty referencing, re-baseline
+
+The channel model under-scales noise by a factor of 2 (3.01 dB): the sigma
+formula divides by 2 as if it were a per-component std-dev, but it
+multiplies a unit-total-power complex shape, so actual noise power is
+half the claimed C/N. Compounded with duty referencing (noise scaled to
+the whole-file mean carrier power — 0.53 at 65% duty — instead of the
+keyed carrier: +2.73 dB in-frame), a sweep labeled "C/N 4 dB" actually
+tests the receiver at ~9.8 dB in-frame (audit-measured). All absolute
+C/N labels on measured baselines and theory overlays are shifted
+accordingly; paired-seed A/B comparisons remain valid (deterministic
+offset). Fix the scaling, reference noise to the keyed carrier, re-run
+the reference sweeps, re-record data/README.md. Open after the fix: the
+duty arm decoded the same as the base arm despite ~2.8 dB different
+effective C/N — reconcile (hiss-gap acquisition cost, AGC envelope
+during silence, or a second bookkeeping error).
+
+## Narrow the IF before the discriminator (near-Carson channel filter)
+
+The IF noise bandwidth is 25 kHz against a Carson bandwidth of ~7.4 kHz
+(dF=1.5 kHz) to ~10.4 kHz (dF=3 kHz) for the AFSK-over-FM link. Theory:
+raising rho_lim by 10*log10(25/10) = 4 dB and shrinking sigma_f (the
+Rice click rate scales with it) — the cheapest large win on the click
+waterfall. The knob already exists (`--mobile-if-bw`); measure the PER
+effect on the reference sweep, and check the demod's own audio path
+still sees enough tone (the AFSK audio occupies ~1.8 kHz, well inside).
+
+## Tone-detector window and click blanking
+
+The Goertzel tone detectors integrate over ~3.2 bit periods: matched
+integration is ~1 bit, so the long window buys SNR but adds ISI exactly
+where the click waterfall sits, and a ~1-bit window with good clock
+recovery lets a single clipped click no longer flip a decision at all
+(per the theory agent's threshold argument). Companion: a post-
+detection click blanker (blank the audio for ~1/B after a discriminator
+rail hit), estimated 0.5-2 dB at the cliff. Both are demod-interface
+changes and must be scored paired-seed against the recorded baseline.
+
 ## Re-score the surviving demods and cull by data
 
 Origin: three demodulators (quadrature, Goertzel, split-filter) are kept in
@@ -47,7 +85,10 @@ first-wins order while pesim wins almost nothing despite completing as
 many frames as optim. Remaining: cull pesim (worst solo, structurally
 voiceless in the race) and any further culling behind the synthetic
 regression gate above; re-verify on the WA8LMF tracks and real captures
-before deleting anything.
+before deleting anything. Multi-decoder diversity — several parallel
+decoders with different filters, accept any CRC-valid frame — already
+exists as the default race and measurably beats every solo arm by
+~0.5 dB.
 
 ## Race winner order and selection
 
@@ -75,6 +116,13 @@ shape of the symbol is exploited instead of just its energy. Intended
 shape: a `demod_corr.c`-style variant producing soft symbol confidence
 alongside the hard bit, slotted behind the existing demod interface so the
 regression gate can score it against the incumbents on equal footing.
+The far end of this direction: IF/baseband-domain detection (matched
+filter or MLSE over the FM waveforms) has no discriminator and therefore
+no click threshold at all — theory estimates a 5-7 dB gain over the
+discriminator receiver at the cliff (MLSE bound ~0.1 dB C/N at 50% PER,
+realistic 1-3 dB), but it needs a known deviation, carrier/tone-phase
+reference and CFO tracking. Only worth building if the discriminator
+chain is exhausted.
 Criticality: a wish, not a gap — worth doing only because the harness
 makes its verdict cheap.
 
