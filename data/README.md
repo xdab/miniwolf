@@ -26,23 +26,21 @@ Current contents (place files as listed):
   special-case tests (collisions, HT low-power, etc.).
 
 - Synthetic static-channel reference (tools/ber.py, no fading/CFO/baud
-  error, 48 kHz, 30-char UI frames, seed 1). Measured on the current chain:
+  error, 48 kHz, 30-char UI frames, seed 1, noise scaled to the keyed-frame
+  carrier at the stated C/N). Measured on the current chain:
 
-  - PER 50% at 4.0 dB C/N at the IF output; 15% at 5 dB; 3% at 6 dB
+  - PER 50% at 7.0 dB C/N at the IF output; 16% at 8 dB; 3% at 9 dB
     (300 trials/point).
-  - Clean (0/300) from 7 dB upward; flat 0/5000 across 20-28 dB
-    (1000 trials/point).
+  - Clean (0/300) from 10 dB upward (checked to 16 dB).
   - All failures are `none` (no output), never `wrong`: zero false decodes
-    at any C/N. Below-threshold survivors decay exponentially (1/300 at 2 dB).
+    at any C/N.
 
+  Theory reference: `tools/ber_theory.py` (Rice click-noise model +
+  noncoherent FSK, same framing) puts its 50% point at ~7.8 dB — the
+  measured receiver sits ~0.8 dB better, consistent with detector
+  integration smoothing the model's all-or-nothing click flips.
   This is the baseline every future sweep A/Bs against; regenerate with
-  `python3 tools/ber.py --cnr-min 0 --cnr-max 10 --cnr-step 1 --trials 300`.
-
-  Theoretical reference: `tools/ber_theory.py` (Rice click-noise model +
-  noncoherent FSK, same framing) sits ~3 dB to the right of the measured
-  curve with the same exponential slope - the click-flip approximation is
-  the pessimistic part, and measured "0" points are upper bounds at 300
-  trials.
+  `python3 tools/ber.py --cnr-min 4 --cnr-max 16 --cnr-step 1 --trials 300`.
 
   Demodulator ranking (same sweep, 300 trials/point, `--demods` solo arms):
   quadrature is the best solo demodulator at every C/N (PER 55% vs 61%
