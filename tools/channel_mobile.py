@@ -69,24 +69,51 @@ def fm_demodulate(iq: np.ndarray, rate: float, deviation: float,
     return np.asarray(np.clip(audio, -limiter, limiter), dtype=np.float32)
 
 
+def ptt_gate(audio: np.ndarray, rate: float, window_s: float = 0.0025) -> np.ndarray:
+    """Transmit keying mask: the FM transmitter is on the air only where the
+    audio is non-silent (rolling max envelope over window_s — an AFSK frame
+    never stays at zero that long; inter-frame silence does). Without this,
+    FM-modulating digital silence emits a constant full-power carrier, and
+    the gaps between frames would fade like a signal — picket fencing where
+    a real station has unkeyed and the receiver hears only its noise floor."""
+    block = max(1, int(window_s * rate))
+    n_blocks = (audio.size + block - 1) // block
+    padded = np.pad(np.abs(audio), (0, n_blocks * block - audio.size))
+    env = padded.reshape(n_blocks, block).max(axis=1)
+    return (np.repeat(env, block)[:audio.size] > 1e-9).astype(np.float64)
+
+
 def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
                    fc: float = 144.8e6, speed_kph: float = 90.0, k: float = 0.0,
                    cnr_db: float | None = 30.0, deviation: float = 3000.0,
-                   paths: int = 50, limiter: float = 3.0) -> np.ndarray:
+                   paths: int = 50, limiter: float = 3.0,
+                   ptt_window_s: float = 0.0025) -> np.ndarray:
     """The whole mobile link: FM modulate -> multipath fade -> thermal noise
     at the RF C/N -> limiter discriminator. fd from physical speed at the
     carrier (90 km/h at 144.8 MHz is ~12.1 Hz Doppler spread); noise power is
     set against the clean carrier power so C/N means what a radio spec means.
     cnr_db=None skips the RF noise (pure fading) — for stacking further
-    impairments on top, e.g. audio AWGN after the discriminator."""
+    impairments on top, e.g. audio AWGN after the discriminator. The TX is
+    keyed only where audio is present (ptt_window_s=0 keeps the carrier
+    permanently on — useful for tone tests, wrong for inter-frame gaps)."""
     c = 3.0e8
     fd = (speed_kph / 3.6) / (c / fc)
+    gate = None if ptt_window_s <= 0 else ptt_gate(audio, rate, ptt_window_s)
     tx = fm_modulate(audio, rate, deviation)
+    if gate is not None:
+        tx = tx * gate
+        # C/N references the keyed carrier; with nothing keyed on at all
+        # there is no carrier to reference — fall back to a unit carrier
+        # so a fully-silent input still yields calibrated noise-only hiss
+        keyed = tx[gate > 0]
+        noise_ref = keyed if keyed.size else np.ones(1)
+    else:
+        noise_ref = tx
     faded = tx * clarke_channel(tx.size, rate, fd, rng, k, paths)
     rx = faded
     if cnr_db is not None:
         cnr = 10.0 ** (cnr_db / 10.0)
-        sigma = np.sqrt(np.mean(np.abs(tx) ** 2) / cnr / 2.0)
+        sigma = np.sqrt(np.mean(np.abs(noise_ref) ** 2) / cnr / 2.0)
         rx = faded + sigma * (rng.standard_normal(tx.size)
                               + 1j * rng.standard_normal(tx.size))
     return fm_demodulate(rx, rate, deviation, limiter)
@@ -106,13 +133,17 @@ def main() -> int:
     p.add_argument("--paths", type=int, default=50, help="multipath scatterer count (default: 50)")
     p.add_argument("--limiter", type=float, default=3.0,
                    help="discriminator output clamp in deviation units (default: 3)")
+    p.add_argument("--ptt-gate", type=float, default=0.0025, metavar="S",
+                   help="TX keying envelope window in seconds; 0 keeps the "
+                        "carrier permanently on (default: 0.0025)")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (default: 0)")
     args = p.parse_args()
 
     audio = np.fromfile(args.infile, dtype=np.float32)
     out = mobile_channel(audio, args.rate, np.random.default_rng(args.seed),
                          args.fc, args.speed, args.k, args.cnr,
-                         args.deviation, args.paths, args.limiter)
+                         args.deviation, args.paths, args.limiter,
+                         args.ptt_gate)
     out.tofile(args.out)
     fd = (args.speed / 3.6) / (3.0e8 / args.fc)
     print(f"mobile: {args.speed:g} km/h at {args.fc / 1e6:g} MHz "
