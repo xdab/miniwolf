@@ -53,9 +53,12 @@ before deleting anything.
 
 The default race delivers frames first-wins in demod-bit order, so
 goertzel-optim (bit 0) shadows the others regardless of merit
-(data/README.md: 300/300 wins from 6 dB). Ideas, each a paired-seed A/B
-against the recorded race baseline: (a) reorder the race — quadrature
-first (`--demods quad,optim` with optim rescue) vs optim-first; (b)
+(data/README.md: 300/300 wins from 6 dB). Measured: quad-first
+(`--demods quad,optim`) is +0.7% PER at the knee and identical elsewhere
+— quadrature completes more frames including marginal ones that pre-empt
+optim's clean decodes, and costs more CPU — so optim-first stands.
+Remaining ideas, each a paired-seed A/B
+against the recorded race baseline: (b)
 select the winning frame per frame by demod confidence instead of
 completion order (needs the soft-bit path); (c) deliver ALL demods'
 frames and let dedup collapse them, so order stops mattering. The race
