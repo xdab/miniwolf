@@ -67,6 +67,7 @@ build/
 
 # IDEs and editors
 .vscode/
+.zcode/
 
 # Release packages
 *.tar.gz
