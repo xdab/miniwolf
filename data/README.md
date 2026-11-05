@@ -24,3 +24,16 @@ Current contents (place files as listed):
   Track content per the CD's `_READme.htm`: track 1 = clean 144.39 MHz APRS
   recording; tracks 2+ add distance/degradation; track 5-7 are short
   special-case tests (collisions, HT low-power, etc.).
+
+- Synthetic static-channel reference (tools/ber.py, no fading/CFO/baud
+  error, 48 kHz, 30-char UI frames, seed 1). Measured on the current chain:
+
+  - PER 50% at 4.0 dB C/N at the IF output; 15% at 5 dB; 3% at 6 dB
+    (300 trials/point).
+  - Clean (0/300) from 7 dB upward; flat 0/5000 across 20-28 dB
+    (1000 trials/point).
+  - All failures are `none` (no output), never `wrong`: zero false decodes
+    at any C/N. Below-threshold survivors decay exponentially (1/300 at 2 dB).
+
+  This is the baseline every future sweep A/Bs against; regenerate with
+  `python3 tools/ber.py --cnr-min 0 --cnr-max 10 --cnr-step 1 --trials 300`.

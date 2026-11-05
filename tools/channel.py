@@ -145,7 +145,16 @@ def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
         noise_ref = keyed if keyed.size else np.ones(1)
     else:
         noise_ref = tx
-    faded = tx * clarke_channel(tx.size, rate, fd, rng, k, paths)
+    if fd == 0.0:
+        # Static reference station: no fading. clarke_channel with fd=0
+        # freezes the scatterer sum into ONE constant gain for the whole
+        # file — a per-trial Rayleigh lottery of whole-file attenuation
+        # while the noise references the un-faded carrier, so "C/N 28"
+        # trials could sit at an effective 0 dB. A stated C/N must mean
+        # what the receiver gets.
+        faded = tx
+    else:
+        faded = tx * clarke_channel(tx.size, rate, fd, rng, k, paths)
     rx = faded
     if cnr_db is not None:
         cnr = 10.0 ** (cnr_db / 10.0)
