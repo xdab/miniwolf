@@ -29,7 +29,7 @@ int mod_process(modulator_t *mod, int bit, float_buffer_t *out_samples_buf)
     nonnull(mod, "mod");
     assert_buffer_valid(out_samples_buf);
 
-    int num_samples = 1 + (int)(mod->sample_rate / mod->baud_rate);
+    int num_samples = (int)(mod->sample_rate / mod->baud_rate);
     if (!fbuf_has_capacity_ge(out_samples_buf, num_samples))
         return -1;
     out_samples_buf->size = num_samples;

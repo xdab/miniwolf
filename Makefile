@@ -39,16 +39,16 @@ test: build
 	./build/mw_test
 
 prof: build
-	valgrind --tool=callgrind ./build/mw_bench -v -F S16 -r 22050 -f tnctest01_22050_S16.raw
+	valgrind --tool=callgrind ./build/mw_bench -v -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
 bench: release
-	./build/mw_bench -F F32 -r 22050 -f bench.raw -2 3.0 
+	./build/mw_bench -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
 bench1: release
-	./build/mw_bench -F S16 -r 22050 -f tnctest01_22050_S16.raw
+	./build/mw_bench -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
 bench2: release
-	./build/mw_bench -F S16 -r 22050 -f tnctest02_22050_S16.raw -2 5.0
+	./build/mw_bench -F S16 -r 22050 -f data/tnctest02_22050Hz_mono_S16LE.raw -2 5.0
 
 C_SOURCES := $(wildcard src/*.c include/*.h test/*.c test/*.h)
 
