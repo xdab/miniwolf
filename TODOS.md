@@ -59,20 +59,6 @@ PLL work, and performance claims are all guesses until it exists. Open
 question: whether ground truth comes from Direwolf on the same audio or
 from hand-verified decodes of clean captures.
 
-## Paired-seed BER sweep tooling
-
-Origin: rxx_lora's `tools/ber.py` / `ber_combine.py`, which miniwolf has no
-analogue of. The intended shape: generate synthetic Bell202 frames, degrade
-them at calibrated SNR (AWGN arm at minimum; volume and frequency-offset
-arms are the natural extensions), sweep the noise ladder, and plot
-PER-vs-SNR for two receiver variants on **common seeds** — paired A/B, so a
-demod change on identical randomness means differences are attributable to
-the change. Critical: without it, "the correlator demod beats Goertzel at
-low SNR" is unfalsifiable. The existing `main_bench` and `test/` unit tests
-exercise correctness, not sensitivity; this is the tool that measures the
-latter. Not the intended shape: per-variant independently chosen seeds —
-that reintroduces luck as a variable.
-
 ## Re-score the surviving demods and cull by data
 
 Origin: three demodulators (quadrature, Goertzel, split-filter) are kept in
@@ -84,25 +70,6 @@ harness and BER sweep exist, score all three on the same captures and
 sweeps; keep the winners with measured justification, delete the rest.
 This entry deliberately waits on the two harness entries above —
 running the comparison now would just repeat the hand-tuned-tape ritual.
-
-## Dual SNR accounting: audio SNR and FM-equivalent RF C/N
-
-Extension to the BER sweep above. rxx_lora sweeps a single well-defined
-SNR; an AFSK-over-FM receiver has two meaningful noise references and
-conflating them makes published numbers incomparable. Axis 1 — **audio
-SNR**: noise power measured directly on the demodulated Bell202 audio miniwolf
-consumes (the natural number for demod A/B, and what the AWGN arm applies).
-Axis 2 — **FM-equivalent RF C/N**: the carrier-to-noise ratio an amateur
-transceiver's FM demodulator needs *at RF* to produce that audio SNR at its
-speaker output — computed through the FM improvement factor and the FM
-threshold/capture effect (~12 dB C/N knee, below which audio SNR collapses
-regardless of demod audio SNR). This is the number comparable against
-real-world statements like "the packet was decodable at 12 dB SINAD" or
-handheld specs. Intended shape: the BER table prints both columns — the
-measured audio SNR actually applied, and the derived RF C/N via the standard
-FM relation — so a PER-vs-SNR plot can be annotated in whichever reference
-the reader thinks in. Blocked on the BER sweep existing; the math is a
-closed-form overlay like rxx_lora's `--theory` BER line.
 
 ## Matched-filter correlator demodulator
 

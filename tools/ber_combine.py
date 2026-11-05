@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Overlay several ber.py sweeps on one PER-vs-audio-SNR plot."""
+"""Overlay several ber.py sweeps on one PER-vs-C/N plot."""
 
 import argparse
 import os
@@ -18,7 +18,7 @@ ROW = re.compile(
 # ber.py's header line: "PER over AWGN audio 48000 Hz text 30 chars 50
 # trials/point seed=1"
 HEAD = re.compile(
-    r"PER over AWGN\s+audio\s+([\d.]+)\s+Hz\s+text\s+(\d+)\s+chars\s+"
+    r"PER(?: over AWGN| vs C/N)\s+audio\s+([\d.]+)\s+Hz\s+text\s+(\d+)\s+chars\s+"
     r"(\d+) trials/point\s+seed=(\d+)(?:\s+arms=(.*?))?\s*$")
 COLORS = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown"]
 
@@ -41,7 +41,7 @@ def parse(path):
     if not rows:
         raise SystemExit(f"{path}: no data rows")
     rate, text_len, trials, seed, arms = head
-    arms = (arms or "clean").strip()
+    arms = (arms or "static").strip()
     a = np.array(rows)
     return {
         "rate": float(rate),
@@ -107,10 +107,10 @@ def main():
         ends.append(d["snr"][d["per"] > 0])
 
     d0 = sweeps[0]
-    ax.set_xlabel("audio SNR / RF C/N [dB]")
+    ax.set_xlabel("C/N at the IF output [dB]")
     ax.set_ylabel("packet error rate")
     ax.set_title(
-        f"miniwolf_bench end-to-end PER over AWGN — {d0['rate']:g} Hz, "
+        f"miniwolf_bench end-to-end PER over C/N — {d0['rate']:g} Hz, "
         f"{d0['text_len']} chars, {d0['trials']} trials/point, seed="
         f"{d0['seed']}\n"
         "open markers = SNR points with false decodes; "

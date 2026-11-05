@@ -20,12 +20,13 @@ whole transmission, matching src/synth.c); --phase-reset switches frequency
 per symbol by resetting phase to 0, which introduces hard phase jumps and is
 there to A/B how the demods tolerate a non-continuous transmitter.
 
-The channel arms stack (--mobile first, then --burst/--cfo/--ppm/--delay,
-AWGN last via --snr), all driven: AWGN at a calibrated audio SNR (dB), driven
-by --seed via a caller-owned np.random.Generator so paired A/B runs (same
-seed, only the receiver differs) see identical randomness. Further arms live
-in tools/impairments.py: --cfo (frequency offset), --ppm/--delay (bit-clock
-error), --burst (one squelch burst mid-frame).
+The channel arms live in tools/channel.py and stack: --cfo shifts the AFSK
+tone pair, --mobile adds VHF picket fencing, --cnr adds receiver thermal
+noise as C/N in dB at the IF filter's output (audio SNR is a deprecated
+quantity here). The TX clock error is not a channel arm: --baud 1200.3
+simply transmits at that clock. Everything stochastic is driven by --seed
+via a caller-owned np.random.Generator, so paired A/B runs (same seed, only
+the receiver differs) see identical randomness.
 """
 
 import argparse
@@ -35,7 +36,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import impairments
+import channel
 
 MARK_HZ = 1200.0
 SPACE_HZ = 2200.0
@@ -181,11 +182,6 @@ def tnc2(dest: str, source: str, digis: list[str], text: str) -> str:
     return f"{source.upper()}>{dest.upper()}{',' + path if path else ''}:{text}"
 
 
-def add_awgn(x: np.ndarray, snr_db: float, rng: np.random.Generator) -> np.ndarray:
-    """Alias for impairments.add_awgn (tools/ber.py imports it from here)."""
-    return impairments.add_awgn(x, snr_db, rng)
-
-
 def main() -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -195,7 +191,7 @@ def main() -> int:
     p.add_argument("--source", default="N0CALL", help="source callsign (default: N0CALL)")
     p.add_argument("--digi", action="append", default=[], help="digipeater call[-ssid], repeatable, in path order")
     p.add_argument("-r", "--rate", type=float, default=48000.0, help="sample rate Hz (default: 48000)")
-    p.add_argument("--baud", type=float, default=BAUD, help="baud rate (default: 1200)")
+    p.add_argument("--baud", type=float, default=BAUD, help="TX baud rate — set 1200.3 for a clock-error TX (default: 1200)")
     p.add_argument("--mark", type=float, default=MARK_HZ, help="mark Hz for tone bit 1 (default: 1200)")
     p.add_argument("--space", type=float, default=SPACE_HZ, help="space Hz for tone bit 0 (default: 2200)")
     p.add_argument("--amplitude", type=float, default=0.5, help="peak amplitude 0..1 (default: 0.5)")
@@ -213,28 +209,41 @@ def main() -> int:
                         "and fading alive in the gap")
     p.add_argument("--phase-reset", action="store_true",
                    help="reset phase at each symbol (hard jumps) instead of continuous phase")
-    p.add_argument("--snr", type=float, default=None,
-                   help="apply AWGN at this audio SNR in dB (default: none, clean audio)")
+    p.add_argument("--cnr", type=float, default=None, metavar="DB",
+                   help="receiver thermal noise as C/N in dB at the IF "
+                        "filter's output (tools/channel.py); without "
+                        "--mobile this is the static-station reference "
+                        "channel")
     p.add_argument("--cfo", type=float, default=None, metavar="HZ",
-                   help="frequency offset in Hz (default: none)")
-    p.add_argument("--ppm", type=float, default=None, metavar="PPM",
-                   help="sample-rate error in ppm (default: none)")
-    p.add_argument("--delay", type=float, default=None, metavar="SAMPLES",
-                   help="fractional sample delay (default: none)")
-    p.add_argument("--burst", type=float, default=None, metavar="S",
-                   help="one squelch burst of this many seconds, zeroing audio "
-                        "at a --seed-drawn position inside the frame")
+                   help="AFSK tone-pair offset from the nominal 1200/2200 Hz "
+                        "in Hz (default: none)")
     p.add_argument("--mobile", type=float, default=None, metavar="KPH",
-                   help="VHF mobile fading channel (tools/channel_mobile.py): "
-                        "vehicle speed; stacks with the other arms")
-    p.add_argument("--mobile-cnr", type=float, default=None, dest="mobile_cnr",
-                   metavar="DB", help="RF C/N of the mobile link (default: "
-                   "none, pure fading, no RF noise)")
+                   help="VHF mobile fading — picket fencing (tools/channel.py): "
+                        "vehicle speed; 0 = parked in multipath")
     p.add_argument("--mobile-k", type=float, default=0.0, dest="mobile_k",
-                   metavar="K", help="Rician K factor for --mobile, 0 = Rayleigh")
+                   metavar="K", help="Rician K factor for --mobile, 0 = "
+                   "Rayleigh, large = open-road LOS")
+    p.add_argument("--mobile-fc", type=float, default=144.8e6, dest="mobile_fc",
+                   help="RF carrier Hz (default: 144.8 MHz, NA APRS)")
+    p.add_argument("--mobile-deviation", type=float, default=3000.0,
+                   dest="mobile_deviation", metavar="HZ",
+                   help="FM deviation Hz (default: 3000)")
+    p.add_argument("--mobile-paths", type=int, default=50, dest="mobile_paths",
+                   metavar="N", help="multipath scatterer count (default: 50)")
+    p.add_argument("--mobile-if-bw", type=float, default=25000.0,
+                   dest="mobile_if_bw", metavar="HZ",
+                   help="IF/channel bandwidth Hz; 12.5/20/25 kHz NFM, "
+                        "0 disables (default: 25000)")
+    p.add_argument("--mobile-limiter", type=float, default=3.0,
+                   dest="mobile_limiter", metavar="X",
+                   help="discriminator clamp in deviation units (default: 3)")
+    p.add_argument("--mobile-ptt-gate", type=float, default=0.0025,
+                   dest="mobile_ptt_gate", metavar="S",
+                   help="TX keying envelope window in seconds; 0 keeps the "
+                        "carrier permanently on (default: 0.0025)")
     p.add_argument("--seed", type=int, default=0,
-                   help="RNG seed for --snr noise and --burst position; identical "
-                        "seeds draw identical channels across runs (paired A/B) "
+                   help="RNG seed for noise and fading; identical seeds draw "
+                        "identical channels across runs (paired A/B) "
                         "(default: 0)")
     args = p.parse_args()
 
@@ -263,29 +272,34 @@ def main() -> int:
     for text in texts:
         print(tnc2(args.dest, args.source, args.digi, text))
 
+    # The channel, transceiver-style (tools/channel.py): tone offset first,
+    # then the FM link — multipath (picket fencing), thermal noise at C/N
+    # measured at the IF output, IF filter, limiter discriminator. Runs over
+    # the WHOLE file, so inter-frame gaps carry stationary noise while only
+    # the distant station's signal fades. --mobile omitted gives the static
+    # reference channel; --cnr omitted gives pure fading, no noise.
     rng = np.random.default_rng(args.seed)
-    if args.mobile is not None:
-        import channel_mobile
-        audio = channel_mobile.mobile_channel(
-            audio, args.rate, rng, speed_kph=args.mobile, k=args.mobile_k,
-            cnr_db=args.mobile_cnr)
-    if args.burst is not None:
-        audio = impairments.squelch_burst(audio, args.rate, rng, args.burst)
     if args.cfo is not None:
-        audio = impairments.cfo_offset(audio, args.rate, args.cfo)
-    if args.ppm is not None:
-        audio = impairments.ppm_drift(audio, args.ppm)
-    if args.delay is not None:
-        audio = impairments.frac_delay(audio, args.delay)
-    if args.snr is not None:
-        audio = impairments.add_awgn(audio, args.snr, rng)
+        audio = channel.cfo_offset(audio, args.rate, args.cfo)
+    if args.cnr is not None or args.mobile is not None:
+        audio = channel.mobile_channel(
+            audio, args.rate, rng, fc=args.mobile_fc,
+            speed_kph=args.mobile if args.mobile is not None else 0.0,
+            k=args.mobile_k, cnr_db=args.cnr,
+            deviation=args.mobile_deviation, paths=args.mobile_paths,
+            limiter=args.mobile_limiter, ptt_window_s=args.mobile_ptt_gate,
+            if_bw=args.mobile_if_bw)
 
     with open(args.out, "wb") as f:
         f.write(audio.tobytes())
 
     dur = len(audio) / args.rate
-    print(f"{args.frames} frame(s), {dur:.3f} s, {args.out}", file=sys.stderr)
-    print(tnc2(args.dest, args.source, args.digi, args.text))
+    chan = " ".join(f"{k}={v}" for k, v in (
+        ("cfo", args.cfo), ("baud", args.baud if args.baud != BAUD else None),
+        ("mobile", args.mobile), ("K", args.mobile_k), ("cnr", args.cnr),
+        ("ifbw", args.mobile_if_bw)) if v is not None) or "clean"
+    print(f"{args.frames} frame(s), {dur:.3f} s, channel {chan}, {args.out}",
+          file=sys.stderr)
     return 0
 
 

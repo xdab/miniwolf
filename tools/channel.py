@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
-"""VHF mobile/fading channel: Bell202 audio in, faded FM audio out.
+"""The radio channel, as a transceiver sees it: Bell202 audio in, what the
+soundcard would deliver out.
 
-The chain a real 2 m mobile link applies to AFSK audio: the Bell202 signal
-frequency-modulates an RF carrier (NFM), the complex-baseband carrier passes
-through a Clarke multipath channel at the vehicle speed (Rayleigh; Rician
-with a K factor), receiver thermal noise is added at the chosen RF C/N, and
-an ideal limiter + phase-difference FM demodulator recovers the audio —
-including the click/pop static bursts real radios produce inside deep fades
-(the FM threshold effect). The output is shaped exactly like what miniwolf's
-soundcard input would see, so it feeds mw_bench or the live chain unchanged.
+One module, one definition each of the surviving impairments, so generator
+CLI and sweep tool cannot drift apart. The noise doctrine: audio SNR is a
+deprecated quantity here — noise is thermal, added at RF, and characterized
+as C/N in dB at the IF filter's output, exactly where a transceiver lives.
+The arms:
 
-The noise reference for this arm is RF C/N (carrier-to-noise at the
-demodulator input), NOT audio SNR — inside fades the discriminator is past
-threshold and audio SNR collapses regardless of the C/N number. The dual
-audio-SNR/RF-C/N accounting in TODOS.md is the bookkeeping layer for that.
+- mobile_channel() — the whole FM link: NFM modulate, Clarke/Rician
+  multipath (picket fencing; Rician K for open-road LOS), thermal noise at
+  C/N, IF channel filter, limiter discriminator. The receiver is stationary;
+  everything that fades is the distant station's signal.
+- cfo_offset() — the AFSK tone pair shifted off its nominal 1200/2200 Hz by
+  a constant offset (off-tune receiver / mis-centered transmitter).
+
+The TX clock error is not a channel function: the transmitter's baud rate
+simply IS what frame.py's --baud sets (1200.3 instead of 1200 — the clock
+error), so the generator models it at the source.
 
 Standalone use:
     python3 tools/frame.py --text hi -o clean.f32
-    python3 tools/channel_mobile.py -i clean.f32 -o mobile.f32 --speed 90
-    build/mw_bench -f mobile.f32 -r 48000
+    python3 tools/channel.py -i clean.f32 -o rx.f32 --speed 90 --cnr 25
+    build/mw_bench -f rx.f32 -r 48000
 """
 
 import argparse
@@ -26,6 +30,17 @@ import os
 import sys
 
 import numpy as np
+
+
+def cfo_offset(x: np.ndarray, rate: float, hz: float) -> np.ndarray:
+    """Frequency offset: real carrier multiply by cos(2*pi*hz*t).
+
+    A real translation — the tone pair moves together (1200->1200+hz,
+    2200->2200+hz) and an image term appears at the mirror frequencies,
+    which is what an off-tune receiver plus its audio band actually sees.
+    """
+    t = np.arange(x.size, dtype=np.float64) / rate
+    return np.asarray(x * np.cos(2.0 * np.pi * hz * t), dtype=np.float32)
 
 
 def fm_modulate(audio: np.ndarray, rate: float, deviation: float) -> np.ndarray:
