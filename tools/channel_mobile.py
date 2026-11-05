@@ -83,19 +83,41 @@ def ptt_gate(audio: np.ndarray, rate: float, window_s: float = 0.0025) -> np.nda
     return (np.repeat(env, block)[:audio.size] > 1e-9).astype(np.float64)
 
 
+def if_lowpass(iq: np.ndarray, rate: float, bw: float) -> np.ndarray:
+    """IF channel filter, complex baseband: windowed-sinc lowpass at bw/2
+    (bw = the channel bandwidth, 12.5/20/25 kHz for NFM). Without it, the
+    added noise is white across the whole Nyquist band, adjacent samples are
+    uncorrelated, and the discriminator sees near-uniform +-pi phase steps —
+    a full-scale hiss no real radio produces, because its IF filter has
+    already band-limited the noise before the limiter. Group delay of the
+    linear-phase FIR delays the whole file equally, which the demodulator
+    does not care about."""
+    if not bw or bw > 0 and bw >= rate:  # cutoff bw/2 already at Nyquist
+        return iq
+    taps = 129
+    fc = bw / 2.0 / rate
+    n = np.arange(taps) - (taps - 1) / 2
+    h = np.sinc(2 * fc * n) * np.hamming(taps)
+    h /= h.sum()
+    return np.convolve(iq, h, mode="same")
+
+
 def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
                    fc: float = 144.8e6, speed_kph: float = 90.0, k: float = 0.0,
                    cnr_db: float | None = 30.0, deviation: float = 3000.0,
                    paths: int = 50, limiter: float = 3.0,
-                   ptt_window_s: float = 0.0025) -> np.ndarray:
+                   ptt_window_s: float = 0.0025,
+                   if_bw: float = 25000.0) -> np.ndarray:
     """The whole mobile link: FM modulate -> multipath fade -> thermal noise
-    at the RF C/N -> limiter discriminator. fd from physical speed at the
-    carrier (90 km/h at 144.8 MHz is ~12.1 Hz Doppler spread); noise power is
-    set against the clean carrier power so C/N means what a radio spec means.
+    at the RF C/N (defined in the IF bandwidth, as radio specs define it) ->
+    IF channel filter -> limiter discriminator. fd from physical speed at
+    the carrier (90 km/h at 144.8 MHz is ~12.1 Hz Doppler spread).
     cnr_db=None skips the RF noise (pure fading) — for stacking further
     impairments on top, e.g. audio AWGN after the discriminator. The TX is
     keyed only where audio is present (ptt_window_s=0 keeps the carrier
-    permanently on — useful for tone tests, wrong for inter-frame gaps)."""
+    permanently on — useful for tone tests, wrong for inter-frame gaps).
+    if_bw is the IF/channel bandwidth (12.5/20/25 kHz NFM; 25 kHz wide NBFM
+    is amateur VHF simplex) — 0 or None disables the filter."""
     c = 3.0e8
     fd = (speed_kph / 3.6) / (c / fc)
     gate = None if ptt_window_s <= 0 else ptt_gate(audio, rate, ptt_window_s)
@@ -113,10 +135,15 @@ def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
     rx = faded
     if cnr_db is not None:
         cnr = 10.0 ** (cnr_db / 10.0)
+        # unit-power noise in the IF band: filter first, renormalize, then
+        # scale — so C/N holds in the bandwidth the receiver actually passes
+        shape = if_lowpass(rng.standard_normal(tx.size)
+                           + 1j * rng.standard_normal(tx.size),
+                           rate, if_bw)
+        shape /= np.sqrt(np.mean(np.abs(shape) ** 2))
         sigma = np.sqrt(np.mean(np.abs(noise_ref) ** 2) / cnr / 2.0)
-        rx = faded + sigma * (rng.standard_normal(tx.size)
-                              + 1j * rng.standard_normal(tx.size))
-    return fm_demodulate(rx, rate, deviation, limiter)
+        rx = faded + sigma * shape
+    return fm_demodulate(if_lowpass(rx, rate, if_bw), rate, deviation, limiter)
 
 
 def main() -> int:
@@ -133,6 +160,10 @@ def main() -> int:
     p.add_argument("--paths", type=int, default=50, help="multipath scatterer count (default: 50)")
     p.add_argument("--limiter", type=float, default=3.0,
                    help="discriminator output clamp in deviation units (default: 3)")
+    p.add_argument("--if-bw", type=float, default=25000.0, metavar="HZ",
+                   help="IF/channel bandwidth Hz before the limiter; "
+                        "12.5/20/25 kHz NFM channels, 0 disables (default: "
+                        "25000, wide NBFM amateur simplex)")
     p.add_argument("--ptt-gate", type=float, default=0.0025, metavar="S",
                    help="TX keying envelope window in seconds; 0 keeps the "
                         "carrier permanently on (default: 0.0025)")
@@ -143,7 +174,7 @@ def main() -> int:
     out = mobile_channel(audio, args.rate, np.random.default_rng(args.seed),
                          args.fc, args.speed, args.k, args.cnr,
                          args.deviation, args.paths, args.limiter,
-                         args.ptt_gate)
+                         args.ptt_gate, args.if_bw)
     out.tofile(args.out)
     fd = (args.speed / 3.6) / (3.0e8 / args.fc)
     print(f"mobile: {args.speed:g} km/h at {args.fc / 1e6:g} MHz "

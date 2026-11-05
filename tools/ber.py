@@ -209,6 +209,10 @@ def main() -> None:
                    dest="mobile_deviation", help="FM deviation Hz for --mobile (default: 3000)")
     p.add_argument("--mobile-paths", type=int, default=50, dest="mobile_paths",
                    help="multipath scatterer count for --mobile (default: 50)")
+    p.add_argument("--mobile-if-bw", type=float, default=25000.0,
+                   dest="mobile_if_bw",
+                   help="IF/channel bandwidth Hz for --mobile; 12.5/20/25 kHz "
+                        "NFM, 0 disables (default: 25000)")
     p.add_argument("--mobile-limiter", type=float, default=3.0,
                    dest="mobile_limiter",
                    help="discriminator clamp in deviation units for --mobile (default: 3)")
@@ -242,7 +246,8 @@ def main() -> None:
                                             ("mobile", args.mobile), ("K", args.k),
                                             ("fc", args.mobile_fc if args.mobile is not None else None),
                                             ("dev", args.mobile_deviation if args.mobile is not None else None),
-                                            ("cnr", args.mobile_cnr))
+                                            ("cnr", args.mobile_cnr),
+                                            ("ifbw", args.mobile_if_bw if args.mobile is not None else None))
                     if v is not None) or "clean"
     args.arms = arms
     print(f"PER over AWGN  audio {args.rate:g} Hz  text {args.text_len} chars  "
