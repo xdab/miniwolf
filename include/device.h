@@ -28,15 +28,9 @@ static inline int device_read(device_t *dev, float *buf, int max_samples)
 
 // Poll descriptor for integration with poll/epoll, or -1 when the device is
 // not pollable (file sources just read to EOF).
-static inline int device_poll_fd(const device_t *dev)
-{
-    return dev->ops->poll_fd(dev);
-}
+static inline int device_poll_fd(const device_t *dev) { return dev->ops->poll_fd(dev); }
 
-static inline void device_free(device_t *dev)
-{
-    dev->ops->free(dev);
-}
+static inline void device_free(device_t *dev) { dev->ops->free(dev); }
 
 // ALSA capture device. Expects aud_configure()/aud_start() to have set the
 // capture stream up first (main.c owns that; playback/TX stays with audio.c).

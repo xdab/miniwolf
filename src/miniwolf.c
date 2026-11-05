@@ -1,20 +1,19 @@
 #include "miniwolf.h"
-#include "agc.h"
-#include "audio.h"
 #include "common.h"
 #include "demod.h"
-#include "filter.h"
+#include "device.h"
 #include "kiss.h"
 #include "line.h"
 #include "loop.h"
 #include "modem.h"
 #include "options.h"
 #include "poller.h"
-#include "squelch.h"
+#include "rx.h"
 #include "tcp.h"
 #include "udp.h"
 #include "uds.h"
 #include <fcntl.h>
+#include <stdlib.h>
 #include <time.h>
 
 miniwolf_t g_miniwolf;
@@ -126,12 +125,11 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     if (opts->gain_2200 != 0.0f)
         LOGV("enabling high boost filter with gain of %f dB", opts->gain_2200);
 
-    rx_params_t rx_params = {
-        .sample_rate = sample_rate,
-        .gain_2200 = opts->gain_2200,
-        .use_squelch = opts->squelch > 0.0f,
-        .squelch_strength = opts->squelch,
-        .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE};
+    rx_params_t rx_params = {.sample_rate = sample_rate,
+                             .gain_2200 = opts->gain_2200,
+                             .use_squelch = opts->squelch > 0.0f,
+                             .squelch_strength = opts->squelch,
+                             .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE};
     rx_chain_init(&mw->rx, &rx_params);
 
     mw->device = device_open_alsa();

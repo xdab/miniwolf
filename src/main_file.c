@@ -1,16 +1,17 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <math.h>
-#include <time.h>
-#include <argp.h>
+#include "ax25.h"
+#include "buffer.h"
+#include "common.h"
+#include "demod.h"
 #include "device.h"
 #include "rx.h"
-#include "ax25.h"
 #include "tnc2.h"
-#include "common.h"
+#include <argp.h>
+#include <inttypes.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #define CHUNK_SIZE 2048
 
@@ -30,7 +31,12 @@ typedef struct file_args
 static struct argp_option file_options[] = {
     {"file", 'f', "FILE", 0, "Input raw or WAV audio file (required)", 1},
     {"rate", 'r', "RATE", 0, "Sample rate in Hz (default: 48000, WAV: from header)", 1},
-    {"format", 'F', "FORMAT", 0, "Raw audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32, WAV: from header)", 2},
+    {"format",
+     'F',
+     "FORMAT",
+     0,
+     "Raw audio format: F32, F64, S8, S16, S32, U8, U16, U32 (default: F32, WAV: from header)",
+     2},
     {"endian", 'e', "ENDIAN", 0, "Byte order: LE (little-endian, default) or BE (big-endian)", 2},
     {"eq2200", '2', "GAIN", 0, "Extra gain to apply at 2200Hz in dB (default: 0.0)", 2},
     {"squelch", 's', "STRENGTH", 0, "Enable squelch with given strength (0.0-1.0)", 2},
@@ -47,13 +53,13 @@ static error_t file_parse_opt(int key, char *arg, struct argp_state *state)
         args->input_file = arg;
         break;
     case 'r':
-        args->rate = atoi(arg);
+        args->rate = (int)strtol(arg, NULL, 10);
         break;
     case 'F':
         if (strlen(arg) >= 2)
         {
             args->type = arg[0];
-            args->bits = atoi(&arg[1]);
+            args->bits = (int)strtol(&arg[1], NULL, 10);
         }
         break;
     case 'e':
@@ -63,11 +69,11 @@ static error_t file_parse_opt(int key, char *arg, struct argp_state *state)
             args->little_endian = 1;
         break;
     case '2':
-        args->gain_2200 = atof(arg);
+        args->gain_2200 = (float)strtod(arg, NULL);
         break;
     case 's':
         args->use_squelch = 1;
-        args->squelch_strength = atof(arg);
+        args->squelch_strength = (float)strtod(arg, NULL);
         break;
     case 'v':
         args->log_level = LOG_LEVEL_VERBOSE;
@@ -84,10 +90,7 @@ static error_t file_parse_opt(int key, char *arg, struct argp_state *state)
 }
 
 static struct argp file_argp = {
-    file_options,
-    file_parse_opt,
-    "",
-    "Offline Bell202 demodulator for raw or WAV audio files"};
+    file_options, file_parse_opt, "", "Offline Bell202 demodulator for raw or WAV audio files"};
 
 static void file_args_parse(int argc, char *argv[], file_args_t *args)
 {
@@ -126,17 +129,17 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    device_file_params_t dev_params = {
-        .type = args.type,
-        .bits = args.bits,
-        .little_endian = args.little_endian,
-        .rate = args.rate};
+    device_file_params_t dev_params = {.type = args.type,
+                                       .bits = args.bits,
+                                       .little_endian = args.little_endian,
+                                       .rate = args.rate};
     device_t *dev = device_open_file(args.input_file, &dev_params);
     if (!dev)
         return EXIT_FAILURE;
 
     if ((dev_params.type == 'F' && (dev_params.bits != 32 && dev_params.bits != 64)) ||
-        (dev_params.type != 'F' && (dev_params.bits != 8 && dev_params.bits != 16 && dev_params.bits != 32)))
+        (dev_params.type != 'F' &&
+         (dev_params.bits != 8 && dev_params.bits != 16 && dev_params.bits != 32)))
     {
         LOG("Error: Invalid format. F: 32/64, S/U: 8/16/32.");
         device_free(dev);
@@ -146,15 +149,17 @@ int main(int argc, char *argv[])
     float sample_rate = (float)dev_params.rate;
 
     LOGV("Sample rate: %.0f Hz", sample_rate);
-    LOGV("Format: %c%d %s", dev_params.type, dev_params.bits,
-         dev_params.little_endian ? "LE" : "BE");
+    LOGV(
+        "Format: %c%d %s",
+        dev_params.type,
+        dev_params.bits,
+        dev_params.little_endian ? "LE" : "BE");
 
-    rx_params_t rx_params = {
-        .sample_rate = sample_rate,
-        .gain_2200 = args.gain_2200,
-        .use_squelch = args.use_squelch,
-        .squelch_strength = args.squelch_strength,
-        .types = DEMOD_QUADRATURE | DEMOD_ALL_GOERTZEL};
+    rx_params_t rx_params = {.sample_rate = sample_rate,
+                             .gain_2200 = args.gain_2200,
+                             .use_squelch = args.use_squelch,
+                             .squelch_strength = args.squelch_strength,
+                             .types = DEMOD_QUADRATURE | DEMOD_ALL_GOERTZEL};
     rx_chain_t rx;
     rx_chain_init(&rx, &rx_params);
 
@@ -202,9 +207,7 @@ int main(int argc, char *argv[])
         // Convert to TNC2 format
         char tnc2_data[512];
         buffer_t tnc2_buf = {
-            .data = (unsigned char *)tnc2_data,
-            .capacity = sizeof(tnc2_data),
-            .size = 0};
+            .data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = 0};
         int tnc2_len = tnc2_packet_to_string(&packet, &tnc2_buf);
         if (tnc2_len <= 0)
         {
@@ -218,8 +221,11 @@ int main(int argc, char *argv[])
 
         LOG("%d @ %02lu:%02lu:%02lu.%03lu %s", packet_count, hours, mins, secs, ms, tnc2_data);
         if (args.use_squelch)
-            LOGV("sql threshold %.4f, high ema %.4f, low ema %.4f",
-                 rx.squelch.threshold, rx.squelch.high_ema, rx.squelch.low_ema);
+            LOGV(
+                "sql threshold %.4f, high ema %.4f, low ema %.4f",
+                rx.squelch.threshold,
+                rx.squelch.high_ema,
+                rx.squelch.low_ema);
     }
 
     LOG("Packets: %d", packet_count);

@@ -1,6 +1,13 @@
 #include "rx.h"
+
+#include "agc.h"
+#include "buffer.h"
 #include "common.h"
+#include "filter.h"
+#include "modem.h"
+#include "squelch.h"
 #include <string.h>
+#include <time.h>
 
 void rx_chain_init(rx_chain_t *rx, const rx_params_t *params)
 {
@@ -16,18 +23,19 @@ void rx_chain_init(rx_chain_t *rx, const rx_params_t *params)
     rx->use_squelch = params->use_squelch;
     if (rx->use_squelch)
     {
-        sql_params_t sql_params = {
-            .sample_rate = params->sample_rate,
-            .init_threshold = 0.045f,
-            .strength = params->squelch_strength};
+        sql_params_t sql_params = {.sample_rate = params->sample_rate,
+                                   .init_threshold = 0.045f,
+                                   .strength = params->squelch_strength};
         sql_init(&rx->squelch, &sql_params, &sql_params_default);
     }
 
     md_multi_rx_init(&rx->mrx, params->sample_rate, params->types);
 }
 
-int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now,
-                     buffer_t *out_frame_buf)
+// n/now both pass small ints; a swap is caught by the caller-side frame check
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now, buffer_t *out_frame_buf)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     nonnull(rx, "rx");
     nonnull(samples, "samples");
@@ -46,10 +54,7 @@ int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now,
     if (kept == 0)
         return 0;
 
-    float_buffer_t sample_buf = {
-        .data = samples,
-        .capacity = n,
-        .size = kept};
+    float_buffer_t sample_buf = {.data = samples, .capacity = n, .size = kept};
 
     return md_multi_rx_process_at(&rx->mrx, &sample_buf, out_frame_buf, now);
 }

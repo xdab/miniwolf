@@ -1,8 +1,9 @@
-#include "device.h"
 #include "audio.h"
+#include "buffer.h"
 #include "common.h"
-#include <string.h>
+#include "device.h"
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct
 {
@@ -35,8 +36,7 @@ static int device_alsa_read(device_t *base, float *buf, int max_samples)
         {
             int n = dev->pending < max_samples ? dev->pending : max_samples;
             memcpy(buf, dev->scratch.data, n * sizeof(float));
-            memmove(dev->scratch.data, dev->scratch.data + n,
-                    (dev->pending - n) * sizeof(float));
+            memmove(dev->scratch.data, dev->scratch.data + n, (dev->pending - n) * sizeof(float));
             dev->pending -= n;
             return n;
         }
@@ -54,10 +54,7 @@ static int device_alsa_poll_fd(const device_t *dev)
     return aud_get_poll_fd();
 }
 
-static void device_alsa_free(device_t *base)
-{
-    free(base);
-}
+static void device_alsa_free(device_t *base) { free(base); }
 
 device_t *device_open_alsa(void)
 {
@@ -65,9 +62,7 @@ device_t *device_open_alsa(void)
     EXITIF(!dev, EXIT_FAILURE, "device_alsa allocation failed");
 
     static const device_ops_t ops = {
-        .read = device_alsa_read,
-        .poll_fd = device_alsa_poll_fd,
-        .free = device_alsa_free};
+        .read = device_alsa_read, .poll_fd = device_alsa_poll_fd, .free = device_alsa_free};
 
     dev->scratch.data = dev->scratch_data;
     dev->scratch.capacity = sizeof(dev->scratch_data) / sizeof(float);

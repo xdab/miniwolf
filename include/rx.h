@@ -1,8 +1,8 @@
 #pragma once
 
-#include "modem.h"
-#include "filter.h"
 #include "agc.h"
+#include "filter.h"
+#include "modem.h"
 #include "squelch.h"
 #include <time.h>
 
@@ -32,7 +32,9 @@ void rx_chain_init(rx_chain_t *rx, const rx_params_t *params);
 // writes any demodulated frame to out_frame_buf. Returns the frame length
 // (0 = none, negative = error). `now` feeds the inter-demodulator dedup;
 // live callers pass time(NULL), offline callers their synthetic clock.
-int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now,
-                     buffer_t *out_frame_buf);
+// n/now both pass small ints; a swap is caught by the caller-side frame check
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now, buffer_t *out_frame_buf);
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 void rx_chain_free(rx_chain_t *rx);

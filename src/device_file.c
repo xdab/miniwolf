@@ -1,9 +1,9 @@
-#include "device.h"
 #include "common.h"
+#include "device.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 typedef struct
 {
@@ -18,26 +18,28 @@ typedef struct
     int eof;
 } device_file_t;
 
-static void byteswap16(uint16_t *v)
-{
-    *v = (((*v & 0xFF) << 8) | ((*v >> 8) & 0xFF));
-}
+static void byteswap16(uint16_t *v) { *v = (((*v & 0xFF) << 8) | ((*v >> 8) & 0xFF)); }
 
 static void byteswap32(uint32_t *v)
 {
-    *v = (((*v & 0xFF) << 24) | (((*v >> 8) & 0xFF) << 16) |
-          (((*v >> 16) & 0xFF) << 8) | ((*v >> 24) & 0xFF));
+    *v =
+        (((*v & 0xFF) << 24) | (((*v >> 8) & 0xFF) << 16) | (((*v >> 16) & 0xFF) << 8) |
+         ((*v >> 24) & 0xFF));
 }
 
 static void byteswap64(uint64_t *v)
 {
-    *v = (((*v & 0xFF) << 56) | (((*v >> 8) & 0xFF) << 48) |
-          (((*v >> 16) & 0xFF) << 40) | (((*v >> 24) & 0xFF) << 32) |
-          (((*v >> 32) & 0xFF) << 24) | (((*v >> 40) & 0xFF) << 16) |
-          (((*v >> 48) & 0xFF) << 8) | ((*v >> 56) & 0xFF));
+    *v =
+        (((*v & 0xFF) << 56) | (((*v >> 8) & 0xFF) << 48) | (((*v >> 16) & 0xFF) << 40) |
+         (((*v >> 24) & 0xFF) << 32) | (((*v >> 32) & 0xFF) << 24) | (((*v >> 40) & 0xFF) << 16) |
+         (((*v >> 48) & 0xFF) << 8) | ((*v >> 56) & 0xFF));
 }
 
+// type/bits/little_endian are format fields that always travel together
+// type/bits/little_endian are format fields that always travel together
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static float convert_sample(const uint8_t *raw, char type, int bits, int little_endian)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     union
     {
@@ -73,21 +75,21 @@ static float convert_sample(const uint8_t *raw, char type, int bits, int little_
         if (bits == 8)
         {
             memcpy(&val.s8, raw, 1);
-            return val.s8 / 128.0f;
+            return (float)val.s8 / 128.0f;
         }
         else if (bits == 16)
         {
             memcpy(&val.s16, raw, 2);
             if (!little_endian)
                 byteswap16((uint16_t *)&val.s16);
-            return val.s16 / 32768.0f;
+            return (float)val.s16 / 32768.0f;
         }
         else if (bits == 32)
         {
             memcpy(&val.s32, raw, 4);
             if (!little_endian)
                 byteswap32((uint32_t *)&val.s32);
-            return val.s32 / 2147483648.0f;
+            return (float)val.s32 / 2147483648.0f;
         }
     }
     else if (type == 'U')
@@ -95,21 +97,21 @@ static float convert_sample(const uint8_t *raw, char type, int bits, int little_
         if (bits == 8)
         {
             memcpy(&val.u8, raw, 1);
-            return (val.u8 / 128.0f) - 1.0f;
+            return ((float)val.u8 / 128.0f) - 1.0f;
         }
         else if (bits == 16)
         {
             memcpy(&val.u16, raw, 2);
             if (!little_endian)
                 byteswap16(&val.u16);
-            return (val.u16 / 65536.0f) * 2.0f - 1.0f;
+            return ((float)val.u16 / 65536.0f) * 2.0f - 1.0f;
         }
         else if (bits == 32)
         {
             memcpy(&val.u32, raw, 4);
             if (!little_endian)
                 byteswap32(&val.u32);
-            return (val.u32 / 4294967296.0f) * 2.0f - 1.0f;
+            return ((float)val.u32 / 4294967296.0f) * 2.0f - 1.0f;
         }
     }
 
@@ -196,8 +198,8 @@ static int device_file_read(device_t *base, float *buf, int max_samples)
     }
 
     for (size_t i = 0; i < n; i++)
-        buf[i] = convert_sample(&dev->raw[i * dev->bytes_per_sample],
-                                dev->type, dev->bits, dev->little_endian);
+        buf[i] = convert_sample(
+            &dev->raw[i * dev->bytes_per_sample], dev->type, dev->bits, dev->little_endian);
 
     return (int)n;
 }
@@ -212,7 +214,7 @@ static void device_file_free(device_t *base)
 {
     device_file_t *dev = (device_file_t *)base;
     if (dev->fp)
-        fclose(dev->fp);
+        (void)fclose(dev->fp);
     free(dev->raw);
     free(dev);
 }
@@ -226,9 +228,7 @@ device_t *device_open_file(const char *path, device_file_params_t *params)
     EXITIF(!dev, EXIT_FAILURE, "device_file allocation failed");
 
     static const device_ops_t ops = {
-        .read = device_file_read,
-        .poll_fd = device_file_poll_fd,
-        .free = device_file_free};
+        .read = device_file_read, .poll_fd = device_file_poll_fd, .free = device_file_free};
 
     dev->fp = fopen(path, "rb");
     if (!dev->fp)
@@ -244,7 +244,11 @@ device_t *device_open_file(const char *path, device_file_params_t *params)
                  fread(&wave_id, 4, 1, dev->fp) == 1 && wave_id == 0x45564157;   // "WAVE"
     if (!is_wav)
     {
-        rewind(dev->fp);
+        if (fseek(dev->fp, 0L, SEEK_SET))
+        {
+            LOG("Error: cannot rewind '%s'.", path);
+            goto FAIL;
+        }
         // Raw defaults when the header can't supply them: F32 LE, 48 kHz
         if (params->type == 0)
         {
