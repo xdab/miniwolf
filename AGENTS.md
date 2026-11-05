@@ -36,7 +36,9 @@ end.
 truth), `channel.py` (the transceiver channel: mobile fading, tone offset,
 CNR noise at the IF output), `ber.py` (PER-vs-C/N sweeps, paired seeds),
 `ber_combine.py` (overlay sweep logs), `loss_decomp.py` (stage + per-demod
-loss attribution over `ber.py --verdicts` files). All stochastic tools take a `--seed`;
+loss attribution over `ber.py --verdicts` files), `ber_theory.py`
+(theoretical PER: Rice click noise + noncoherent FSK, ber.py-compatible
+stdout for ber_combine overlays). All stochastic tools take a `--seed`;
 two runs sharing it draw identical channels (paired A/B).
 
 `data/` holds real capture material (WA8LMF TNC Test CD derivatives),

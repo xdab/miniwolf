@@ -38,6 +38,12 @@ Current contents (place files as listed):
   This is the baseline every future sweep A/Bs against; regenerate with
   `python3 tools/ber.py --cnr-min 0 --cnr-max 10 --cnr-step 1 --trials 300`.
 
+  Theoretical reference: `tools/ber_theory.py` (Rice click-noise model +
+  noncoherent FSK, same framing) sits ~3 dB to the right of the measured
+  curve with the same exponential slope - the click-flip approximation is
+  the pessimistic part, and measured "0" points are upper bounds at 300
+  trials.
+
   Demodulator ranking (same sweep, 300 trials/point, `--demods` solo arms):
   quadrature is the best solo demodulator at every C/N (PER 55% vs 61%
   optim / 62% pesim at 4 dB; 17% vs 23% at 5 dB); the two Goertzel tunings
