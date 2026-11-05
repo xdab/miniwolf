@@ -1,4 +1,4 @@
-.PHONY: all update build release run cal log test prof file file1 file2 fmt fmt-check tidy compdb package install clean
+.PHONY: all update build profile release run cal log test prof file file1 file2 fmt fmt-check tidy compdb package install clean
 
 all: run
 
@@ -24,6 +24,11 @@ build:
 	mkdir -p build
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ..
 	cd build && make -j
+
+profile:
+	mkdir -p build/prof
+	cd build/prof && cmake -DCMAKE_BUILD_TYPE=Profile -G "Unix Makefiles" ../..
+	cd build/prof && make -j miniwolf_file
 
 release:
 	mkdir -p build

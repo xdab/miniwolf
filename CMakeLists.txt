@@ -22,6 +22,10 @@ else()
     set(RELEASE_LINK_FLAGS "-Wl,--gc-sections")
 endif()
 
+# Profile build: production codegen (-O3 -DNDEBUG -flto) plus symbols and
+# frame pointers for valgrind/callgrind attribution
+set(CMAKE_C_FLAGS_PROFILE "-O3 -DNDEBUG -flto -g -fno-omit-frame-pointer")
+
 # Apply flags to all targets
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${DEBUG_FLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${RELEASE_FLAGS}")
@@ -74,8 +78,8 @@ target_link_libraries(mw_test mw_modem tnc dsp m)
 add_executable(miniwolf_file src/main_file.c src/ring.c)
 target_link_libraries(miniwolf_file mw_rx mw_modem tnc dsp m)
 
-# Strip symbols in Release builds
-if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+# Strip symbols in Release builds (Profile builds keep them for callgrind)
+if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Profile")
     add_custom_command(TARGET miniwolf POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf>)
     add_custom_command(TARGET mw_test POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_test>)
     add_custom_command(TARGET miniwolf_file POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf_file>)
