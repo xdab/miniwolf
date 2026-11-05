@@ -8,7 +8,7 @@ It only modulates — the agreeing demodulator is the miniwolf bench binary
 (src/main_bench.c), e.g.:
 
     python3 tools/frame.py --text "hello world" -o frame.f32
-    build/bin/miniwolf_bench -f frame.f32 -r 48000 -tF -b32
+    build/mw_bench -f frame.f32 -r 48000
 
 The output is float32 little-endian, one channel, with --pre-silence and
 --post-silence seconds of zero padding around the transmission. Ground truth

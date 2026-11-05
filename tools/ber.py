@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""Monte Carlo end-to-end PER vs audio SNR for the miniwolf bench chain.
+"""Monte Carlo end-to-end PER sweeps for the miniwolf bench chain.
+
+By default each trial is AWGN-degraded at the audio SNR given on the
+ladder (--snr-min/--snr-max/--snr-step). The impairment arms change the
+channel per trial instead: --cfo/--ppm/--delay/--burst degrade the audio
+alongside the AWGN (tools/impairments.py), and --mobile replaces AWGN with
+the VHF mobile fading channel (tools/channel_mobile.py) — in which case the
+ladder is reinterpreted as RF C/N in dB, not audio SNR.
 
 References (in-repo):
 - src/main_bench.c — the "N @ HH:MM:SS.mmm TNC2" decode printout (stderr)
-- tools/frame.py — the Bell202 generator and its --snr AWGN arm
+- tools/frame.py — the Bell202 generator
+- tools/impairments.py — the degradation arms
+- tools/channel_mobile.py — the VHF mobile link
 
 Ported from rxx_lora's tools/ber.py: same paired-seed contract (the whole
 trial matrix is drawn up front from one --seed, so two runs that differ only
@@ -131,6 +140,11 @@ def main() -> None:
             "hands the file to the shipped binary — exactly as a human "
             "would. A lost frame is one whose TNC2 line never appears (HDLC "
             "FCS caught it) or came out corrupted.\n"
+            "Impairments: --cfo/--ppm/--delay/--burst add fixed channel "
+            "damage on top of the AWGN; --mobile swaps the whole channel for "
+            "the VHF mobile fading link (then the ladder means RF C/N, and "
+            "--mobile-fc/--mobile-deviation/--mobile-paths/--mobile-limiter "
+            "shape the link).\n"
             "Paired A/B: two runs sharing --seed draw identical frames and "
             "noise, so a demod change can be attributed trial by trial.\n"
             "AWGN is applied over the whole file including the silence "

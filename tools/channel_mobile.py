@@ -17,8 +17,7 @@ audio-SNR/RF-C/N accounting in TODOS.md is the bookkeeping layer for that.
 
 Standalone use:
     python3 tools/frame.py --text hi -o clean.f32
-    python3 tools/channel_mobile.py -i clean.f32 -o mobile.f32 \
-        --speed 100 --cnr 25 --seed 1
+    python3 tools/channel_mobile.py -i clean.f32 -o mobile.f32 --speed 100
     build/mw_bench -f mobile.f32 -r 48000
 """
 
