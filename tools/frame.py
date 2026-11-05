@@ -10,23 +10,20 @@ It only modulates — the agreeing demodulator is the miniwolf bench binary
     python3 tools/frame.py --text "hello world" -o frame.f32
     build/mw_bench -f frame.f32 -r 48000
 
-The output is float32 little-endian, one channel, with --pre-silence and
---post-silence seconds of zero padding around the transmission. Ground truth
-(the packet in TNC2 form) goes to stdout so a regression gate can compare it
+The output is float32 little-endian, one channel. Ground truth (the packet
+in TNC2 form) goes to stdout, one line per frame, so a gate can compare it
 against the binary's decode.
 
-Phase continuity is the default (one free-running phase accumulator across the
-whole transmission, matching src/synth.c); --phase-reset switches frequency
-per symbol by resetting phase to 0, which introduces hard phase jumps and is
-there to A/B how the demods tolerate a non-continuous transmitter.
+Modulation matches src/mod.c and src/synth.c: one free-running phase
+accumulator across the whole transmission (--phase-reset resets it per
+symbol, for A/B against a non-continuous transmitter).
 
-The channel arms live in tools/channel.py and stack: --cfo shifts the AFSK
-tone pair, --mobile adds VHF picket fencing, --cnr adds receiver thermal
-noise as C/N in dB at the IF filter's output (audio SNR is a deprecated
-quantity here). The TX clock error is not a channel arm: --baud 1200.3
-simply transmits at that clock. Everything stochastic is driven by --seed
-via a caller-owned np.random.Generator, so paired A/B runs (same seed, only
-the receiver differs) see identical randomness.
+The channel model lives in tools/channel.py and stacks: --cfo shifts the
+AFSK tone pair, --mobile adds VHF picket fencing, --cnr adds receiver
+thermal noise as C/N in dB at the IF filter's output. The TX clock error is
+not a channel arm: --baud 1200.3 simply transmits at that clock. Everything
+stochastic is driven by --seed, so paired A/B runs (same seed, only the
+receiver differs) see identical randomness.
 """
 
 import argparse

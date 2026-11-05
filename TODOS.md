@@ -143,31 +143,3 @@ applied only where a profile says the time actually goes, and kept only if
 bit-exact or PER-neutral against the regression gate. Criticality: low
 until profiling says otherwise — listed so it is not rediscovered
 independently later.
-
-## Port rxx_lora's method.md and bootstrap an AGENTS.md
-
-rxx_lora carries `docs/method.md` — the receiver-methods document (DSP
-chain rationale, why each stage exists, what was tried and rejected) — and
-an `AGENTS.md` that orients AI agents/contributors: repo architecture in
-one screen, where constraints and gates live, pointer discipline
-("anything mechanical is discoverable; don't duplicate it here"). miniwolf
-has neither: the demod/filter/bitclk design rationale exists nowhere but
-git history and one tape-recording commit message each. Intended shape: a
-`docs/method.md` (or equivalent) adapted to miniwolf's chain — split-filter
-vs quad vs Goertzel demod history, bitclk PLL structure, squelch/AGC
-roles, the WA8LMF tuning history and its baseline counts — and a root
-`AGENTS.md` pointing at TODOS.md, `data/README.md` and the method doc,
-mirroring rxx_lora's rule that subdirectory READMEs stay current. Keep the
-rxx_lora docstring discipline while porting: no history war stories in
-code comments, measured numbers live in the docs that exist to hold them.
-Pairs naturally with the audio doc sweep below.
-
-## Audio doc trim and factual sweep
-
-`audio.md` narrates the capture/playback path in tutorial sections that
-will drift; the README carries its own LLM-era warning ("Parts of the code
-and docs may be LLM-written"). Intended shape: `audio.md` cut to
-current-state reference (lifecycle, buffer ownership, error recovery —
-what a maintainer needs), and a pass over all docs such that every claim
-matches the code today and every referenced file and symbol resolves.
-Criticality: cheap, and it keeps the doc honest for the next reader.

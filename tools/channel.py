@@ -2,11 +2,10 @@
 """The radio channel, as a transceiver sees it: Bell202 audio in, what the
 soundcard would deliver out.
 
-One module, one definition each of the surviving impairments, so generator
-CLI and sweep tool cannot drift apart. The noise doctrine: audio SNR is a
-deprecated quantity here — noise is thermal, added at RF, and characterized
-as C/N in dB at the IF filter's output, exactly where a transceiver lives.
-The arms:
+One module, one definition each of the channel arms, so generator CLI and
+sweep tool cannot drift apart. Noise is thermal, added at RF, and
+characterized as C/N in dB at the IF filter's output — exactly where a
+transceiver lives; no audio-SNR reference exists in the tooling. The arms:
 
 - mobile_channel() — the whole FM link: NFM modulate, Clarke/Rician
   multipath (picket fencing; Rician K for open-road LOS), thermal noise at

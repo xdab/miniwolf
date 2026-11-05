@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Monte Carlo end-to-end PER sweeps for the miniwolf bench chain.
 
-The noise ladder is C/N in dB at the IF filter's output (audio SNR is a
-deprecated quantity here — see tools/channel.py). Each trial passes the
+The noise ladder is C/N in dB at the IF filter's output (the only noise
+reference in the tooling — see tools/channel.py). Each trial passes the
 generated frame through the transceiver-style channel: default is the
 static-station reference (thermal noise, no fading); --mobile adds VHF
 picket fencing at a vehicle speed, --cfo shifts the AFSK tone pair, and
@@ -13,10 +13,10 @@ References (in-repo):
 - tools/frame.py — the Bell202 generator
 - tools/channel.py — the channel model
 
-Ported from rxx_lora's tools/ber.py: same paired-seed contract (the whole
-trial matrix is drawn up front from one --seed, so two runs that differ only
-in receiver flags align trial for trial under --verdicts), same table shape
-on stdout for tools/ber_combine.py. The score is frame-level, not bit-level:
+The paired-seed contract: the trial matrix is drawn up front from one
+--seed, so two runs differing only in receiver flags align trial for trial
+under --verdicts, and stdout stays a parseable table for tools/ber_combine.py.
+The score is frame-level, not bit-level:
 an AX.25 frame either survives its HDLC FCS check (exact TNC2 match against
 ground truth) or the whole packet is lost — PER = frames not correctly
 decoded. There is no partial credit; miniwolf emits hard bits only.
