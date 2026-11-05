@@ -19,6 +19,10 @@ Phase continuity is the default (one free-running phase accumulator across the
 whole transmission, matching src/synth.c); --phase-reset switches frequency
 per symbol by resetting phase to 0, which introduces hard phase jumps and is
 there to A/B how the demods tolerate a non-continuous transmitter.
+
+--snr adds the one channel impairment so far: AWGN at a calibrated audio SNR
+(dB), driven by --seed via a caller-owned np.random.Generator so paired A/B
+runs (same seed, only the receiver differs) see identical randomness.
 """
 
 import argparse
@@ -171,6 +175,19 @@ def tnc2(dest: str, source: str, digis: list[str], text: str) -> str:
     return f"{source.upper()}>{dest.upper()}{',' + path if path else ''}:{text}"
 
 
+def add_awgn(x: np.ndarray, snr_db: float, rng: np.random.Generator) -> np.ndarray:
+    """Real AWGN at the audio SNR: 10*log10(mean(x^2) / E[n^2]) over the file.
+
+    Noise spans the whole file, --pre-silence/--post-silence padding
+    included: the file-average signal power is diluted by the leading and
+    trailing zeros, biasing the applied SNR low by a fraction of a dB for
+    the default padding (the same accepted bias as rxx_lora's ber.py).
+    A pure function of (seed, size): paired A/B sweeps see identical noise.
+    """
+    sigma = np.sqrt(np.mean(x.astype(np.float64) ** 2) * 10.0 ** (-snr_db / 10.0))
+    return np.asarray(x + sigma * rng.standard_normal(x.size), dtype=np.float32)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -190,7 +207,11 @@ def main() -> int:
     p.add_argument("--post-silence", type=float, default=0.2, help="seconds of silence after TX (default: 0.2)")
     p.add_argument("--phase-reset", action="store_true",
                    help="reset phase at each symbol (hard jumps) instead of continuous phase")
-    p.add_argument("--seed", type=int, default=0, help="reserved for paired-seed sweeps; unused (default: 0)")
+    p.add_argument("--snr", type=float, default=None,
+                   help="apply AWGN at this audio SNR in dB (default: none, clean audio)")
+    p.add_argument("--seed", type=int, default=0,
+                   help="RNG seed for --snr noise; identical seeds draw identical "
+                        "noise across runs (paired A/B) (default: 0)")
     args = p.parse_args()
 
     frame = ax25_frame(args.dest, args.source,
@@ -202,6 +223,9 @@ def main() -> int:
     pre = np.zeros(int(args.pre_silence * args.rate), dtype=np.float32)
     post = np.zeros(int(args.post_silence * args.rate), dtype=np.float32)
     audio = np.concatenate([pre, audio, post])
+
+    if args.snr is not None:
+        audio = add_awgn(audio, args.snr, np.random.default_rng(args.seed))
 
     with open(args.out, "wb") as f:
         f.write(audio.tobytes())

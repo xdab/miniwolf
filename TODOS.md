@@ -27,13 +27,13 @@ output decodes through the unified chain.
 
 Origin: rxx_lora's `tools/common.py` (`add_awgn` with a caller-owned
 `np.random.Generator`) and the channel arms its `ber.py` sweeps. `tools/frame.py`
-today emits only bit-perfect clean audio, which exercises the demods in a
-regime real radio never provides. Intended shape: an optional degradation
-stage between modulation and file write, one flag per impairment, all driven
-by a `--seed`-seeded generator (paired A/B: same seed, same randomness, only
-the receiver differs — the pairing is the point):
+today emits only bit-perfect clean audio (the AWGN arm at a calibrated
+full-band audio SNR, `--snr`/`--seed`, is in — consumed by `tools/ber.py`).
+Intended shape: an optional degradation stage between modulation and file
+write, one flag per impairment, all driven by a `--seed`-seeded generator
+(paired A/B: same seed, same randomness, only the receiver differs — the
+pairing is the point):
 
-- AWGN at a calibrated SNR (dB, full-band) — the minimum arm
 - frequency offset (CFO, Hz) — cheap receiver torture, relevant to the
   "DC offset and frequency-error tolerance" entry below
 - sample-rate/timing offset (PPM) and fractional sample delay — bit clock
