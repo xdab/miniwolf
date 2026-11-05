@@ -1,4 +1,4 @@
-.PHONY: all update build release run cal log test prof bench bench1 bench2 fmt fmt-check tidy compdb install clean
+.PHONY: all update build release run cal log test prof file file1 file2 fmt fmt-check tidy compdb package install clean
 
 all: run
 
@@ -9,7 +9,8 @@ help:
 	@echo "run           debug build, then run against sample.conf"
 	@echo "cal           run the spectrum analyzer (-C)"
 	@echo "test          debug build, then run build/mw_test"
-	@echo "bench         release build, then bench.raw demodulation"
+	@echo "file / file1 / file2  release build, then demodulate tnctest tracks"
+	@echo "package       release build, then tar the binaries"
 	@echo "fmt / fmt-check  reformat / verify formatting (clang-format)"
 	@echo "tidy          static analysis gate (clang-tidy, needs build/)"
 	@echo "install       release build, then install binary and systemd units"
@@ -29,6 +30,16 @@ release:
 	cd build && cmake -G "Unix Makefiles" ..
 	cd build && make -j
 
+ARCH := $(shell uname -m)
+VERSION := $(shell git describe --tags --always --abbrev=8 2>/dev/null || echo "unknown")
+
+package: release
+	rm -rf miniwolf_package
+	mkdir -p miniwolf_package
+	cp build/miniwolf build/mw_cal build/mw_log build/mw_test build/miniwolf_file miniwolf_package/
+	tar -czf miniwolf-$(ARCH)-$(VERSION).tar.gz -C miniwolf_package .
+	rm -rf miniwolf_package
+
 run: build
 	./build/miniwolf -c sample.conf
 
@@ -39,16 +50,16 @@ test: build
 	./build/mw_test
 
 prof: build
-	valgrind --tool=callgrind ./build/mw_bench -v -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
+	valgrind --tool=callgrind ./build/miniwolf_file -v -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
-bench: release
-	./build/mw_bench -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
+file: release
+	./build/miniwolf_file -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
-bench1: release
-	./build/mw_bench -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
+file1: release
+	./build/miniwolf_file -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
-bench2: release
-	./build/mw_bench -F S16 -r 22050 -f data/tnctest02_22050Hz_mono_S16LE.raw -2 5.0
+file2: release
+	./build/miniwolf_file -F S16 -r 22050 -f data/tnctest02_22050Hz_mono_S16LE.raw -2 5.0
 
 C_SOURCES := $(wildcard src/*.c include/*.h test/*.c test/*.h)
 

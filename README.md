@@ -171,6 +171,20 @@ Transmit chain:
 
 The protocol implementations (AX.25, HDLC, KISS, TNC2, CRC-CCITT) live in the [libtnc](libs/libtnc) git submodule.
 
+## Offline decoding
+
+`miniwolf_file` runs the same receive chain as the live TNC against an audio
+file — raw PCM (`-F` format, `-r` rate, `-e` endianness) or WAV (rate and
+format taken from the header) — and prints TNC2 monitor lines to stderr:
+
+```bash
+./build/miniwolf_file -f frame.f32 -r 48000
+./build/miniwolf_file -f track01.wav
+```
+
+This is the entry point `tools/frame.py`, `tools/channel.py` and `tools/ber.py`
+score through.
+
 ## Calibration
 
 Use the built-in spectrum analyzer to find the optimal `--eq2200` value for your radio:

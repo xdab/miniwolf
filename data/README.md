@@ -14,9 +14,9 @@ Current contents (place files as listed):
   - `tnctestNN_22050Hz_mono_S16LE.raw` — bench input: mono 22050 Hz S16 LE,
     produced with
     `ffmpeg -f wav -i trackNN_44100Hz_stereo_S16LE.wav -ar 22050 -ac 1 -c:a pcm_s16le -f s16le tnctestNN_22050Hz_mono_S16LE.raw`
-    (decode: `./build/mw_bench -f data/tnctestNN_22050Hz_mono_S16LE.raw -F S16 -r 22050`).
+    (decode: `./build/miniwolf_file -f data/tnctestNN_22050Hz_mono_S16LE.raw -F S16 -r 22050`).
 
-  Measured decode counts (mw_bench, current demods; the demod commit messages
+  Measured decode counts (miniwolf_file, current demods; the demod commit messages
   cite hand-tuned targets of 907/980/1007 packets — see TODOS.md). Tracks 1
   and 2 are the ones that matter; the rest is secondary:
   track01: 1010, track02: 934, track03: 100, track04: 98, track05-07: 0.

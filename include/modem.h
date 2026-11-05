@@ -37,6 +37,7 @@ typedef struct modem
 {
     struct md_multi_rx mrx;
     struct md_tx tx;
+    struct md_multi_rx *dedup_target;
 } modem_t;
 
 typedef struct modem_params
@@ -50,6 +51,10 @@ typedef struct modem_params
 //
 
 void modem_init(modem_t *modem, modem_params_t *params);
+
+// Points self-demodulation suppression at an external RX chain's
+// md_multi_rx (defaults to modem's own unused mrx)
+void modem_set_dedup_target(modem_t *modem, struct md_multi_rx *mrx);
 
 int modem_demodulate(modem_t *modem, const float_buffer_t *sample_buf, buffer_t *out_frame_buf);
 

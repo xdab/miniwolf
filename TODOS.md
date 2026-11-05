@@ -4,60 +4,35 @@
 > No particular order, priorities, statuses, assignees, changelogs. Entries are simply statements.
 > Written for a stranger. Every entry must make sense cold without conversation context, including to an outside contributor or AI agent.
 
-## Device abstraction: miniwolf / miniwolf_file / miniwolf_rtl
+## miniwolf_rtl: RTL-SDR device backend
 
-Origin: rxx_lora's pull-only device layer (`include/device.h`,
-`device_file.c`/`device_rtl.c`/`device_rsp.c` behind one interface, one
-`receiver.c` core). miniwolf today has two parallel, drifting ingest paths:
-the live ALSA chain in `src/loop.c` (hbf filter → squelch → AGC → modem) and
-a hand-rolled separate chain in `src/main_bench.c` (own convert, eq,
-squelch, direct `md_multi_rx_process_at`, no AGC). Intended shape: one
-pull-only float-sample source interface with `device_alsa.c` (wrapping what
-`src/audio.c` does) and `device_file.c` (raw PCM/WAV, absorbing bench's
-`convert_sample`); `miniwolf` and `miniwolf_file` become thin mains over the
-same RX chain (bench keeps only its timing wrapper). Also planned behind the
-same interface: `miniwolf_rtl`, reading I/Q **directly from an RTL-SDR**
-(rtl_tcp or librtlsdr sync reads) to own the DSP from the earliest stage —
-channelize/AFSK-demodulate straight from RF samples instead of a soundcard
-in the middle; the capture `-R` path from the harness entry falls out as a
-recording sink over the same interface. Acceptance test: `tools/frame.py`
-output decodes through the unified chain.
+Origin: rxx_lora's pull-only device layer (`include/device.h`) now exists in
+miniwolf with ALSA (`src/device_alsa.c`) and raw/WAV file
+(`src/device_file.c`) backends behind it. Planned next: `device_rtl.c`,
+reading I/Q **directly from an RTL-SDR** (rtl_tcp or librtlsdr sync reads) to
+own the DSP from the earliest stage — channelize/AFSK-demodulate straight
+from RF samples instead of a soundcard in the middle. A capture `-R`-style
+recording sink falls out as another device over the same interface when
+needed. Acceptance test: `tools/frame.py` output decodes through the new
+backend as it does through `build/miniwolf_file`.
 
 ## tools/regression.py commit gate (synthetic-first) and its perf twin
 
-Distinct from the capture harness below (that one needs real recordings and
-ground truth; this one can exist today). Origin: rxx_lora's
+Distinct from the WA8LMF decode-count baselines (this gate can exist today
+without new recordings). Origin: rxx_lora's
 `tools/regression.py` — the script that runs on every landing and fails the
 commit — and `tools/regression_perf.py`, its speed twin (same verdicts plus
 real-time multiplier per line; verdicts gate the exit code, never the speed).
 Intended shape for miniwolf: build the case matrix out of what already works —
 `tools/frame.py` variants (clean, each impairment arm once it exists, digi
-paths, min/max frame sizes, `--phase-reset`) decoded through the bench entry
-point (`mw_bench -f ... -F S16 ...`) with `--digi`/text ground truth compared
+paths, min/max frame sizes, `--phase-reset`) decoded through the miniwolf_file
+entry point (`miniwolf_file -f ... -F S16 ...`) with `--digi`/text ground truth compared
 against the TNC2 stdout, plus the WA8LMF tracks in `data/` with their measured
 baseline counts (track01: 1010, track02: 934; 5–7 decode zero today — that is
 a known baseline, not a failure). PASS/FAIL matrix on stdout, non-zero exit on
-any regression. Perf twin wraps the same cases in `mw_bench`'s existing
+any regression. Perf twin wraps the same cases in `miniwolf_file`'s existing
 timing output and records decode-time-per-track so the zero-copy and
 vectorization entries can prove their numbers. Blocked on nothing.
-
-## Capture-and-regression measurement harness
-
-The demod parameter commits ("optimized for 907 packets on track 1", "for
-980 packets", "for 1007 packets") were each tuned by hand against one tape
-recording, and today there is no way to answer "did this change hurt
-decoding?" except running it by ear. The intended shape mirrors what
-rxx_lora does: recordings of real packet audio cut into per-frame cases with
-ground-truth AX.25 attached, and a gate script (`tools/regression.py` in
-spirit, whatever it is here) that decodes every case through the bench
-entry point and compares — green before any landing. The pieces: a raw
-capture path (`miniwolf -R`-style recording of the ALSA input), a frame
-cutter tolerant of collisions and noise, and the gate itself with ground
-truth captured from a known-good TNC alongside. This harness is the
-critical enabler for nearly everything else in this file — demod scoring,
-PLL work, and performance claims are all guesses until it exists. Open
-question: whether ground truth comes from Direwolf on the same audio or
-from hand-verified decodes of clean captures.
 
 ## Re-score the surviving demods and cull by data
 
@@ -68,7 +43,7 @@ vibes. Problem: nothing today says whether all three still earn their
 place, or which wins at what SNR. Intended shape: once the regression
 harness and BER sweep exist, score all three on the same captures and
 sweeps; keep the winners with measured justification, delete the rest.
-This entry deliberately waits on the two harness entries above —
+This entry deliberately waits on the synthetic regression gate above —
 running the comparison now would just repeat the hand-tuned-tape ritual.
 
 ## Matched-filter correlator demodulator
@@ -114,7 +89,7 @@ history, and DCD hysteresis (lock at 26, unlock at 12 good transitions) —
 but nothing measured: lock acquisition time vs. level and noise, behavior
 inside the hysteresis band, recovery after squelch bursts, and how much of
 the AFSK packet-ear start it misses. Intended shape: characterization from
-the capture harness (per-case verdicts should record whether DCD ever
+the regression gate (per-case verdicts should record whether DCD ever
 locked), and only then decisions about look-ahead/rewind recovery for
 frames lost to late lock — the receiver already buffers, so rewinding to
 try an earlier start is available and unused. Not the intended shape:

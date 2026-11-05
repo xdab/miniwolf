@@ -33,15 +33,18 @@ Called in order from `main()` (`src/main.c`), then per-iteration by `loop_run()`
 
 ## Capture path
 
-The main loop polls; on capture readiness it calls
-`aud_process_capture(callback, buf)`, which drains all available periods in
-a loop over `aud_process_capture_period()`:
+Capture is exposed to the application through the pull-only device interface
+(`include/device.h`, backend `src/device_alsa.c`). The main loop polls the
+device's poll fd; on readiness it calls `device_read()` until it returns 0,
+each call draining one period via `aud_process_capture_period()`:
 
 1. `snd_pcm_avail_update()` — 0 means nothing to do.
-2. `snd_pcm_readi()` of up to `buf->capacity` frames into `buf->data`;
-   `buf->size` carries the actual count.
-3. Invoke `callback(buf)` once per period (the caller owns the buffer; in
-   `loop.c` it is a static array of `INPUT_CALLBACK_SIZE` = 4800 samples).
+2. `snd_pcm_readi()` of up to the scratch capacity frames into the device's
+   internal buffer.
+3. `device_read()` copies the period out to the caller's float array (in
+   `loop.c` a static array of `INPUT_CALLBACK_SIZE` = 4800 samples).
+
+Playback and TX remain on the plain `audio.h` API below.
 
 ## Playback path
 

@@ -217,6 +217,7 @@ void modem_init(modem_t *modem, modem_params_t *params)
 
     md_multi_rx_init(&modem->mrx, params->sample_rate, params->types);
     md_tx_init(&modem->tx, params->sample_rate, params->tx_delay, params->tx_tail);
+    modem->dedup_target = NULL;
 }
 
 int modem_demodulate(modem_t *modem, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
@@ -231,6 +232,13 @@ int modem_demodulate(modem_t *modem, const float_buffer_t *sample_buf, buffer_t 
     return ret;
 }
 
+void modem_set_dedup_target(modem_t *modem, struct md_multi_rx *mrx)
+{
+    nonnull(modem, "modem");
+    nonnull(mrx, "mrx");
+    modem->dedup_target = mrx;
+}
+
 int modem_modulate(modem_t *modem, const buffer_t *frame_buf, float_buffer_t *out_sample_buf)
 {
     nonnull(modem, "modem");
@@ -243,8 +251,9 @@ int modem_modulate(modem_t *modem, const buffer_t *frame_buf, float_buffer_t *ou
         LOGV("modulated frame: %d samples", ret);
 
     // Treat tx crc as already demodulated to filter out self-demodulations
-    modem->mrx.last_crc = frame_crc;
-    modem->mrx.last_time = time(NULL);
+    struct md_multi_rx *dedup = modem->dedup_target ? modem->dedup_target : &modem->mrx;
+    dedup->last_crc = frame_crc;
+    dedup->last_time = time(NULL);
 
     return ret;
 }

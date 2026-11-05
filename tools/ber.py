@@ -9,7 +9,7 @@ picket fencing at a vehicle speed, --cfo shifts the AFSK tone pair, and
 --baud gives the TX a clock error (1200.3 instead of 1200).
 
 References (in-repo):
-- src/main_bench.c — the "N @ HH:MM:SS.mmm TNC2" decode printout (stderr)
+- src/main_file.c — the "N @ HH:MM:SS.mmm TNC2" decode printout (stderr)
 - tools/frame.py — the Bell202 generator
 - tools/channel.py — the channel model
 
@@ -41,7 +41,7 @@ sys.path.insert(0, TOOLS)
 import frame as frame_mod
 import channel
 
-# main_bench.c decode line: "i |  main | 1 @ 00:00:01.234 N0CALL>APZMWL:text"
+# main_file.c decode line: "i |  main | 1 @ 00:00:01.234 N0CALL>APZMWL:text"
 DECODE = re.compile(r"@ \d{2}:\d{2}:\d{2}\.\d{3} (.*)$", re.MULTILINE)
 
 
@@ -143,7 +143,7 @@ def main() -> None:
                    help="worker processes for the trial matrix (1 = serial; "
                         "the draws, the summary and --verdicts lines are "
                         "identical either way)")
-    p.add_argument("--bin", default=os.path.join(ROOT, "build", "mw_bench"),
+    p.add_argument("--bin", default=os.path.join(ROOT, "build", "miniwolf_file"),
                    help="path to the bench binary under test")
     p.add_argument("--bench-args", default="", metavar="ARGS",
                    help="extra arguments for the binary, split like a shell "
@@ -286,7 +286,7 @@ def plot_per(args, cnrs, pers, arms: str = "static") -> None:
         cnrs,
         np.where(np.asarray(pers) > 0, pers, np.nan),
         "o-",
-        label="mw_bench end to end (0 errors: no point)",
+        label="miniwolf_file end to end (0 errors: no point)",
     )
     ax.set_xlim(float(cnrs[0]), float(cnrs[-1]))
     ax.set_ylim(1 / (10 * args.trials), 1.1)

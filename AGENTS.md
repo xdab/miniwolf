@@ -4,7 +4,7 @@
 Please read the main README text before substantial works to gain basic understanding of the project.
 
 This document carries what you cannot get from elsewhere: constraints, gates, purposes, orientation.
-Anything mechanical — build targets (`make help`), CLI flags (`./build/miniwolf -h`, `./build/mw_bench -h`),
+Anything mechanical — build targets (`make help`), CLI flags (`./build/miniwolf -h`, `./build/miniwolf_file -h`),
 the source map, the `tools/` inventory — is easily discoverable, so don't put it here.
 
 ## Repo architecture
@@ -14,13 +14,15 @@ Sources live in `src/`, headers in `include/`. Shared packet-layer code
 holds the socket/IPC layers. Three binaries build from the same core:
 
 - `build/miniwolf` — the live soundcard TNC (`src/main.c`, `src/loop.c`): ALSA
-  capture → high-boost filter (`src/filter.c`) → squelch (`src/squelch.c`) →
-  AGC (`src/agc.c`) → modem (`src/modem.c`, driving the demodulators) →
-  libtnc → TNC2/KISS over stdin/stdout/TCP/UDP/UDS. `src/calibrate.c` is
-  merged into this executable.
-- `build/mw_bench` — the offline demodulator (`src/main_bench.c`): raw audio
-  file in, same demod chain, decodes to stderr. This is the entry point every
-  tool and future gate scores through.
+  capture (via `src/device_alsa.c`) → shared RX chain (`src/rx.c`: high-boost
+  filter `src/filter.c` → AGC `src/agc.c` → squelch `src/squelch.c` →
+  `src/modem.c`, driving the demodulators) → libtnc → TNC2/KISS over
+  stdin/stdout/TCP/UDP/UDS. `src/calibrate.c` is merged into this executable.
+- `build/miniwolf_file` — the offline demodulator (`src/main_file.c`): raw or
+  WAV audio in (`src/device_file.c`), same RX chain (`src/rx.c`), decodes to
+  stderr. This is the entry point every tool and future gate scores through;
+  the source of both front ends is one pull-only device interface
+  (`include/device.h`).
 - `build/mw_test` — unit tests (`test/`), run via `make test`.
 
 The modem runs three demodulators behind one interface (`src/demod.c`,
@@ -45,7 +47,7 @@ baselines.
 - clean `make build` / `make release`;
 - `make test` passing (`build/mw_test`);
 - `python3 tools/ber.py --selftest` passing;
-- `./build/mw_bench -f <file> -r <rate>` on a `tools/frame.py` output
+- `./build/miniwolf_file -f <file> -r <rate>` on a `tools/frame.py` output
   decoding exactly the ground-truth TNC2 line.
 
 There is no commit gate script yet (TODOS.md); the checks above are the
@@ -68,7 +70,7 @@ manual equivalent until it lands.
   (`libs/libtnc/include/common.h`) to stderr — packet decode lines included,
   which is why the tools parse stderr, never stdout;
 - audio is mono, native-endian float32 between stages; file formats are
-  converted at the edges only (`mw_bench`'s `-F`);
+  converted at the edges only (`miniwolf_file`'s `-F`);
 - Python tools are stdlib + numpy (+ matplotlib lazily in the plot path);
   keep it that way.
 

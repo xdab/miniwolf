@@ -5,10 +5,10 @@ Builds a full HDLC-framed packet (flag preamble, bit-stuffed frame + FCS,
 flag tail), NRZI-encodes it, and modulates it as phase-continuous Bell202
 AFSK (mark 1200 Hz for tone-bit 1, space 2200 Hz for tone-bit 0, LSB first).
 It only modulates — the agreeing demodulator is the miniwolf bench binary
-(src/main_bench.c), e.g.:
+(src/main_file.c), e.g.:
 
     python3 tools/frame.py --text "hello world" -o frame.f32
-    build/mw_bench -f frame.f32 -r 48000
+    build/miniwolf_file -f frame.f32 -r 48000
 
 The output is float32 little-endian, one channel. Ground truth (the packet
 in TNC2 form) goes to stdout, one line per frame, so a gate can compare it

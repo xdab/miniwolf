@@ -21,7 +21,7 @@ error), so the generator models it at the source.
 Standalone use:
     python3 tools/frame.py --text hi -o clean.f32
     python3 tools/channel.py -i clean.f32 -o rx.f32 --speed 90 --cnr 25
-    build/mw_bench -f rx.f32 -r 48000
+    build/miniwolf_file -f rx.f32 -r 48000
 """
 
 import argparse

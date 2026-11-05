@@ -57,23 +57,28 @@ add_library(mw_modem STATIC ${MODEM_SOURCES})
 target_include_directories(mw_modem PUBLIC include)
 target_link_libraries(mw_modem tnc)
 
-# miniwolf
-add_executable(miniwolf src/main.c src/audio.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c src/ring.c src/calibrate.c)
-target_link_libraries(miniwolf mw_modem comm tnc dsp ${ALSA_LIBRARIES} m)
+# RX chain library: shared receive chain + pull-only device backends
+add_library(mw_rx STATIC src/rx.c src/device_file.c)
+target_include_directories(mw_rx PUBLIC include)
+target_link_libraries(mw_rx mw_modem dsp)
+
+# miniwolf: live ALSA TNC
+add_executable(miniwolf src/main.c src/audio.c src/device_alsa.c src/miniwolf.c src/loop.c src/options.c src/options_args.c src/options_file.c src/ring.c src/calibrate.c)
+target_link_libraries(miniwolf mw_rx mw_modem comm tnc dsp ${ALSA_LIBRARIES} m)
 
 # mw_test: unit tests
 add_executable(mw_test test/main_test.c test/test.c src/ring.c)
 target_link_libraries(mw_test mw_modem tnc dsp m)
 
-# mw_bench: recording/file demodulation tool
-add_executable(mw_bench src/main_bench.c src/ring.c)
-target_link_libraries(mw_bench mw_modem tnc dsp m)
+# miniwolf_file: offline raw/WAV demodulator
+add_executable(miniwolf_file src/main_file.c src/ring.c)
+target_link_libraries(miniwolf_file mw_rx mw_modem tnc dsp m)
 
 # Strip symbols in Release builds
 if(NOT MINIWOLF_DEBUG AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_command(TARGET miniwolf POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf>)
     add_custom_command(TARGET mw_test POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_test>)
-    add_custom_command(TARGET mw_bench POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:mw_bench>)
+    add_custom_command(TARGET miniwolf_file POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:miniwolf_file>)
 endif()
 
 # Installation
