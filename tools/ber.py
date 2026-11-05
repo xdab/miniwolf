@@ -212,6 +212,10 @@ def main() -> None:
                         "two-binary A/B attribution is a plain `diff` of two "
                         "files: the same --seed draws the same trials in both "
                         "runs, so the lines align and only the verdicts differ")
+    p.add_argument("--ebn0", action="store_true",
+                   help="plot the x-axis as Eb/N0 (dB) instead of C/N: "
+                        "Eb/N0 = C/N + 10*log10(IF bandwidth / baud rate); "
+                        "the stdout table keeps C/N either way")
     p.add_argument("--out", default="ber.png", help="output PNG path")
     p.add_argument("--selftest", action="store_true",
                    help="one fixed trial at cnr=25, exit 1 on mismatch")
@@ -290,6 +294,12 @@ def main() -> None:
     plot_per(args, cnrs, pers, arms)
 
 
+def ebn0_offset(args) -> float:
+    """dB added to C/N to read the x-axis as Eb/N0: the same noise power
+    spread over the baud rate instead of the IF bandwidth."""
+    return 10.0 * np.log10(args.mobile_if_bw / args.baud)
+
+
 def plot_per(args, cnrs, pers, arms: str = "static") -> None:
     """PER curve, written to args.out (matplotlib imported lazily: never
     paid by --selftest or a crashed sweep)."""
@@ -298,22 +308,33 @@ def plot_per(args, cnrs, pers, arms: str = "static") -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    if args.ebn0:
+        off = ebn0_offset(args)
+        xs = cnrs + off
+        xlabel = f"Eb/N0, noise in the {args.mobile_if_bw:g} Hz IF [dB]"
+    else:
+        off = 0.0
+        xs = cnrs
+        xlabel = "C/N at the IF output [dB]"
+
     fig, ax = plt.subplots(figsize=(9, 6), constrained_layout=True)
     # a log axis cannot show zero PER; NaN breaks the line there instead
     ax.semilogy(
-        cnrs,
+        xs,
         np.where(np.asarray(pers) > 0, pers, np.nan),
         "o-",
         label="miniwolf_file end to end (0 errors: no point)",
     )
-    ax.set_xlim(float(cnrs[0]), float(cnrs[-1]))
+    ax.set_xlim(float(xs[0]), float(xs[-1]))
     ax.set_ylim(1 / (10 * args.trials), 1.1)
-    ax.set_xlabel("C/N at the IF output [dB]")
+    ax.set_xlabel(xlabel)
     ax.set_ylabel("packet error rate")
     fig.suptitle("miniwolf_bench end-to-end PER over C/N", fontsize=13)
+    ebn0_note = (f" (x-axis: Eb/N0 = C/N + {off:.1f} dB)"
+                 if args.ebn0 else "")
     ax.set_title(
         f"{args.rate:g} Hz, text {args.text_len} chars, {args.trials} "
-        f"trials/point, seed={args.seed}, {arms}", fontsize=9)
+        f"trials/point, seed={args.seed}, {arms}{ebn0_note}", fontsize=9)
     ax.grid(True, which="both", alpha=0.3)
     ax.legend()
     fig.savefig(args.out, dpi=150)

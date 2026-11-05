@@ -56,17 +56,18 @@ def parse(path):
     }
 
 
-def curve(ax, d, color, label, lw=None):
+def curve(ax, d, color, label, lw=None, off=0.0):
     """One sweep; NaN out the zero-PER points, ring the false-decode ones."""
     per = d["per"]
     zero = per <= 0
     y = np.where(zero, np.nan, per)
+    x = d["snr"] + off
     wrong = (d["wrong"] > 0) & ~zero
-    ax.semilogy(d["snr"], y, "--", color=color, marker="s", label=label,
+    ax.semilogy(x, y, "--", color=color, marker="s", label=label,
                 linewidth=lw)
     if wrong.any():
         ax.semilogy(
-            d["snr"][wrong], y[wrong], "s", color=color,
+            x[wrong], y[wrong], "s", color=color,
             markerfacecolor="none", markersize=11,
             markeredgewidth=1.5 if lw is None else 1.0)
     return per[~zero]
@@ -86,6 +87,14 @@ def main():
         ))
     p.add_argument("logs", nargs="+", help="ber.py sweep logs (stdout, tee'd or >)")
     p.add_argument("--out", default="ber_combined.png", help="output PNG path")
+    p.add_argument("--ebn0", action="store_true",
+                   help="plot the x-axis as Eb/N0 (dB) instead of C/N: "
+                        "Eb/N0 = C/N + 10*log10(if-bw/baud)")
+    p.add_argument("--if-bw", type=float, default=25000.0, dest="if_bw",
+                   help="IF/channel noise bandwidth the C/N references (Hz, "
+                        "default: 25000; must match the sweeps' channel)")
+    p.add_argument("--baud", type=float, default=1200.0,
+                   help="baud rate (default: 1200)")
     args = p.parse_args()
 
     sweeps = [parse(path) for path in args.logs]
@@ -99,15 +108,17 @@ def main():
     many = len(sweeps) > len(COLORS)
     colors = plt.cm.viridis(np.linspace(0, 0.95, len(sweeps))) if many else COLORS
     lw = 1.0 if many else None
+    off = 10.0 * np.log10(args.if_bw / args.baud) if args.ebn0 else 0.0
     lows, ends = [], []
     for i, (d, path) in enumerate(zip(sweeps, args.logs)):
         tag = os.path.splitext(os.path.basename(path))[0]
         lows.append(curve(ax, d, colors[i],
-                          f"{tag}: {d['arms']}" if d["arms"] != "clean" else tag, lw))
-        ends.append(d["snr"][d["per"] > 0])
+                          f"{tag}: {d['arms']}" if d["arms"] != "clean" else tag, lw, off))
+        ends.append(d["snr"][d["per"] > 0] + off)
 
     d0 = sweeps[0]
-    ax.set_xlabel("C/N at the IF output [dB]")
+    ax.set_xlabel(f"Eb/N0, noise in the {args.if_bw:g} Hz IF [dB]"
+                  if args.ebn0 else "C/N at the IF output [dB]")
     ax.set_ylabel("packet error rate")
     ax.set_title(
         f"miniwolf_bench end-to-end PER over C/N — {d0['rate']:g} Hz, "
@@ -117,10 +128,10 @@ def main():
         "curves stop at the last point with an observed error", fontsize=10)
     # axes fit the plotted points, not the swept range: past the last
     # observed error there is nothing to show but empty space
-    lo = min(s["snr"].min() for s in sweeps)
+    lo = min((s["snr"] + off).min() for s in sweeps)
     # a sweep with no errors anywhere contributes no drawn point: fall back
     # to its full swept range so the limits stay finite
-    hi = max((e[-1] if len(e) else s["snr"].max()) for e, s in zip(ends, sweeps))
+    hi = max((e[-1] if len(e) else (s["snr"] + off).max()) for e, s in zip(ends, sweeps))
     pad = 0.04 * (hi - lo)
     ax.set_xlim(lo - pad, hi + pad)
     drawn = [l for l in lows if len(l)]
