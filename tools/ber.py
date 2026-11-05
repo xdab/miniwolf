@@ -81,7 +81,9 @@ def run_trial(args, truth: str, text: str, snr: float, seed: int, tmp: str):
         # C/N at the FM demodulator input, not audio SNR (see
         # tools/channel_mobile.py) — snr is reinterpreted as C/N
         audio = channel_mobile.mobile_channel(
-            audio, args.rate, rng, speed_kph=args.mobile, k=args.k, cnr_db=snr)
+            audio, args.rate, rng, fc=args.mobile_fc, speed_kph=args.mobile,
+            k=args.k, cnr_db=snr, deviation=args.mobile_deviation,
+            paths=args.mobile_paths, limiter=args.mobile_limiter)
     else:
         audio = impairments.add_awgn(audio, snr, rng)
     noisy = os.path.join(tmp, "noisy.f32")
@@ -182,6 +184,15 @@ def main() -> None:
                         "reinterpreted as RF C/N in dB")
     p.add_argument("--k", type=float, default=0.0,
                    help="Rician K factor for --mobile, 0 = Rayleigh (default: 0)")
+    p.add_argument("--mobile-fc", type=float, default=145.0e6, dest="mobile_fc",
+                   help="RF carrier Hz for --mobile (default: 145 MHz, 2 m band)")
+    p.add_argument("--mobile-deviation", type=float, default=3000.0,
+                   dest="mobile_deviation", help="FM deviation Hz for --mobile (default: 3000)")
+    p.add_argument("--mobile-paths", type=int, default=50, dest="mobile_paths",
+                   help="multipath scatterer count for --mobile (default: 50)")
+    p.add_argument("--mobile-limiter", type=float, default=3.0,
+                   dest="mobile_limiter",
+                   help="discriminator clamp in deviation units for --mobile (default: 3)")
     p.add_argument("--verdicts", default=None, metavar="PATH",
                    help="write one line per trial (inputs + verdict), so a "
                         "two-binary A/B attribution is a plain `diff` of two "
@@ -205,7 +216,9 @@ def main() -> None:
     rng = np.random.default_rng(args.seed)
     arms = " ".join(f"{k}={v}" for k, v in (("cfo", args.cfo), ("ppm", args.ppm),
                                             ("delay", args.delay), ("burst", args.burst),
-                                            ("mobile", args.mobile), ("K", args.k))
+                                            ("mobile", args.mobile), ("K", args.k),
+                                            ("fc", args.mobile_fc if args.mobile is not None else None),
+                                            ("dev", args.mobile_deviation if args.mobile is not None else None))
                     if v is not None) or "clean"
     args.arms = arms
     print(f"PER over AWGN  audio {args.rate:g} Hz  text {args.text_len} chars  "

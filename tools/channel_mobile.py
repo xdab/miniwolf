@@ -73,7 +73,7 @@ def fm_demodulate(iq: np.ndarray, rate: float, deviation: float,
 def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
                    fc: float = 145.0e6, speed_kph: float = 100.0, k: float = 0.0,
                    cnr_db: float = 30.0, deviation: float = 3000.0,
-                   paths: int = 50) -> np.ndarray:
+                   paths: int = 50, limiter: float = 3.0) -> np.ndarray:
     """The whole mobile link: FM modulate -> multipath fade -> thermal noise
     at the RF C/N -> limiter discriminator. fd from physical speed at the
     carrier (100 km/h at 145 MHz is ~13.4 Hz Doppler spread); noise power is
@@ -86,7 +86,7 @@ def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
     sigma = np.sqrt(np.mean(np.abs(tx) ** 2) / cnr / 2.0)
     noise = sigma * (rng.standard_normal(tx.size)
                      + 1j * rng.standard_normal(tx.size))
-    return fm_demodulate(faded + noise, rate, deviation)
+    return fm_demodulate(faded + noise, rate, deviation, limiter)
 
 
 def main() -> int:
@@ -101,13 +101,15 @@ def main() -> int:
     p.add_argument("--cnr", type=float, default=30.0, help="RF C/N in dB (default: 30)")
     p.add_argument("--deviation", type=float, default=3000.0, help="FM deviation Hz (default: 3000)")
     p.add_argument("--paths", type=int, default=50, help="multipath scatterer count (default: 50)")
+    p.add_argument("--limiter", type=float, default=3.0,
+                   help="discriminator output clamp in deviation units (default: 3)")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (default: 0)")
     args = p.parse_args()
 
     audio = np.fromfile(args.infile, dtype=np.float32)
     out = mobile_channel(audio, args.rate, np.random.default_rng(args.seed),
                          args.fc, args.speed, args.k, args.cnr,
-                         args.deviation, args.paths)
+                         args.deviation, args.paths, args.limiter)
     out.tofile(args.out)
     fd = (args.speed / 3.6) / (3.0e8 / args.fc)
     print(f"mobile: {args.speed:g} km/h at {args.fc / 1e6:g} MHz "
