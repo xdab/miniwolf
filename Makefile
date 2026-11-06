@@ -1,4 +1,4 @@
-.PHONY: all update build profile release run cal log test prof file file1 file2 fmt fmt-check tidy compdb package install clean
+.PHONY: all update build profile release run cal log test prof regression regression-perf file file1 file2 fmt fmt-check tidy compdb package install clean
 
 all: run
 
@@ -9,6 +9,8 @@ help:
 	@echo "run           debug build, then run against sample.conf"
 	@echo "cal           run the spectrum analyzer (-C)"
 	@echo "test          debug build, then run build/mw_test"
+	@echo "regression    release build, then run the e2e regression suite (tools/regression.py)"
+	@echo "regression-perf  the suite plus per-case real-time multiplier"
 	@echo "file / file1 / file2  release build, then demodulate tnctest tracks"
 	@echo "package       release build, then tar the binaries"
 	@echo "fmt / fmt-check  reformat / verify formatting (clang-format)"
@@ -53,6 +55,12 @@ cal: build
 
 test: build
 	./build/mw_test
+
+regression: release
+	python3 tools/regression.py
+
+regression-perf: release
+	python3 tools/regression_perf.py
 
 prof: build
 	valgrind --tool=callgrind ./build/miniwolf_file -v -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw

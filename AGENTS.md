@@ -50,11 +50,10 @@ baselines.
 - clean `make build` / `make release`;
 - `make test` passing (`build/mw_test`);
 - `python3 tools/ber.py --selftest` passing;
-- `./build/miniwolf_file -f <file> -r <rate>` on a `tools/frame.py` output
-  decoding exactly the ground-truth TNC2 line.
-
-There is no commit gate script yet (TODOS.md); the checks above are the
-manual equivalent until it lands.
+- `make regression` passing (`tools/regression.py`: the end-to-end
+  suite — synthetic `tools/frame.py` cases decoded byte-exact against
+  ground truth through `miniwolf_file`, plus WA8LMF decode-count
+  floors; `make regression-perf` adds real-time multiplier columns).
 
 ## Documentation
 

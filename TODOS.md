@@ -16,24 +16,6 @@ recording sink falls out as another device over the same interface when
 needed. Acceptance test: `tools/frame.py` output decodes through the new
 backend as it does through `build/miniwolf_file`.
 
-## tools/regression.py commit gate (synthetic-first) and its perf twin
-
-Distinct from the WA8LMF decode-count baselines (this gate can exist today
-without new recordings). Origin: rxx_lora's
-`tools/regression.py` — the script that runs on every landing and fails the
-commit — and `tools/regression_perf.py`, its speed twin (same verdicts plus
-real-time multiplier per line; verdicts gate the exit code, never the speed).
-Intended shape for miniwolf: build the case matrix out of what already works —
-`tools/frame.py` variants (clean, each impairment arm once it exists, digi
-paths, min/max frame sizes, `--phase-reset`) decoded through the miniwolf_file
-entry point (`miniwolf_file -f ... -F S16 ...`) with `--digi`/text ground truth compared
-against the TNC2 stdout, plus the WA8LMF tracks in `data/` with their measured
-baseline counts (track01: 1010, track02: 934; 5–7 decode zero today — that is
-a known baseline, not a failure). PASS/FAIL matrix on stdout, non-zero exit on
-any regression. Perf twin wraps the same cases in `miniwolf_file`'s existing
-timing output and records decode-time-per-track so the zero-copy and
-vectorization entries can prove their numbers. Blocked on nothing.
-
 ## Channel noise calibration: fix sigma scaling and duty referencing, re-baseline
 
 The channel model under-scales noise by a factor of 2 (3.01 dB): the sigma
@@ -90,8 +72,8 @@ two Goertzel tunings (optim/pesim) are near-identical to each other and
 ~0.5 dB behind; in the default race goertzel-optim takes the output by
 first-wins order while pesim wins almost nothing despite completing as
 many frames as optim. Remaining: cull pesim (worst solo, structurally
-voiceless in the race) and any further culling behind the synthetic
-regression gate above; re-verify on the WA8LMF tracks and real captures
+voiceless in the race) and any further culling behind the regression
+suite (tools/regression.py); re-verify on the WA8LMF tracks and real captures
 before deleting anything. Multi-decoder diversity — several parallel
 decoders with different filters, accept any CRC-valid frame — already
 exists as the default race and measurably beats every solo arm by
@@ -122,7 +104,7 @@ symbol templates, which is the standard way to buy low-SNR margin in AFSK
 shape of the symbol is exploited instead of just its energy. Intended
 shape: a `demod_corr.c`-style variant producing soft symbol confidence
 alongside the hard bit, slotted behind the existing demod interface so the
-regression gate can score it against the incumbents on equal footing.
+regression suite (tools/regression.py) can score it against the incumbents on equal footing.
 The far end of this direction: IF/baseband-domain detection (matched
 filter or MLSE over the FM waveforms) has no discriminator and therefore
 no click threshold at all — theory estimates a 5-7 dB gain over the
@@ -172,7 +154,7 @@ preamble flags; it locks at 48000 Hz) and never locks at any C/N on the
 static reference channel below ~7 dB — bits are emitted regardless, so
 decoding is unaffected, but the flag is dead exactly where the WA8LMF
 tracks live. Intended shape: characterization from
-the regression gate (per-case verdicts should record whether DCD ever
+the regression suite (per-case verdicts should record whether DCD ever
 locked), and only then decisions about look-ahead/rewind recovery for
 frames lost to late lock — the receiver already buffers, so rewinding to
 try an earlier start is available and unused. Not the intended shape:
@@ -191,6 +173,22 @@ allocates. Criticality: real but modest — a 1200-baud modem at 48 kHz is
 nowhere near the CPU ceiling of a LoRa wideband receiver, so measure with
 callgrind before and after rather than assuming the same magnitude.
 
+## Per-frame signal-quality estimate: audio SNR, C/N or Eb/N0 reported with each decoded frame
+
+Problem: miniwolf decodes frames but reports nothing about the channel they
+arrived through — the receiver already computes per-sample signal power (AGC,
+squelch envelopes) and per-bit confidence (`bitclk.signal_quality`), yet a
+decoded frame carries no quality figure, so operators and tools cannot tell a
+clean decode from one scraped out of the noise. Intended shape: estimate the
+received channel quality over each frame's audio span (the demodulators
+already see the frame boundaries) and report it with the decode line — audio
+SNR, C/N (the repo's noise reference, dB at the IF output), or Eb/N0, one
+honest estimator rather than all three. Criticality: a wish — worth doing
+because it costs little (the quantities are already computed internally) and
+makes every capture, gate line and field report self-describing; the estimator
+must be validated against the tools' known-C/N channels (tools/ber.py draws at
+labeled C/N) before its numbers are trusted.
+
 ## Vectorized demod inner loops
 
 The demod/filter dot products are scalar float; rxx_lora's form
@@ -198,6 +196,6 @@ The demod/filter dot products are scalar float; rxx_lora's form
 explicitly shaped because GCC will not vectorize a scalar FP reduction)
 halved instruction counts in its hot loops. Intended shape: same form
 applied only where a profile says the time actually goes, and kept only if
-bit-exact or PER-neutral against the regression gate. Criticality: low
+bit-exact or PER-neutral against the regression suite. Criticality: low
 until profiling says otherwise — listed so it is not rediscovered
 independently later.
