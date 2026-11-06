@@ -17,17 +17,23 @@ recording sink falls out as another device over the same interface when
 needed. Acceptance test: `tools/frame.py` output decodes through the new
 backend as it does through `build/miniwolf_file`.
 
-## Carrier-frame phase-error estimator
+## Carrier-frame phase-error: the controlling quantity is slow phase wander, not clicks
 
-Open question carried over from the noise-calibration work: noise POWER
-does not appear to be the controlling quantity the receiver experiences
-(arms at materially different true in-frame C/N decode identically;
-PER is invariant to the in-frame noise-power difference). The
-prescribed instrument to see what the receiver actually experiences:
-the carrier-frame phase-error estimator — u = z*conj(c)/|c|^2, home
-region, count |dpsi| > pi excursions and the sub-2-pi |dpsi| > pi/2
-tail — run over failing vs passing trials until the controlling
-quantity is named.
+The estimator now exists (tools/carrier_frame.py — error phasor
+u = z*conj(c)/|c|^2 against the paired noise-free carrier, decode-verdict
+split, sweep runner). Measured on the static reference channel across the
+knee: whole phase rotations (|dpsi| > pi, the Rice-click event the theory
+model rests on) NEVER occur — not even at 100% PER — so clicks do not
+govern this chain; the sub-2-pi |dpsi| > pi/2 tail does not separate
+passing from failing trials either. What separates cleanly is the RMS
+carrier-frame phase error: passing trials hold a fraction of a radian,
+failing trials wander multiple radians. The receiver is defeated by slow
+carrier-frame phase WANDER — noise FM of the signal over the frame — not
+by discrete threshold events. Open: exploit it. Slow wander is trackable
+(carrier/tone-phase reference, longer-window or IF-domain detection,
+MLSE over the FM waveform — the "matched filter" entry below is the
+receiving end of the same insight), and a phase-error figure may belong
+in the per-frame signal-quality entry.
 
 ## Narrow the IF before the discriminator (near-Carson channel filter)
 
