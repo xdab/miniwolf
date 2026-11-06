@@ -63,14 +63,15 @@ exhausted.
 ## DC offset and frequency-error tolerance
 
 Problem: the split-filter parameters bake in nominal 1200/2200 Hz centers,
-so an off-tune receiver or a zero-IF soundcard with DC spike degrades
-silently; rxx_lora hit the same wall and solved it with a one-pole IIR DC
-blocker plus per-frame CFO adaptation. Intended shape: a cheap DC blocker
-on the capture path (a few lines, no opinion on cost) and, if captures
-prove frequency error matters, an estimator that recenters the demod
-filters per signal. Open question: how common off-tune reception actually
-is — measure from real captures before building the estimator; the DC
-blocker part is probably justified already.
+so an off-tune receiver degrades silently. Unlike rxx_lora (zero-IF RF,
+where DC sits in-band), miniwolf's audio front end keeps a soundcard DC
+offset ~1200 Hz below the lowest tone, where the existing filters
+structurally reject it — a DC blocker is NOT justified on borrowed
+reasoning. Both halves of this entry are measurement-gated: prove from
+real captures that (a) a DC offset or (b) a frequency offset actually
+corrupts decodes before building the one-pole blocker or the filter
+recentering estimator respectively. If the RTL-SDR backend lands, its
+zero-IF I/Q path re-opens (a) for that front end.
 
 ## PLL characterization before extension
 
