@@ -249,10 +249,8 @@ def main() -> int:
     post = np.zeros(int(args.post_silence * args.rate), dtype=np.float32)
     gap = np.zeros(int(args.gap * args.rate), dtype=np.float32)
 
-    # N frames separated by channel silence; text gets a " #k" suffix (frame
-    # 1 keeps the plain text) so each decode matches one truth line 1:1.
-    # The channel arms below run over the WHOLE file, so the gaps carry the
-    # same noise/fading the frames do — a station idling between transmissions.
+    # N frames separated by channel silence; " #k" suffix (frame 1 plain) so
+    # each decode matches one truth line 1:1; gaps carry the same channel
     pieces = []
     texts = []
     for k in range(args.frames):
@@ -269,12 +267,8 @@ def main() -> int:
     for text in texts:
         print(tnc2(args.dest, args.source, args.digi, text))
 
-    # The channel, transceiver-style (tools/channel.py): tone offset first,
-    # then the FM link — multipath (picket fencing), thermal noise at C/N
-    # measured at the IF output, IF filter, limiter discriminator. Runs over
-    # the WHOLE file, so inter-frame gaps carry stationary noise while only
-    # the distant station's signal fades. --mobile omitted gives the static
-    # reference channel; --cnr omitted gives pure fading, no noise.
+    # channel: tone offset first, then the FM link (tools/channel.py);
+    # --mobile omitted = static reference, --cnr omitted = pure fading
     rng = np.random.default_rng(args.seed)
     if args.cfo is not None:
         audio = channel.cfo_offset(audio, args.rate, args.cfo)

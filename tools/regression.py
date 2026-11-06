@@ -32,11 +32,8 @@ DECODE = re.compile(r"@ \d{2}:\d{2}:\d{2}\.\d{3} (.*)$", re.MULTILINE)
 PACKETS = re.compile(r"^.*Packets: (\d+)$", re.MULTILINE)
 MODEM_TIME = re.compile(r"Time in modem_demodulate: ([0-9.]+) s")
 
-# (name, frame.py argv) — xfail=True marks a known current gap that must not
-# gate the tree: it shows as XFAIL while failing and XPASS the day it decodes.
-# Measured boundaries (2026-11): a 1-char payload never decodes (2 chars do);
-# 200 Hz tone offset never decodes (150 Hz does — see the DC offset /
-# frequency-error tolerance entry in TODOS.md).
+# (name, frame.py argv) — xfail=True: known gap that must not gate the tree
+# (XFAIL while failing, XPASS the day it decodes)
 MAX_TEXT = ("The quick brown fox jumps over the lazy dog 0123456789. " * 4).strip()
 CASES = [
     ("clean", [], False),
@@ -51,10 +48,8 @@ CASES = [
     ("cfo-200", ["--cfo", "200"], True),
 ]
 
-# WA8LMF bench tracks (gitignored): measured decode-count floors.
-# track01 measured 1010, track02 measured 934 (data/README.md); the floors
-# sit ~1% under the measurements — regression tripwires, not exact pins.
-# Tracks 3+ are secondary and deliberately not gated.
+# WA8LMF bench tracks (gitignored): floors ~1% under the measured decode
+# counts (data/README.md) — tripwires, not exact pins; tracks 3+ not gated
 TNCTESTS = [
     ("track01", os.path.join(ROOT, "data", "tnctest01_22050Hz_mono_S16LE.raw"),
      "-F S16 -r 22050", 1000),

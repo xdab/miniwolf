@@ -126,11 +126,9 @@ def main():
         f"{d0['seed']}\n"
         "open markers = SNR points with false decodes; "
         "curves stop at the last point with an observed error", fontsize=10)
-    # axes fit the plotted points, not the swept range: past the last
-    # observed error there is nothing to show but empty space
+    # axes fit the plotted points, not the swept range
     lo = min((s["snr"] + off).min() for s in sweeps)
-    # a sweep with no errors anywhere contributes no drawn point: fall back
-    # to its full swept range so the limits stay finite
+    # a sweep with no errors contributes no point: fall back to its full range
     hi = max((e[-1] if len(e) else (s["snr"] + off).max()) for e, s in zip(ends, sweeps))
     pad = 0.04 * (hi - lo)
     ax.set_xlim(lo - pad, hi + pad)

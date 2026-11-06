@@ -242,8 +242,7 @@ def main() -> None:
     print(f"PER vs C/N  audio {args.rate:g} Hz  text {args.text_len} chars  "
           f"{args.trials} trials/point  seed={args.seed}  arms={arms}", flush=True)
     print(" C/N [dB]        PER      ok  wrong  none  extra", flush=True)
-    # Draw the whole matrix up front, in serial-loop order: the --verdicts
-    # draw sequence is part of the A/B contract and must not move.
+    # draw order is part of the A/B contract and must not move
     draws = []
     for cnr in cnrs:
         for ti in range(args.trials):

@@ -150,12 +150,7 @@ def mobile_channel(audio: np.ndarray, rate: float, rng: np.random.Generator,
     if cnr_db is not None:
         cnr = 10.0 ** (cnr_db / 10.0)
         # unit-power noise in the IF band: filter first, renormalize, then
-        # scale — so C/N holds in the bandwidth the receiver actually passes.
-        # Reference: the KEYED-frame carrier power, total complex (I+Q)
-        # power — rho = carrier / E|n|^2, matching the theoretical
-        # definitions (an earlier version divided by 2 as if sigma were a
-        # per-component std-dev and referenced the whole-file mean carrier,
-        # quietly testing every sweep ~5.7 dB easier than labeled).
+        # scale; rho = keyed-carrier power / E|n|^2, total complex power
         keyed = noise_ref[noise_ref != 0]
         p_carrier = np.mean(np.abs(keyed) ** 2) if keyed.size else 1.0
         shape = if_lowpass(rng.standard_normal(tx.size)
