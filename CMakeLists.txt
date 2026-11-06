@@ -62,7 +62,7 @@ target_include_directories(mw_modem PUBLIC include)
 target_link_libraries(mw_modem tnc)
 
 # RX chain library: shared receive chain + pull-only device backends
-add_library(mw_rx STATIC src/rx.c src/device_file.c)
+add_library(mw_rx STATIC src/rx.c src/device_file.c src/format.c)
 target_include_directories(mw_rx PUBLIC include)
 target_link_libraries(mw_rx mw_modem dsp)
 

@@ -3,6 +3,7 @@
 #include "common.h"
 #include "demod.h"
 #include "device.h"
+#include "format.h"
 #include "modem.h"
 #include "rx.h"
 #include "tnc2.h"
@@ -153,8 +154,6 @@ static void file_args_parse(int argc, char *argv[], file_args_t *args)
     args->demod_types = DEMOD_ALL;
 
     argp_parse(&file_argp, argc, argv, 0, 0, args);
-    // type/bits/little_endian stay 0/0/-1 when no -F/-e was given so a WAV
-    // header can supply them; the file backend defaults raw input to F32 LE
 }
 
 int main(int argc, char *argv[])
@@ -177,31 +176,18 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    device_file_params_t dev_params = {.type = args.type,
-                                       .bits = args.bits,
-                                       .little_endian = args.little_endian,
-                                       .rate = args.rate};
-    device_t *dev = device_open_file(args.input_file, &dev_params);
+    audio_format_t fmt = {.type = args.type,
+                          .bits = args.bits,
+                          .little_endian = args.little_endian,
+                          .rate = args.rate};
+    device_t *dev = device_open_file(args.input_file, &fmt);
     if (!dev)
         return EXIT_FAILURE;
 
-    if ((dev_params.type == 'F' && (dev_params.bits != 32 && dev_params.bits != 64)) ||
-        (dev_params.type != 'F' &&
-         (dev_params.bits != 8 && dev_params.bits != 16 && dev_params.bits != 32)))
-    {
-        LOG("Error: Invalid format. F: 32/64, S/U: 8/16/32.");
-        device_free(dev);
-        return EXIT_FAILURE;
-    }
-
-    float sample_rate = (float)dev_params.rate;
+    float sample_rate = (float)fmt.rate;
 
     LOGV("Sample rate: %.0f Hz", sample_rate);
-    LOGV(
-        "Format: %c%d %s",
-        dev_params.type,
-        dev_params.bits,
-        dev_params.little_endian ? "LE" : "BE");
+    LOGV("Format: %c%d %s", fmt.type, fmt.bits, fmt.little_endian ? "LE" : "BE");
 
     rx_params_t rx_params = {.sample_rate = sample_rate,
                              .gain_2200 = args.gain_2200,
@@ -268,10 +254,8 @@ int main(int argc, char *argv[])
         uint64_t ms = (uint64_t)(fmod(time_sec * 1000.0, 1000.0));
 
         LOG("%d @ %02lu:%02lu:%02lu.%03lu %s", packet_count, hours, mins, secs, ms, tnc2_data);
-        // per-frame received-channel quality: the winning demodulator's
-        // avg bit-clock transition health over the frame's bits (0..32;
-        // 32/32 = every PLL timing error inside the good window). The
-        // decode line itself stays byte-stable for the parsing tools.
+        // winning demodulator's avg bitclk signal_quality over the frame's
+        // bits (0..32); decode line stays byte-stable for the parsing tools
         LOGV("rx-quality %.1f/32 at %.3f s", rx.mrx.last_win_quality / 256.0f, time_sec);
         if (args.use_squelch)
             LOGV(
@@ -288,7 +272,7 @@ int main(int argc, char *argv[])
         LOG("STATS tag=chain samples_in=%llu squelch_drop=%llu",
             (unsigned long long)rx.samples_in,
             (unsigned long long)rx.squelch_drop);
-        md_stats_dump(&rx.mrx, "modem");
+        md_stats_log(&rx.mrx, "modem");
     }
 
     rx_chain_free(&rx);
