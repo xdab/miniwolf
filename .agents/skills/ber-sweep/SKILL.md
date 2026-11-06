@@ -21,7 +21,7 @@ no `--cfo`) at 48 kHz, 30-char payloads:
 ```
 
 The window brackets the measured static knee (PER 50% at 4 dB C/N, clean
-from 7 dB — measured numbers live in `data/README.md`). 100 trials per point
+from 7 dB — measure the knee fresh rather than trusting stale numbers). 100 trials per point
 while probing, 300+ for a curve someone will read numbers off; go higher when
 the error counts say the waterfall is under-sampled. Sweeps parallelize over
 trials with `--jobs`, which defaults to every core — pass
@@ -98,24 +98,13 @@ text length and channel arms; anything else is a confound, not a result.
 This is why probe and zoom logs land in `/tmp/ber` even unasked: the base arm
 of a future comparison already exists.
 
-## Loss attribution
+## Verdict files
 
-A PER number says how many trials died; `tools/loss_decomp.py` says where.
 `ber.py` always passes `--stats` to the binary and appends the per-demod
 counters (bits, DCD-locked samples, completed frames) and chain counters
-(squelch drops) to every `--verdicts` line; the decomposition stacks them per
-C/N into `squelch` / `dcd` / `deframe` / `dedup` / `wrong` / `ok` bands plus
-a per-demodulator frames table (which demod completes frames where):
-
-```sh
-python3 tools/loss_decomp.py /tmp/ber/base.v --out /tmp/ber/loss.png
-python3 tools/loss_decomp.py /tmp/ber/base.v /tmp/ber/knob.v \
-    --labels baseline knob --out /tmp/ber/ab_loss.png
-```
-
-Judge bands, not just the curve: a `deframe`-band loss has the opposite cure
-of a `squelch` one (method.md: "wrong choice" vs "right answer never
-offered"). Verdict files from an older binary decompose into `unknown`.
+(squelch drops) to every `--verdicts` line. Read them directly to attribute
+loss: a frame dying before deframe has the opposite cure of one dying in
+squelch (method.md: "wrong choice" vs "right answer never offered").
 
 ## Demodulator shootout
 
@@ -128,6 +117,6 @@ complementary questions, two measurements:
   `ber_combine.py`.
 - **Race wins** — the default `all` run: the verdict lines carry per-demod
   `frames` (completed pre-dedup) and `wins` (delivered the output);
-  `loss_decomp.py` prints the frames/wins table. A demod whose `frames`
+  A demod whose `frames`
   dwarf its `wins` is being shadowed by a faster sibling; a demod with
   frames everywhere but no solo curve wins is completing junk.

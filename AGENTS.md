@@ -35,15 +35,14 @@ end.
 `tools/` is the Python toolkit: `frame.py` (Bell202 generator + ground
 truth), `channel.py` (the transceiver channel: mobile fading, tone offset,
 CNR noise at the IF output), `ber.py` (PER-vs-C/N sweeps, paired seeds),
-`ber_combine.py` (overlay sweep logs), `loss_decomp.py` (stage + per-demod
-loss attribution over `ber.py --verdicts` files), `ber_theory.py`
+`ber_combine.py` (overlay sweep logs), `ber_theory.py`
 (theoretical PER: Rice click noise + noncoherent FSK, ber.py-compatible
 stdout for ber_combine overlays). All stochastic tools take a `--seed`;
 two runs sharing it draw identical channels (paired A/B).
 
 `data/` holds real capture material (WA8LMF TNC Test CD derivatives),
-gitignored; `data/README.md` lists the files and their measured decode-count
-baselines.
+gitignored and optional; `data/README.md` says what belongs there and how to
+measure it.
 
 ## Quality gates
 
@@ -67,8 +66,8 @@ baselines.
   or the code, leave it out;
 - every in-repo reference must resolve: the file exists, the search string is
   in it, the description is accurate;
-- measured numbers live in the docs that exist to hold them
-  (`data/README.md` for decode counts), not in code comments.
+- measured numbers live in the docs that exist to hold them, not in code
+  comments; `data/README.md` deliberately records none — measure fresh.
 
 ## Constraints
 
