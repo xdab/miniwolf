@@ -125,10 +125,11 @@ def flag_span(f, start, spb):
         cc = cg[:, trim:spb - trim].mean(axis=1)
         w = cc[lag:lag + p * 8] - cc[lag:lag + p * 8].mean()
         d = np.sqrt((w * w).sum() * (q * q).sum())
-        r = abs(float((w * q).sum() / d)) if d > 0 else 0.0
+        s = float((w * q).sum() / d) if d > 0 else 0.0
+        r = abs(s)
         if best is None or r > best[0]:
-            best = (r, off, cc)
-    r, off, cc = best
+            best = (r, off, cc, s)
+    r, off, cc, pol = best
     # shrink overrun: the longest candidate window may include data bits;
     # walk down to the largest length measuring pure periodicity (>= 0.95
     # refined; a window shorter than the preamble is unbiased, one longer
@@ -157,8 +158,18 @@ def flag_span(f, start, spb):
     s = start + lag * spb + off
     n = p * 8 * spb
     guard = spb // 4
+    # span-exact expected mean: 1325 Hz holds only for whole flag periods,
+    # but the guarded span is not whole periods -- walk the flag pattern
+    # over the covered samples and average the nominal tone of each
+    # polarity from the signed correlation (shift-invariant, unlike any
+    # tone midpoint): mark-majority preambles correlate negative
+    lower, upper = (1200.0, 2200.0) if pol < 0 else (2200.0, 1200.0)
+    idx = np.arange(guard, n - guard)
+    bitk = idx // spb
+    tone = np.where(((lag + bitk) % 8) != 7, lower, upper)
+    e0 = float(tone.mean())
     m = float(np.mean(f[s + guard:s + n - guard]))
-    return lag, p, r, m
+    return lag, p, r, m, e0
 
 
 def main() -> int:
@@ -189,12 +200,12 @@ def main() -> int:
         hit = flag_span(f, int(run[0]), spb)
         if hit is None:
             continue
-        lag, periods, r, m = hit
+        lag, periods, r, m, e0 = hit
         print(f"preamble at sample {int(run[0]) + lag * spb} "
               f"(t={(int(run[0]) + lag * spb) / args.rate * 1000:.1f} ms), "
               f"{periods} flags (corr {r:.2f}): mean inst-freq {m:8.2f} Hz, "
-              f"expected {EXPECTED_MEAN:.1f} "
-              f"-> tone-pair shift {m - EXPECTED_MEAN:+8.2f} Hz")
+              f"span-exact expected {e0:8.2f} "
+              f"-> tone-pair shift {m - e0:+8.2f} Hz")
         return 0
     print("no flag-pattern preamble found")
     return 1
