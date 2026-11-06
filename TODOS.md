@@ -17,19 +17,6 @@ recording sink falls out as another device over the same interface when
 needed. Acceptance test: `tools/frame.py` output decodes through the new
 backend as it does through `build/miniwolf_file`.
 
-## Carrier-frame phase-error: the controlling quantity is slow phase wander, not clicks
-
-The estimator (tools/carrier_frame.py — error phasor u = z*conj(c)/|c|^2
-against the paired noise-free carrier, decode-verdict split) settled the
-question: whole phase rotations (the Rice-click event the theory model
-rests on) never occur, not even at 100% PER; the sub-2-pi tail does not
-separate populations. What separates cleanly is the RMS carrier-frame
-phase error: passing trials hold a fraction of a radian, failing trials
-wander multiple radians. The receiver is defeated by slow carrier-frame
-phase wander — noise FM over the frame. Exploiting that is the
-matched-filter entry below; a phase-error figure may belong in the
-per-frame signal-quality entry.
-
 ## Tone-detector window
 
 The Goertzel tone detectors integrate over ~3.2 bit periods where matched
@@ -60,7 +47,9 @@ energy (Goertzel) per symbol; neither correlates against the 1200/2200 Hz
 symbol templates, which is the standard way to buy low-SNR margin in AFSK
 — the analogue of rxx_lora's dechirp-then-FFT: exploit the deterministic
 symbol shape instead of just its energy. This is also the receiving end
-of the carrier-frame finding above: slow phase wander is exactly what a
+of the measured failure mode (tools/carrier_frame.py): whole phase
+rotations never occur; what kills the receiver is slow carrier-frame
+phase wander — noise FM over the frame — exactly what a
 correlating/averaging detector tracks through. Intended shape: a
 `demod_corr.c`-style variant producing soft symbol confidence alongside
 the hard bit, slotted behind the existing demod interface so the
@@ -70,21 +59,6 @@ incumbents on equal footing. The far end: IF/baseband-domain detection
 needs a known deviation, a carrier/tone-phase reference and CFO
 tracking; only worth building if the correlator direction is
 exhausted.
-
-## Soft-bit path out of the demod: the retry half is measured dead
-
-The go/no-go number is measured: NOT ONE deframe-band failure at the
-static-channel knee is recovered by any ±1 bit slip (global shifts,
-one-bit delete or duplicate at every stream position, quadrature and
-Goertzel alike). The failures carry ~20-30 wrong bits per ~545-bit frame
-— diffuse corruption, the carrier-frame phase-wander signature, not
-clock slips. A retry-on-CRC-fail path has no raw material; do not build
-it. What remains of the entry: per-bit confidence feeding sequence
-scoring (Viterbi-style) — but scoring the same hard bits harder cannot
-fix 20-bit corruption either; confidence only pays if it feeds a
-receiver that sees through the wander (the matched-filter entry above).
-So the soft-bit path is a drawer item until the matched-filter demod
-exists.
 
 ## DC offset and frequency-error tolerance
 
@@ -117,18 +91,6 @@ try an earlier start is available and unused. Not the intended shape:
 tuning the inertia constants further against one tape; that is the ritual
 this file exists to end.
 
-## Zero-copy audio ingress
-
-Problem: capture blocks hop through per-block `float_buffer_t` allocations
-(`libs/libtnc/include/buffer.h`) on the hot path, and the playback ring is
-the only pre-sized buffer. rxx_lora's equivalent change (zero-copy
-ingress, pre-sized rings, no hot-path reallocs) took ~39% off wall clock
-without touching decoded output. Intended shape: caller-owned scratch
-through the capture path, rings sized at init so steady state never
-allocates. Criticality: real but modest — a 1200-baud modem at 48 kHz is
-nowhere near the CPU ceiling of a LoRa wideband receiver, so measure with
-callgrind before and after rather than assuming the same magnitude.
-
 ## Per-frame signal-quality estimate: audio SNR, C/N or Eb/N0 reported with each decoded frame
 
 Problem: miniwolf decodes frames but reports nothing about the channel they
@@ -144,14 +106,3 @@ because it costs little (the quantities are already computed internally) and
 makes every capture, gate line and field report self-describing; the estimator
 must be validated against the tools' known-C/N channels (tools/ber.py draws at
 labeled C/N) before its numbers are trusted.
-
-## Vectorized demod inner loops
-
-The demod/filter dot products are scalar float; rxx_lora's form
-(`vector_size(32)` whole-vector dots with pairwise horizontal sums,
-explicitly shaped because GCC will not vectorize a scalar FP reduction)
-halved instruction counts in its hot loops. Intended shape: same form
-applied only where a profile says the time actually goes, and kept only if
-bit-exact or PER-neutral against the regression suite. Criticality: low
-until profiling says otherwise — listed so it is not rediscovered
-independently later.
