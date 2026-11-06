@@ -35,6 +35,33 @@ void md_multi_rx_init(
     mrx->last_modem = -1;
     mrx->last_crc = 0;
     mrx->last_time = 0L;
+    mrx->dedup_suppressed = 0;
+    mrx->last_win_quality = 0;
+}
+
+void md_stats_log(const struct md_multi_rx *mrx, const char *tag)
+{
+    nonnull(mrx, "mrx");
+    nonnull(tag, "tag");
+
+    for (int i = 0; i < mrx->count; i++)
+    {
+        const md_demod_stats_t *s = &mrx->rxs[i].stats;
+        LOG("STATS tag=%s rx%d_samples=%llu rx%d_bits=%llu rx%d_dcd=%llu "
+            "rx%d_frames=%llu rx%d_wins=%llu",
+            tag,
+            i,
+            (unsigned long long)s->samples,
+            i,
+            (unsigned long long)s->bits,
+            i,
+            (unsigned long long)s->dcd_on,
+            i,
+            (unsigned long long)s->frames_ok,
+            i,
+            (unsigned long long)s->wins);
+    }
+    LOG("STATS tag=%s dedup_suppressed=%llu", tag, (unsigned long long)mrx->dedup_suppressed);
 }
 
 int md_multi_rx_process(
@@ -54,24 +81,41 @@ int md_multi_rx_process_at(
     uint16_t crc = 0;
     int modem = -2;
 
+    // Every deframer sees every bit; only the first winner is delivered outward
+    static uint8_t scratch[MD_RX_MAX][512];
+
     for (int i = 0; i < mrx->count; i++)
     {
         struct md_rx *rx = &mrx->rxs[i];
-        if (ret == 0)
+        buffer_t rx_frame = {.data = scratch[i], .capacity = sizeof(scratch[i]), .size = 0};
+        uint16_t rx_crc = 0;
+
+        int rx_ret = md_rx_process(rx, sample_buf, &rx_frame, &rx_crc);
+        if (rx_ret > 0)
+            rx->stats.frames_ok++;
+
+        if (ret == 0 && rx_ret > 0)
         {
-            ret = md_rx_process(rx, sample_buf, out_frame_buf, &crc);
-            if (ret > 0)
-                modem = i;
+            memcpy(out_frame_buf->data, rx_frame.data, rx_ret);
+            out_frame_buf->size = rx_ret;
+            ret = rx_ret;
+            crc = rx_crc;
+            modem = i;
         }
-        else
-            (void)md_rx_process(rx, sample_buf, NULL, NULL);
     }
+
+    if (modem >= 0)
+        mrx->rxs[modem].stats.wins++;
+    mrx->last_win_quality = mrx->rxs[modem].stats.last_frame_quality;
 
     if (ret > 0)
     {
         // If just (within 1s) seen identical frame on another modem
         if (crc == mrx->last_crc && modem != mrx->last_modem && time - mrx->last_time <= 1)
+        {
             ret = 0; // Pretend there was no frame received
+            mrx->dedup_suppressed++;
+        }
 
         mrx->last_modem = modem;
         mrx->last_crc = crc;
@@ -105,6 +149,10 @@ void md_rx_init(struct md_rx *rx, float sample_rate, demod_type_t type)
 
     hldc_deframer_init(&rx->deframer);
     bitclk_init(&rx->bit_detector, sample_rate, baud_rate);
+    memset(&rx->stats, 0, sizeof(rx->stats));
+    rx->qual_sum = 0;
+    rx->qual_count = 0;
+    rx->qual_pos = 0;
 }
 
 int md_rx_process(
@@ -117,12 +165,29 @@ int md_rx_process(
     int ret = 0;
     uint16_t ret_crc = 0;
 
+    rx->stats.samples += (uint64_t)sample_buf->size;
+
     for (int i = 0; i < sample_buf->size; i++)
     {
         float sample = sample_buf->data[i];
         float symbol = demod_process(&rx->demod, sample);
 
         int bit = bitclk_detect(&rx->bit_detector, symbol);
+
+        if (bit != BITCLK_NONE)
+        {
+            rx->stats.bits++;
+            // rolling per-bit signal_quality backing last_frame_quality
+            if (rx->qual_count == MD_QUAL_RING)
+                rx->qual_sum -= rx->qual_ring[rx->qual_pos];
+            else
+                rx->qual_count++;
+            rx->qual_ring[rx->qual_pos] = (uint8_t)rx->bit_detector.signal_quality;
+            rx->qual_sum += rx->qual_ring[rx->qual_pos];
+            rx->qual_pos = (uint8_t)((rx->qual_pos + 1) % MD_QUAL_RING);
+        }
+        if (rx->bit_detector.data_detect)
+            rx->stats.dcd_on++;
 
         if (out_frame_buf == NULL)
             continue;
@@ -135,7 +200,10 @@ int md_rx_process(
                 LOGV("error %d while processing sample", result);
 
             if (out_frame_buf->size > 0)
+            {
                 ret = out_frame_buf->size;
+                rx->stats.last_frame_quality = (rx->qual_sum << 8) / (uint32_t)rx->qual_count;
+            }
         }
     }
 
@@ -217,6 +285,7 @@ void modem_init(modem_t *modem, modem_params_t *params)
 
     md_multi_rx_init(&modem->mrx, params->sample_rate, params->types);
     md_tx_init(&modem->tx, params->sample_rate, params->tx_delay, params->tx_tail);
+    modem->dedup_target = NULL;
 }
 
 int modem_demodulate(modem_t *modem, const float_buffer_t *sample_buf, buffer_t *out_frame_buf)
@@ -231,6 +300,13 @@ int modem_demodulate(modem_t *modem, const float_buffer_t *sample_buf, buffer_t 
     return ret;
 }
 
+void modem_set_dedup_target(modem_t *modem, struct md_multi_rx *mrx)
+{
+    nonnull(modem, "modem");
+    nonnull(mrx, "mrx");
+    modem->dedup_target = mrx;
+}
+
 int modem_modulate(modem_t *modem, const buffer_t *frame_buf, float_buffer_t *out_sample_buf)
 {
     nonnull(modem, "modem");
@@ -243,8 +319,9 @@ int modem_modulate(modem_t *modem, const buffer_t *frame_buf, float_buffer_t *ou
         LOGV("modulated frame: %d samples", ret);
 
     // Treat tx crc as already demodulated to filter out self-demodulations
-    modem->mrx.last_crc = frame_crc;
-    modem->mrx.last_time = time(NULL);
+    struct md_multi_rx *dedup = modem->dedup_target ? modem->dedup_target : &modem->mrx;
+    dedup->last_crc = frame_crc;
+    dedup->last_time = time(NULL);
 
     return ret;
 }

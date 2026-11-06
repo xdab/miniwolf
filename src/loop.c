@@ -1,16 +1,15 @@
 #include "loop.h"
-#include "agc.h"
 #include "audio.h"
 #include "ax25.h"
 #include "buffer.h"
 #include "common.h"
-#include "filter.h"
+#include "device.h"
 #include "kiss.h"
 #include "line.h"
 #include "miniwolf.h"
 #include "modem.h"
 #include "poller.h"
-#include "squelch.h"
+#include "rx.h"
 #include "tcp.h"
 #include "tnc2.h"
 #include "udp.h"
@@ -28,6 +27,7 @@
 #define POLL_TIMEOUT_LONG 250
 #define POLL_TIMEOUT_SHORT 10
 
+static void process_audio(miniwolf_t *mw, float *data, int n);
 static void modulate_and_transmit(const buffer_t *frame_buf);
 static void send_tnc2_extra(const char *header, const char *string);
 
@@ -122,8 +122,6 @@ static void send_tnc2_extra(const char *header, const char *string)
 void loop_run(miniwolf_t *mw)
 {
     static float audio_input_buffer[INPUT_CALLBACK_SIZE];
-    static float_buffer_t audio_buf = {
-        .data = audio_input_buffer, .capacity = INPUT_CALLBACK_SIZE, .size = 0};
 
     int timeout_ms = POLL_TIMEOUT_LONG;
 
@@ -143,11 +141,13 @@ void loop_run(miniwolf_t *mw)
             EXIT("socket poller wait error: %s", strerror(errno));
         }
 
-        // Process audio if ready
+        // Process audio if ready: drain every period the device has queued
         if (socket_poller_is_ready(&mw->poller, mw->audio_fd))
         {
             LOGD("audio is ready");
-            aud_process_capture(audio_input_callback, &audio_buf);
+            int n;
+            while ((n = device_read(mw->device, audio_input_buffer, INPUT_CALLBACK_SIZE)) > 0)
+                process_audio(mw, audio_input_buffer, n);
         }
 
         int stdin_input = socket_poller_is_ready(&mw->poller, 0);
@@ -210,43 +210,17 @@ void loop_run(miniwolf_t *mw)
     }
 }
 
-int audio_input_callback(float_buffer_t *buf)
+static void process_audio(miniwolf_t *mw, float *data, int n)
 {
-    assert_buffer_valid(buf);
-
-    // If configured, apply high boost channel equalization
-    if (g_miniwolf.hbf_filter.n > 0)
-    {
-        for (int i = 0; i < buf->size; i++)
-            buf->data[i] = bf_biquad_filter(&g_miniwolf.hbf_filter, buf->data[i]);
-    }
-
-    // If configured, apply squelch
-    if (g_miniwolf.squelch_enabled)
-    {
-        int samples_in = buf->size;
-        int samples_passed = 0;
-        for (int i = 0; i < samples_in; i++)
-        {
-            buf->data[i] = agc_filter(&g_miniwolf.input_agc, buf->data[i]);
-            if (sql_process(&g_miniwolf.squelch, buf->data[i]))
-                buf->data[samples_passed++] = buf->data[i];
-        }
-        buf->size = samples_passed;
-    }
-
-    if (buf->size == 0)
-    {
-        LOGD("audio callback: no samples after processing");
-        return 0;
-    }
+    nonnull(mw, "mw");
+    nonnull(data, "data");
 
     char frame_buffer[512];
     buffer_t frame_buf = {.data = frame_buffer, .capacity = sizeof(frame_buffer), .size = 0};
 
-    int frame_len = modem_demodulate(&g_miniwolf.modem, buf, &frame_buf);
+    int frame_len = rx_chain_process(&mw->rx, data, n, time(NULL), &frame_buf);
     if (frame_len <= 0)
-        return 0;
+        return;
 
     g_miniwolf.last_packet_time = time(NULL);
     LOGV("demodulated packet: %d bytes", frame_len);
@@ -263,7 +237,7 @@ int audio_input_callback(float_buffer_t *buf)
         char kiss_buffer[512];
         int kiss_len = kiss_encode(&kiss_msg, kiss_buffer, sizeof(kiss_buffer));
         if (kiss_len <= 0)
-            return 0;
+            return;
 
         if (g_miniwolf.kiss_mode)
         {
@@ -289,14 +263,14 @@ int audio_input_callback(float_buffer_t *buf)
     {
         ax25_packet_t packet;
         if (ax25_packet_unpack(&packet, &frame_buf))
-            return 0;
+            return;
 
         char tnc2_data[512];
         buffer_t tnc2_buf = {
             .data = (unsigned char *)tnc2_data, .capacity = sizeof(tnc2_data), .size = 0};
         int tnc2_len = tnc2_packet_to_string(&packet, &tnc2_buf);
         if (tnc2_len <= 0)
-            return 0;
+            return;
 
         // Add newline before the end of the tnc2 string
         if (tnc2_len + 1 < sizeof(tnc2_data))
@@ -323,8 +297,6 @@ int audio_input_callback(float_buffer_t *buf)
         if (g_miniwolf.uds_tnc2_enabled)
             uds_server_broadcast(&g_miniwolf.uds_tnc2_server, &tnc2_send_buf);
     }
-
-    return 0;
 }
 
 void tnc2_input_callback(const buffer_t *line_buf)

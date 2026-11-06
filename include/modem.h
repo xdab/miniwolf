@@ -5,15 +5,35 @@
 #include "demod.h"
 #include "hldc.h"
 #include "mod.h"
+#include <stdint.h>
 #include <time.h>
 
 #define MD_RX_MAX 6
+#define MD_QUAL_RING 64
+
+// Per-demodulator loss-attribution counters (see tools/loss_decomp.py)
+typedef struct md_demod_stats
+{
+    uint64_t samples;            // samples fed to the demodulator
+    uint64_t bits;               // hard bits emitted by the bit clock
+    uint64_t dcd_on;             // samples with DCD locked
+    uint64_t frames_ok;          // CRC-valid frames completed by the deframer
+    uint64_t wins;               // frames this demod delivered to the output
+    uint32_t last_frame_quality; // avg bitclk signal_quality over the last
+                                 // completed frame's bits, x256 (0..32)
+} md_demod_stats_t;
 
 struct md_rx
 {
     demod_t demod;
     bitclk_t bit_detector;
     hldc_deframer_t deframer;
+    md_demod_stats_t stats;
+    // rolling per-bit signal_quality backing last_frame_quality
+    uint32_t qual_sum;
+    uint16_t qual_count;
+    uint8_t qual_pos;
+    uint8_t qual_ring[MD_QUAL_RING];
 };
 
 struct md_multi_rx
@@ -25,6 +45,8 @@ struct md_multi_rx
     int last_modem;
     uint16_t last_crc;
     time_t last_time;
+    uint64_t dedup_suppressed;
+    uint32_t last_win_quality; // last_frame_quality of the demod that won last
 };
 
 struct md_tx
@@ -37,6 +59,7 @@ typedef struct modem
 {
     struct md_multi_rx mrx;
     struct md_tx tx;
+    struct md_multi_rx *dedup_target;
 } modem_t;
 
 typedef struct modem_params
@@ -50,6 +73,10 @@ typedef struct modem_params
 //
 
 void modem_init(modem_t *modem, modem_params_t *params);
+
+// Points self-demodulation suppression at an external RX chain's
+// md_multi_rx (defaults to modem's own unused mrx)
+void modem_set_dedup_target(modem_t *modem, struct md_multi_rx *mrx);
 
 int modem_demodulate(modem_t *modem, const float_buffer_t *sample_buf, buffer_t *out_frame_buf);
 
@@ -72,6 +99,8 @@ int md_multi_rx_process_at(
     time_t time);
 
 void md_multi_rx_free(struct md_multi_rx *mrx);
+
+void md_stats_log(const struct md_multi_rx *mrx, const char *tag);
 
 //
 

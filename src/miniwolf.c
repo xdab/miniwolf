@@ -1,20 +1,19 @@
 #include "miniwolf.h"
-#include "agc.h"
-#include "audio.h"
 #include "common.h"
 #include "demod.h"
-#include "filter.h"
+#include "device.h"
 #include "kiss.h"
 #include "line.h"
 #include "loop.h"
 #include "modem.h"
 #include "options.h"
 #include "poller.h"
-#include "squelch.h"
+#include "rx.h"
 #include "tcp.h"
 #include "udp.h"
 #include "uds.h"
 #include <fcntl.h>
+#include <stdlib.h>
 #include <time.h>
 
 miniwolf_t g_miniwolf;
@@ -33,12 +32,6 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     float sample_rate = (float)opts->rate;
 
     socket_poller_init(&mw->poller);
-
-    // Add audio capture fd to poller
-    mw->audio_fd = aud_get_poll_fd();
-    nonzero(mw->audio_fd, "audio_fd");
-    if (socket_poller_add(&mw->poller, mw->audio_fd, POLLER_EV_IN) < 0)
-        EXIT("failed to add audio fd to poller");
 
     // TCP servers
     mw->tcp_kiss_enabled = 0;
@@ -130,22 +123,31 @@ void miniwolf_init(miniwolf_t *mw, const options_t *opts)
     socket_poller_add(&mw->poller, 0, POLLER_EV_IN);
 
     if (opts->gain_2200 != 0.0f)
-    {
         LOGV("enabling high boost filter with gain of %f dB", opts->gain_2200);
-        bf_hbf_init(&mw->hbf_filter, 4, 2200.0f, sample_rate, opts->gain_2200);
-    }
+
+    rx_params_t rx_params = {.sample_rate = sample_rate,
+                             .gain_2200 = opts->gain_2200,
+                             .use_squelch = opts->squelch > 0.0f,
+                             .squelch_strength = opts->squelch,
+                             .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE};
+    rx_chain_init(&mw->rx, &rx_params);
+
+    mw->device = device_open_alsa();
+    EXITIF(!mw->device, EXIT_FAILURE, "failed to open capture device");
+
+    // Add audio capture fd to poller
+    mw->audio_fd = device_poll_fd(mw->device);
+    nonzero(mw->audio_fd, "audio_fd");
+    if (socket_poller_add(&mw->poller, mw->audio_fd, POLLER_EV_IN) < 0)
+        EXIT("failed to add audio fd to poller");
 
     modem_params_t modem_params = {.sample_rate = sample_rate,
                                    .types = DEMOD_ALL_GOERTZEL | DEMOD_QUADRATURE,
                                    .tx_delay = opts->tx_delay,
                                    .tx_tail = opts->tx_tail};
     modem_init(&mw->modem, &modem_params);
-
-    agc_init(&mw->input_agc, 10.0f, 60e3f, sample_rate);
-
-    sql_params_t sql_params = {
-        .sample_rate = sample_rate, .init_threshold = 0.045f, .strength = 0.51f};
-    sql_init(&mw->squelch, &sql_params, &sql_params_default);
+    // Self-demodulation suppression must seed the RX chain, not modem's own mrx
+    modem_set_dedup_target(&mw->modem, &mw->rx.mrx);
 
     kiss_decoder_init(&mw->kiss_decoder);
     line_reader_init(&mw->stdin_line_reader, tnc2_input_callback);
@@ -177,6 +179,8 @@ void miniwolf_free(miniwolf_t *mw)
         uds_server_free(&mw->uds_tnc2_server);
 
     modem_free(&mw->modem);
-    bf_biquad_free(&mw->hbf_filter);
+    rx_chain_free(&mw->rx);
+    if (mw->device)
+        device_free(mw->device);
     socket_poller_free(&mw->poller);
 }

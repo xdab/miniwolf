@@ -1,13 +1,12 @@
 #pragma once
 
-#include "agc.h"
-#include "filter.h"
+#include "device.h"
 #include "kiss.h"
 #include "line.h"
 #include "modem.h"
 #include "options.h"
 #include "poller.h"
-#include "squelch.h"
+#include "rx.h"
 #include "tcp.h"
 #include "udp.h"
 #include "uds.h"
@@ -16,10 +15,9 @@
 typedef struct miniwolf_state
 {
     // DSP components
-    agc_t input_agc;
-    sql_t squelch;
+    rx_chain_t rx;
+    device_t *device;
     modem_t modem;
-    bf_biquad_t hbf_filter;
 
     // Input readers
     line_reader_t stdin_line_reader;

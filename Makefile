@@ -1,4 +1,4 @@
-.PHONY: all update build release run cal log test prof bench bench1 bench2 fmt fmt-check tidy compdb install clean
+.PHONY: all update build profile release run cal log test prof regression regression-perf file file1 file2 fmt fmt-check tidy gate compdb package install clean
 
 all: run
 
@@ -9,9 +9,13 @@ help:
 	@echo "run           debug build, then run against sample.conf"
 	@echo "cal           run the spectrum analyzer (-C)"
 	@echo "test          debug build, then run build/mw_test"
-	@echo "bench         release build, then bench.raw demodulation"
+	@echo "regression    release build, then run the e2e regression suite (tools/regression.py)"
+	@echo "regression-perf  the suite plus per-case real-time multiplier"
+	@echo "file / file1 / file2  release build, then demodulate tnctest tracks"
+	@echo "package       release build, then tar the binaries"
 	@echo "fmt / fmt-check  reformat / verify formatting (clang-format)"
 	@echo "tidy          static analysis gate (clang-tidy, needs build/)"
+	@echo "gate          every quality gate in one go: fmt-check, build, tidy, test, ber selftest, regression"
 	@echo "install       release build, then install binary and systemd units"
 	@echo "clean         remove build/"
 
@@ -24,10 +28,25 @@ build:
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ..
 	cd build && make -j
 
+profile:
+	mkdir -p build/prof
+	cd build/prof && cmake -DCMAKE_BUILD_TYPE=Profile -G "Unix Makefiles" ../..
+	cd build/prof && make -j miniwolf_file
+
 release:
 	mkdir -p build
 	cd build && cmake -G "Unix Makefiles" ..
 	cd build && make -j
+
+ARCH := $(shell uname -m)
+VERSION := $(shell git describe --tags --always --abbrev=8 2>/dev/null || echo "unknown")
+
+package: release
+	rm -rf miniwolf_package
+	mkdir -p miniwolf_package
+	cp build/miniwolf build/mw_cal build/mw_log build/mw_test build/miniwolf_file miniwolf_package/
+	tar -czf miniwolf-$(ARCH)-$(VERSION).tar.gz -C miniwolf_package .
+	rm -rf miniwolf_package
 
 run: build
 	./build/miniwolf -c sample.conf
@@ -38,17 +57,23 @@ cal: build
 test: build
 	./build/mw_test
 
+regression: release
+	python3 tools/regression.py
+
+regression-perf: release
+	python3 tools/regression_perf.py
+
 prof: build
-	valgrind --tool=callgrind ./build/mw_bench -v -F S16 -r 22050 -f tnctest01_22050_S16.raw
+	valgrind --tool=callgrind ./build/miniwolf_file -v -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
-bench: release
-	./build/mw_bench -F F32 -r 22050 -f bench.raw -2 3.0 
+file: release
+	./build/miniwolf_file -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
-bench1: release
-	./build/mw_bench -F S16 -r 22050 -f tnctest01_22050_S16.raw
+file1: release
+	./build/miniwolf_file -F S16 -r 22050 -f data/tnctest01_22050Hz_mono_S16LE.raw
 
-bench2: release
-	./build/mw_bench -F S16 -r 22050 -f tnctest02_22050_S16.raw -2 5.0
+file2: release
+	./build/miniwolf_file -F S16 -r 22050 -f data/tnctest02_22050Hz_mono_S16LE.raw -2 5.0
 
 C_SOURCES := $(wildcard src/*.c include/*.h test/*.c test/*.h)
 
@@ -71,6 +96,10 @@ tidy:
 
 compdb:
 	cmake -S . -B build -G "Unix Makefiles"
+
+gate: fmt-check build tidy test
+	python3 tools/ber.py --selftest
+	python3 tools/regression.py
 
 install: release
 	sudo make -C build install
