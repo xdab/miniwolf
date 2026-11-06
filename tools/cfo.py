@@ -121,6 +121,8 @@ def flag_span(f, start, spb):
     q -= q.mean()
     best = None
     for off in range(spb):
+        if start + off + nbits * spb > len(f):
+            continue
         cg = f[start + off:start + off + nbits * spb].reshape(nbits, spb)
         cc = cg[:, trim:spb - trim].mean(axis=1)
         w = cc[lag:lag + p * 8] - cc[lag:lag + p * 8].mean()
