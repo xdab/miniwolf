@@ -19,42 +19,25 @@ backend as it does through `build/miniwolf_file`.
 
 ## Carrier-frame phase-error: the controlling quantity is slow phase wander, not clicks
 
-The estimator now exists (tools/carrier_frame.py — error phasor
-u = z*conj(c)/|c|^2 against the paired noise-free carrier, decode-verdict
-split, sweep runner). Measured on the static reference channel across the
-knee: whole phase rotations (|dpsi| > pi, the Rice-click event the theory
-model rests on) NEVER occur — not even at 100% PER — so clicks do not
-govern this chain; the sub-2-pi |dpsi| > pi/2 tail does not separate
-passing from failing trials either. What separates cleanly is the RMS
-carrier-frame phase error: passing trials hold a fraction of a radian,
-failing trials wander multiple radians. The receiver is defeated by slow
-carrier-frame phase WANDER — noise FM of the signal over the frame — not
-by discrete threshold events. Open: exploit it. Slow wander is trackable
-(carrier/tone-phase reference, longer-window or IF-domain detection,
-MLSE over the FM waveform — the "matched filter" entry below is the
-receiving end of the same insight), and a phase-error figure may belong
-in the per-frame signal-quality entry.
+The estimator (tools/carrier_frame.py — error phasor u = z*conj(c)/|c|^2
+against the paired noise-free carrier, decode-verdict split) settled the
+question: whole phase rotations (the Rice-click event the theory model
+rests on) never occur, not even at 100% PER; the sub-2-pi tail does not
+separate populations. What separates cleanly is the RMS carrier-frame
+phase error: passing trials hold a fraction of a radian, failing trials
+wander multiple radians. The receiver is defeated by slow carrier-frame
+phase wander — noise FM over the frame. Exploiting that is the
+matched-filter entry below; a phase-error figure may belong in the
+per-frame signal-quality entry.
 
-## Narrow the IF before the discriminator (near-Carson channel filter)
+## Tone-detector window
 
-The IF noise bandwidth (25 kHz wide NBFM) is well above the Carson
-bandwidth of the AFSK-over-FM link; narrowing toward it raises limiter
-input rho and shrinks the Rice click rate — the cheapest large win on
-the click waterfall. The knob already exists (`--mobile-if-bw`);
-measure the PER effect on the reference sweep, and check the demod's
-own audio path still sees enough tone (the AFSK audio occupies a
-fraction of the IF band, well inside).
-
-## Tone-detector window and click blanking
-
-The Goertzel tone detectors integrate over ~3.2 bit periods: matched
-integration is ~1 bit, so the long window buys SNR but adds ISI exactly
-where the click waterfall sits, and a ~1-bit window with good clock
-recovery lets a single clipped click no longer flip a decision at all
-(per the theory agent's threshold argument). Companion: a post-
-detection click blanker (blank the audio for ~1/B after a discriminator
-rail hit), estimated to buy meaningful margin at the cliff. Both are demod-interface
-changes and must be scored paired-seed against the recorded baseline.
+The Goertzel tone detectors integrate over ~3.2 bit periods where matched
+integration is ~1 bit: the long window buys SNR but adds ISI, and the
+carrier-frame phase-error finding says losses come from slow phase wander
+—which longer, cleaner integration averages out. A ~1-bit window with good
+clock recovery is the candidate; it is a demod-interface change and must
+be scored paired-seed against the recorded baseline.
 
 ## Race winner order and selection
 
@@ -75,20 +58,18 @@ must be PER-neutral-or-better, not just cleaner.
 The current demods estimate instantaneous frequency (quad) or single-bin
 energy (Goertzel) per symbol; neither correlates against the 1200/2200 Hz
 symbol templates, which is the standard way to buy low-SNR margin in AFSK
-— the analogue of rxx_lora's dechirp-then-FFT, where the deterministic
-shape of the symbol is exploited instead of just its energy. Intended
-shape: a `demod_corr.c`-style variant producing soft symbol confidence
-alongside the hard bit, slotted behind the existing demod interface so the
-regression suite (tools/regression.py) can score it against the incumbents on equal footing.
-The far end of this direction: IF/baseband-domain detection (matched
-filter or MLSE over the FM waveforms) has no discriminator and therefore
-no click threshold at all — theory estimates a large gain over the
-discriminator receiver at the cliff, but it needs a known deviation,
-carrier/tone-phase
-reference and CFO tracking. Only worth building if the discriminator
-chain is exhausted.
-Criticality: a wish, not a gap — worth doing only because the harness
-makes its verdict cheap.
+— the analogue of rxx_lora's dechirp-then-FFT: exploit the deterministic
+symbol shape instead of just its energy. This is also the receiving end
+of the carrier-frame finding above: slow phase wander is exactly what a
+correlating/averaging detector tracks through. Intended shape: a
+`demod_corr.c`-style variant producing soft symbol confidence alongside
+the hard bit, slotted behind the existing demod interface so the
+regression suite (tools/regression.py) can score it against the
+incumbents on equal footing. The far end: IF/baseband-domain detection
+(matched filter or MLSE over the FM waveform) — larger gain, but it
+needs a known deviation, a carrier/tone-phase reference and CFO
+tracking; only worth building if the correlator direction is
+exhausted.
 
 ## Soft-bit path out of the demod
 
