@@ -47,13 +47,17 @@ baselines.
 
 ## Quality gates
 
-- clean `make build` / `make release`;
-- `make test` passing (`build/mw_test`);
-- `python3 tools/ber.py --selftest` passing;
-- `make regression` passing (`tools/regression.py`: the end-to-end
-  suite — synthetic `tools/frame.py` cases decoded byte-exact against
-  ground truth through `miniwolf_file`, plus WA8LMF decode-count
-  floors; `make regression-perf` adds real-time multiplier columns).
+`make gate` is the primary pre-commit gate; it runs everything in one go:
+
+1. `fmt-check` — clang-format clean;
+2. `build` — debug build (`-pg -O0 -DDEBUG`);
+3. `tidy` — clang-tidy, all findings are errors;
+4. `test` — unit tests (`build/mw_test`);
+5. `python3 tools/ber.py --selftest`;
+6. `regression` — the end-to-end suite (`tools/regression.py`): synthetic
+   `tools/frame.py` cases decoded byte-exact against ground truth through
+   `miniwolf_file`, plus WA8LMF decode-count floors; `make regression-perf`
+   adds real-time multiplier columns.
 
 ## Documentation
 
@@ -71,8 +75,12 @@ baselines.
 - C logging goes through the `LOG`/`LOGV`/`LOGD` macros
   (`libs/libtnc/include/common.h`) to stderr — packet decode lines included,
   which is why the tools parse stderr, never stdout;
+- code comments are terse and factual: what the code does, units, contracts,
+  pointers to tools. No narrative, no rationale essays, no diff explanations,
+  no restating what the next line obviously says. If a comment exists to
+  tell a story, delete it — the git log is the story;
 - audio is mono, native-endian float32 between stages; file formats are
-  converted at the edges only (`miniwolf_file`'s `-F`);
+  converted at the edges only (`include/format.h`, `miniwolf_file`'s `-F`);
 - Python tools are stdlib + numpy (+ matplotlib lazily in the plot path);
   keep it that way.
 

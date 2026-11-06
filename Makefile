@@ -1,4 +1,4 @@
-.PHONY: all update build profile release run cal log test prof regression regression-perf file file1 file2 fmt fmt-check tidy compdb package install clean
+.PHONY: all update build profile release run cal log test prof regression regression-perf file file1 file2 fmt fmt-check tidy gate compdb package install clean
 
 all: run
 
@@ -15,6 +15,7 @@ help:
 	@echo "package       release build, then tar the binaries"
 	@echo "fmt / fmt-check  reformat / verify formatting (clang-format)"
 	@echo "tidy          static analysis gate (clang-tidy, needs build/)"
+	@echo "gate          every quality gate in one go: fmt-check, build, tidy, test, ber selftest, regression"
 	@echo "install       release build, then install binary and systemd units"
 	@echo "clean         remove build/"
 
@@ -95,6 +96,10 @@ tidy:
 
 compdb:
 	cmake -S . -B build -G "Unix Makefiles"
+
+gate: fmt-check build tidy test
+	python3 tools/ber.py --selftest
+	python3 tools/regression.py
 
 install: release
 	sudo make -C build install
