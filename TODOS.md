@@ -56,23 +56,6 @@ detection click blanker (blank the audio for ~1/B after a discriminator
 rail hit), estimated to buy meaningful margin at the cliff. Both are demod-interface
 changes and must be scored paired-seed against the recorded baseline.
 
-## Re-score the surviving demods and cull by data
-
-Origin: three demodulators (quadrature, Goertzel, split-filter) are kept in
-`src/demod_quad.c`, `src/demod_goertzel.c`, and `src/demod.c`, each
-hand-tuned on one tape; two others ("subpar") were already removed by
-vibes. Measured (static channel, `--demods` solo arms): quadrature is
-the best solo demodulator at every C/N; the two Goertzel tunings
-(optim/pesim) are near-identical to each other and slightly behind; in
-the default race goertzel-optim takes the output by first-wins order
-while pesim wins almost nothing despite completing as many frames as
-optim. Remaining: cull pesim (worst solo, structurally
-voiceless in the race) and any further culling behind the regression
-suite (tools/regression.py); re-verify on the WA8LMF tracks and real captures
-before deleting anything. Multi-decoder diversity — several parallel
-decoders with different filters, accept any CRC-valid frame — already
-exists as the default race and measurably beats every solo arm.
-
 ## Race winner order and selection
 
 The default race delivers frames first-wins in demod-bit order, so
