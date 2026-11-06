@@ -268,6 +268,11 @@ int main(int argc, char *argv[])
         uint64_t ms = (uint64_t)(fmod(time_sec * 1000.0, 1000.0));
 
         LOG("%d @ %02lu:%02lu:%02lu.%03lu %s", packet_count, hours, mins, secs, ms, tnc2_data);
+        // per-frame received-channel quality: the winning demodulator's
+        // avg bit-clock transition health over the frame's bits (0..32;
+        // 32/32 = every PLL timing error inside the good window). The
+        // decode line itself stays byte-stable for the parsing tools.
+        LOGV("rx-quality %.1f/32 at %.3f s", rx.mrx.last_win_quality / 256.0f, time_sec);
         if (args.use_squelch)
             LOGV(
                 "sql threshold %.4f, high ema %.4f, low ema %.4f",

@@ -36,6 +36,7 @@ void md_multi_rx_init(
     mrx->last_crc = 0;
     mrx->last_time = 0L;
     mrx->dedup_suppressed = 0;
+    mrx->last_win_quality = 0;
 }
 
 void md_stats_dump(const struct md_multi_rx *mrx, const char *tag)
@@ -106,6 +107,7 @@ int md_multi_rx_process_at(
 
     if (modem >= 0)
         mrx->rxs[modem].stats.wins++;
+        mrx->last_win_quality = mrx->rxs[modem].stats.last_frame_quality;
 
     if (ret > 0)
     {
@@ -149,6 +151,9 @@ void md_rx_init(struct md_rx *rx, float sample_rate, demod_type_t type)
     hldc_deframer_init(&rx->deframer);
     bitclk_init(&rx->bit_detector, sample_rate, baud_rate);
     memset(&rx->stats, 0, sizeof(rx->stats));
+    rx->qual_sum = 0;
+    rx->qual_count = 0;
+    rx->qual_pos = 0;
 }
 
 int md_rx_process(
@@ -171,7 +176,19 @@ int md_rx_process(
         int bit = bitclk_detect(&rx->bit_detector, symbol);
 
         if (bit != BITCLK_NONE)
+        {
             rx->stats.bits++;
+            // rolling per-bit signal_quality (bit-clock transition health),
+            // the raw material of the per-frame quality figure
+            if (rx->qual_count == MD_QUAL_RING)
+                rx->qual_sum -= rx->qual_ring[rx->qual_pos];
+            else
+                rx->qual_count++;
+            rx->qual_ring[rx->qual_pos] =
+                (uint8_t)rx->bit_detector.signal_quality;
+            rx->qual_sum += rx->qual_ring[rx->qual_pos];
+            rx->qual_pos = (uint8_t)((rx->qual_pos + 1) % MD_QUAL_RING);
+        }
         if (rx->bit_detector.data_detect)
             rx->stats.dcd_on++;
 
@@ -186,7 +203,11 @@ int md_rx_process(
                 LOGV("error %d while processing sample", result);
 
             if (out_frame_buf->size > 0)
+            {
                 ret = out_frame_buf->size;
+                rx->stats.last_frame_quality =
+                    (rx->qual_sum << 8) / (uint32_t)rx->qual_count;
+            }
         }
     }
 
