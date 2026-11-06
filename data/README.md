@@ -16,37 +16,36 @@ Current contents (place files as listed):
     `ffmpeg -f wav -i trackNN_44100Hz_stereo_S16LE.wav -ar 22050 -ac 1 -c:a pcm_s16le -f s16le tnctestNN_22050Hz_mono_S16LE.raw`
     (decode: `./build/miniwolf_file -f data/tnctestNN_22050Hz_mono_S16LE.raw -F S16 -r 22050`).
 
-  Measured decode counts (miniwolf_file, current demods; the demod commit messages
-  cite hand-tuned targets of 907/980/1007 packets — see TODOS.md). Tracks 1
-  and 2 are the ones that matter; the rest is secondary:
-  track01: 1010, track02: 934, track03: 100, track04: 98, track05-07: 0.
+  Decode counts and baselines are NOT recorded here — they vary with the
+  program and go stale (see the policy in TODOS.md). Measure fresh:
+
+  - Real captures: `./build/miniwolf_file -f data/tnctestNN_22050Hz_mono_S16LE.raw -F S16 -r 22050`
+  - Synthetic reference sweep: `python3 tools/ber.py --cnr-min 4 --cnr-max 16 --cnr-step 1`
+  - Demod comparison: same sweep with `--demods` solo arms and race arms
 
   Track content per the CD's `_READme.htm`: track 1 = clean 144.39 MHz APRS
   recording; tracks 2+ add distance/degradation; track 5-7 are short
-  special-case tests (collisions, HT low-power, etc.).
+  special-case tests (collisions, HT low-power, etc.). Tracks 1 and 2 are
+  the ones that matter; the rest is secondary.
 
 - Synthetic static-channel reference (tools/ber.py, no fading/CFO/baud
   error, 48 kHz, 30-char UI frames, seed 1, noise scaled to the keyed-frame
-  carrier at the stated C/N). Measured on the current chain:
+  carrier at the stated C/N). Qualitative shape of the curve on the current
+  chain (digits intentionally omitted; regenerate as above):
 
-  - PER 50% at 7.0 dB C/N at the IF output; 16% at 8 dB; 3% at 9 dB
-    (300 trials/point).
-  - Clean (0/300) from 10 dB upward (checked to 16 dB).
-  - All failures are `none` (no output), never `wrong`: zero false decodes
+  - A knee around single-digit-dB C/N at the IF output, steep on both
+    sides; clean decodes a few dB above the knee.
+  - All failures are `none` (no output), never `wrong`: no false decodes
     at any C/N.
+  - Theory reference: `tools/ber_theory.py` (Rice click-noise model +
+    noncoherent FSK, same framing) lands near the measured knee, with the
+    measured receiver slightly better, consistent with detector
+    integration smoothing the model's all-or-nothing click flips.
 
-  Theory reference: `tools/ber_theory.py` (Rice click-noise model +
-  noncoherent FSK, same framing) puts its 50% point at ~7.8 dB — the
-  measured receiver sits ~0.8 dB better, consistent with detector
-  integration smoothing the model's all-or-nothing click flips.
-  This is the baseline every future sweep A/Bs against; regenerate with
-  `python3 tools/ber.py --cnr-min 4 --cnr-max 16 --cnr-step 1 --trials 300`.
-
-  Demodulator ranking (same sweep, 300 trials/point, `--demods` solo arms):
-  quadrature is the best solo demodulator at every C/N (PER 55% vs 61%
-  optim / 62% pesim at 4 dB; 17% vs 23% at 5 dB); the two Goertzel tunings
-  are near-identical to each other and ~0.5 dB behind quadrature. In the
+  Demodulator ranking (same sweep, `--demods` solo arms): quadrature is
+  the best solo demodulator at every C/N; the two Goertzel tunings are
+  near-identical to each other and slightly behind quadrature. In the
   default race the output is dominated by goertzel-optim by first-wins
-  order (300/300 wins from 6 dB), quadrature contributing knee rescues
-  (21/300 wins at 4 dB), goertzel-pesim practically none (6) despite
-  completing as many frames as optim.
+  order, quadrature contributing knee rescues, goertzel-pesim practically
+  none despite completing as many frames as optim. The race beats every
+  solo arm.
