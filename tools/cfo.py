@@ -66,21 +66,39 @@ def flag_span(f, start, spb):
             for sign in (1.0, -1.0):             # NRZI polarity
                 ref = sign * np.roll(ref1, -b)
                 for p in range(HEAD_FLAGS_MIN, HEAD_FLAGS_MAX + 1):
-                    r = float(np.corrcoef(cells[b:b + p * 8], ref[:p * 8])[0, 1])
+                    w = cells[b:b + p * 8] - cells[b:b + p * 8].mean()
+                    q = ref[:p * 8] - ref[:p * 8].mean()
+                    d = np.sqrt((w * w).sum() * (q * q).sum())
+                    r = float((w * q).sum() / d) if d > 0 else 0.0
                     if best is None or r > best[0]:
-                        best = (r, off, b, sign, p, cells)
+                        best = (r, off, b, sign, p)
     if best is None or best[0] < MIN_CORR:
         return None
-    r, off, b, sign, p_best, cells = best
+    r, off, b, sign, p_best = best
     # prefer the longest window whose match is statistically as good: every
     # whole-period length inside the preamble correlates equally well, so
     # the argmax lands on small p by noise alone and throws away averaging
+    cells = g[off:off + nb * spb].reshape(nb, spb)[:, trim:spb - trim].mean(axis=1)
     ref = sign * np.roll(ref1, -b)
-    for p in range(HEAD_FLAGS_MAX, HEAD_FLAGS_MIN - 1, -1):
-        rp = float(np.corrcoef(cells[b:b + p * 8], ref[:p * 8])[0, 1])
+    p = p_best
+    for pp in range(HEAD_FLAGS_MAX, HEAD_FLAGS_MIN - 1, -1):
+        w = cells[b:b + pp * 8] - cells[b:b + pp * 8].mean()
+        q = ref[:pp * 8] - ref[:pp * 8].mean()
+        d = np.sqrt((w * w).sum() * (q * q).sum())
+        rp = float((w * q).sum() / d) if d > 0 else 0.0
         if rp >= r - 0.02:
-            return off, b, p, rp, float(cells[b:b + p * 8].mean())
-    return off, b, p_best, r, float(cells[b:b + p_best * 8].mean())
+            p = pp
+            break
+    # mean tone over the whole matched span with a small edge guard: any
+    # 8p-bit span of the periodic region averages exactly 1325 Hz, and the
+    # guard drops the run-start / overrun junk concentrated at the window
+    # edges (per-bit interior trimming, by contrast, samples the hilbert
+    # reconstruction ripple inside every bit and biases the mean several Hz)
+    s = start + off + b * spb
+    n = p * 8 * spb
+    guard = spb // 4
+    m = float(np.mean(f[s + guard:s + n - guard]))
+    return off, b, p, r, m
 
 
 def main() -> int:
