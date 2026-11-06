@@ -14,11 +14,11 @@
 // Per-demodulator loss-attribution counters (see tools/loss_decomp.py)
 typedef struct md_demod_stats
 {
-    uint64_t samples;   // samples fed to the demodulator
-    uint64_t bits;      // hard bits emitted by the bit clock
-    uint64_t dcd_on;    // samples with DCD locked
-    uint64_t frames_ok; // CRC-valid frames completed by the deframer
-    uint64_t wins;      // frames this demod delivered to the output
+    uint64_t samples;            // samples fed to the demodulator
+    uint64_t bits;               // hard bits emitted by the bit clock
+    uint64_t dcd_on;             // samples with DCD locked
+    uint64_t frames_ok;          // CRC-valid frames completed by the deframer
+    uint64_t wins;               // frames this demod delivered to the output
     uint32_t last_frame_quality; // avg bitclk signal_quality over the last
                                  // completed frame's bits, x256 (0..32)
 } md_demod_stats_t;
@@ -100,8 +100,7 @@ int md_multi_rx_process_at(
 
 void md_multi_rx_free(struct md_multi_rx *mrx);
 
-// One LOG line: per-demod counters and dedup suppressions
-void md_stats_dump(const struct md_multi_rx *mrx, const char *tag);
+void md_stats_log(const struct md_multi_rx *mrx, const char *tag);
 
 //
 

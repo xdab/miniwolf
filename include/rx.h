@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <time.h>
 
-// The one RX chain shared by every miniwolf front end:
+// RX chain shared by every front end:
 // hbf equalization -> AGC -> squelch (compacting) -> multi-demodulator.
 typedef struct rx_chain
 {
@@ -32,11 +32,9 @@ typedef struct rx_params
 
 void rx_chain_init(rx_chain_t *rx, const rx_params_t *params);
 
-// Pushes n samples through the chain with in-place squelch compaction and
-// writes any demodulated frame to out_frame_buf. Returns the frame length
-// (0 = none, negative = error). `now` feeds the inter-demodulator dedup;
-// live callers pass time(NULL), offline callers their synthetic clock.
-// n/now both pass small ints; a swap is caught by the caller-side frame check
+// Pushes n samples through the chain (squelch compacts in place); writes any
+// demodulated frame to out_frame_buf. Returns the frame length
+// (0 = none, negative = error).
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now, buffer_t *out_frame_buf);
 // NOLINTEND(bugprone-easily-swappable-parameters)

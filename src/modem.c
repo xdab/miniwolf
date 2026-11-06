@@ -39,7 +39,7 @@ void md_multi_rx_init(
     mrx->last_win_quality = 0;
 }
 
-void md_stats_dump(const struct md_multi_rx *mrx, const char *tag)
+void md_stats_log(const struct md_multi_rx *mrx, const char *tag)
 {
     nonnull(mrx, "mrx");
     nonnull(tag, "tag");
@@ -81,8 +81,7 @@ int md_multi_rx_process_at(
     uint16_t crc = 0;
     int modem = -2;
 
-    // Every deframer sees every bit; frames completing anywhere are counted,
-    // only the first winner this block is delivered outward
+    // Every deframer sees every bit; only the first winner is delivered outward
     static uint8_t scratch[MD_RX_MAX][512];
 
     for (int i = 0; i < mrx->count; i++)
@@ -107,7 +106,7 @@ int md_multi_rx_process_at(
 
     if (modem >= 0)
         mrx->rxs[modem].stats.wins++;
-        mrx->last_win_quality = mrx->rxs[modem].stats.last_frame_quality;
+    mrx->last_win_quality = mrx->rxs[modem].stats.last_frame_quality;
 
     if (ret > 0)
     {
@@ -178,14 +177,12 @@ int md_rx_process(
         if (bit != BITCLK_NONE)
         {
             rx->stats.bits++;
-            // rolling per-bit signal_quality (bit-clock transition health),
-            // the raw material of the per-frame quality figure
+            // rolling per-bit signal_quality backing last_frame_quality
             if (rx->qual_count == MD_QUAL_RING)
                 rx->qual_sum -= rx->qual_ring[rx->qual_pos];
             else
                 rx->qual_count++;
-            rx->qual_ring[rx->qual_pos] =
-                (uint8_t)rx->bit_detector.signal_quality;
+            rx->qual_ring[rx->qual_pos] = (uint8_t)rx->bit_detector.signal_quality;
             rx->qual_sum += rx->qual_ring[rx->qual_pos];
             rx->qual_pos = (uint8_t)((rx->qual_pos + 1) % MD_QUAL_RING);
         }
@@ -205,8 +202,7 @@ int md_rx_process(
             if (out_frame_buf->size > 0)
             {
                 ret = out_frame_buf->size;
-                rx->stats.last_frame_quality =
-                    (rx->qual_sum << 8) / (uint32_t)rx->qual_count;
+                rx->stats.last_frame_quality = (rx->qual_sum << 8) / (uint32_t)rx->qual_count;
             }
         }
     }

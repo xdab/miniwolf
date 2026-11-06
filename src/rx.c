@@ -33,7 +33,6 @@ void rx_chain_init(rx_chain_t *rx, const rx_params_t *params)
     md_multi_rx_init(&rx->mrx, params->sample_rate, params->types);
 }
 
-// n/now both pass small ints; a swap is caught by the caller-side frame check
 // NOLINTBEGIN(bugprone-easily-swappable-parameters)
 int rx_chain_process(rx_chain_t *rx, float *samples, int n, time_t now, buffer_t *out_frame_buf)
 // NOLINTEND(bugprone-easily-swappable-parameters)

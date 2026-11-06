@@ -622,8 +622,7 @@ void test_modem_multi_rx_mixed_packets()
 void test_modem_multi_rx_stats()
 {
     // 48 kHz: at 22050 Hz DCD never locks at all (0 locked samples even
-    // behind 128 preamble flags; decoding is unaffected) — a datum for the
-    // PLL characterization TODO
+    // behind 128 preamble flags; decoding is unaffected)
     const float sample_rate = 48000.0f;
     const int max_samples = test_modem_max_samples(sample_rate, 3.0f);
     const int max_frame = 256;
@@ -633,7 +632,7 @@ void test_modem_multi_rx_stats()
 
     struct md_tx tx;
     // 500 ms preamble: 100 ms never raises DCD (needs 26/32 good transitions
-    // in the PLL history) — itself a datum for the PLL characterization TODO
+    // in the PLL history)
     md_tx_init(&tx, sample_rate, 500.0f, tx_tail);
 
     ax25_packet_t packet;

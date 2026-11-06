@@ -14,9 +14,7 @@ typedef struct
     int pending;
 } device_alsa_t;
 
-// aud_process_capture_period() pushes via callback; the pull interface parks
-// the period in `scratch` and hands it out from there. The samples are already
-// in dev->scratch when the callback fires, so it only asserts validity.
+// ALSA pushes via callback; the pull interface hands out the parked period.
 static int alsa_capture_cb(float_buffer_t *buf)
 {
     assert_buffer_valid(buf);
