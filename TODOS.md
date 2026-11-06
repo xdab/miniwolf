@@ -71,20 +71,20 @@ needs a known deviation, a carrier/tone-phase reference and CFO
 tracking; only worth building if the correlator direction is
 exhausted.
 
-## Soft-bit path out of the demod
+## Soft-bit path out of the demod: the retry half is measured dead
 
-Problem: demodulators emit hard bits and the HDLC layer in libtnc eats
-them; per-bit confidence (eye amplitude, transition density, or
-`bitclk.signal_quality`) is computed and discarded. Intended shape: an
-optional confidence output per bit, consumed first by a retry-on-CRC-fail
-path and later, if it pays, by Viterbi-style sequence scoring over
-candidate bit offsets. Measured basis for the retry half: every loss at
-the static-channel knee is in the `deframe` band (bits flow, no CRC-valid
-frame completes — tools/loss_decomp.py), so ±1 bit-slip retries have raw
-material to recover; the number to measure is how many of those frames a
-retry would actually turn valid. Criticality: uncertain until the harness measures
-how many CRC-fail frames a ±1 bit-slip retry would have recovered — that
-number decides whether this is a real feature or a drawer item.
+The go/no-go number is measured: NOT ONE deframe-band failure at the
+static-channel knee is recovered by any ±1 bit slip (global shifts,
+one-bit delete or duplicate at every stream position, quadrature and
+Goertzel alike). The failures carry ~20-30 wrong bits per ~545-bit frame
+— diffuse corruption, the carrier-frame phase-wander signature, not
+clock slips. A retry-on-CRC-fail path has no raw material; do not build
+it. What remains of the entry: per-bit confidence feeding sequence
+scoring (Viterbi-style) — but scoring the same hard bits harder cannot
+fix 20-bit corruption either; confidence only pays if it feeds a
+receiver that sees through the wander (the matched-filter entry above).
+So the soft-bit path is a drawer item until the matched-filter demod
+exists.
 
 ## DC offset and frequency-error tolerance
 
