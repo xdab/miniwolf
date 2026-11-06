@@ -28,7 +28,7 @@ holds the socket/IPC layers. Three binaries build from the same core:
 The modem runs three demodulators behind one interface (`src/demod.c`,
 `src/demod_goertzel.c`, `src/demod_quad.c`); the bit clock is a PLL
 (`src/bitclk.c`) with DCD hysteresis. Their relative merit is an open,
-measurement-defined question (TODOS.md) — do not hand-tune their constants
+measurement-defined question — do not hand-tune their constants
 against a single recording; that is the ritual this repo's tooling exists to
 end.
 

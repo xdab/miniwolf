@@ -115,8 +115,7 @@ cp build/prof/miniwolf_file "$d"/ && valgrind --tool=callgrind \
 
 An old profile stays exactly valid for the binary that produced it, so
 comparing two commits is two `hotspots.py` runs on two archived outs — the
-hash names every arm. The zero-copy and vectorization entries in TODOS.md
-are judged by exactly this protocol: baseline profile first, one change,
+hash names every arm. Performance ideas are judged by exactly this protocol: baseline profile first, one change,
 paired A/B, both metrics or it didn't happen.
 
 ## Gotchas

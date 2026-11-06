@@ -17,7 +17,7 @@ Current contents (place files as listed):
     (decode: `./build/miniwolf_file -f data/tnctestNN_22050Hz_mono_S16LE.raw -F S16 -r 22050`).
 
   Decode counts and baselines are NOT recorded here — they vary with the
-  program and go stale (see the policy in TODOS.md). Measure fresh:
+  program and go stale. Measure fresh:
 
   - Real captures: `./build/miniwolf_file -f data/tnctestNN_22050Hz_mono_S16LE.raw -F S16 -r 22050`
   - Synthetic reference sweep: `python3 tools/ber.py --cnr-min 4 --cnr-max 16 --cnr-step 1`

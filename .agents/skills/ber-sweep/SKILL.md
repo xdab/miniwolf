@@ -105,8 +105,7 @@ A PER number says how many trials died; `tools/loss_decomp.py` says where.
 counters (bits, DCD-locked samples, completed frames) and chain counters
 (squelch drops) to every `--verdicts` line; the decomposition stacks them per
 C/N into `squelch` / `dcd` / `deframe` / `dedup` / `wrong` / `ok` bands plus
-a per-demodulator frames table (which demod completes frames where — the
-data behind the demod-scoring question in TODOS.md):
+a per-demodulator frames table (which demod completes frames where):
 
 ```sh
 python3 tools/loss_decomp.py /tmp/ber/base.v --out /tmp/ber/loss.png
